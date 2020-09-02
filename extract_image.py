@@ -40,14 +40,14 @@ try:
       raise Exception("Improper program usage");  
 except:
    print_help()
-
+   sys.exit(1)
 
 # load a dcm file
 try:
    ds = load_dicom(os.path.normpath(args[1]))
 except:
    print("Please priovide a valid .dcm or .dcm.gz file")
-
+   sys.exit(1)
 
 # try to fetch the relevant data (so maybe we can process it later)
 dcm_data = []
@@ -56,6 +56,7 @@ for field in fields_of_interest:
       dcm_data.append(getattr(ds, field))
    except:
       dcm_data.append("NULL")
+
 
 # a colormap and a normalization instance
 cmap = plt.cm.gray
