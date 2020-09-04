@@ -116,7 +116,7 @@ def process_dicom_from_to_folder(input_folder, output_folder):
 
 
 # Returns ({imgage as tensor}, {label})
-def dicom_extract_img_and_label(dicom_file_path):
+def dicom_get_tensor_and_label(dicom_file_path):
     # try to load a dicom file
     ds = load_dicom(dicom_file_path)
 
@@ -138,7 +138,7 @@ def dicom_extract_img_and_label(dicom_file_path):
 
 
 # process_dicom_from_to_folder('examples', 'examples/pngs')
-print(dicom_extract_img_and_label("examples/1.dcm.gz"))
+print(dicom_get_tensor_and_label("examples/1.dcm.gz"))
 #print(extract_img_and_label('examples/1.dcm.gz'))
 #print(extract_img_and_label('examples/2.dcm.gz'))
 #print(extract_img_and_label('examples/3.dcm.gz'))
