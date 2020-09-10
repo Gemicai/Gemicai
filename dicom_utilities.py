@@ -20,12 +20,6 @@ fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyIn
                       'PatientOrientation', 'ImageLaterality', 'ImageComments', 'SeriesNumber', 'PatientName']
 
 
-class Dicom:
-    def __init__(self, filename):
-        self.tensor, labels = dicom_get_tensor_and_label(filename)
-        self.bpe, self.studydes, self.seriesdes, self.modality = labels
-
-
 def load_dicom(filename):
     try:
         if filename.endswith('.dcm'):
@@ -150,7 +144,7 @@ def dicom_get_tensor_and_label(dicom_file_path):
 def plot_dicom(dicom_file_path, cmap=None):
     tensor, label = dicom_get_tensor_and_label(dicom_file_path)
     tensor = tensor.permute(1, 2, 0)
-    plt.title(label)
+    plt.title('')
     if cmap is None:
         plt.imshow(tensor)
     else:
@@ -165,18 +159,22 @@ def print_dicom_header(dicom_file_path):
 
 
 # dir = "./dicom_objects/test/"
+# l = []
 # for file in os.listdir(dir):
 #     if file.endswith(".dcm.gz"):
-#         plot_dicom(dir+file)
-
+#         ds = load_dicom(dir+file)
+#         l.append(getattr(ds, 'InstanceNumber'))
+#
+# print(sorted(l))
+# print(len(l))
 
 file_name = 'dicom_objects/test/325261597578315993471860132776680.dcm.gz'
-# dicom_get_tensor_and_label(file_name)
-load_dicom(file_name)
-plot_dicom(file_name)
-plot_dicom(file_name, cmap='viridis')
-plot_dicom(file_name, cmap='inferno')
-print_dicom_header(file_name)
+# # dicom_get_tensor_and_label(file_name)
+# load_dicom(file_name)
+# plot_dicom(file_name)
+# plot_dicom(file_name, cmap='viridis')
+# plot_dicom(file_name, cmap='inferno')
+# print_dicom_header(file_name)
 
 
 # Body Part Examined
