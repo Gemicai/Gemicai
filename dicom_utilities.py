@@ -21,16 +21,12 @@ fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyIn
 
 
 def load_dicom(filename):
-    try:
-        if filename.endswith('.dcm'):
-            ds = dicom.dcmread(filename)
-        else:
-            with gzip.open(filename) as fd:
-                ds = dicom.dcmread(fd, force=True)
-        ds.file_meta.TransferSyntaxUID = dicom.uid.ImplicitVRLittleEndian
-    except:
-        print('Please priovide a valid .dcm or .dcm.gz file')
-        raise
+    if filename.endswith('.dcm'):
+        ds = dicom.dcmread(filename)
+    else:
+        with gzip.open(filename) as fd:
+            ds = dicom.dcmread(fd, force=True)
+    ds.file_meta.TransferSyntaxUID = dicom.uid.ImplicitVRLittleEndian
     return ds
 
 
@@ -151,30 +147,8 @@ def plot_dicom(dicom_file_path, cmap=None):
         plt.imshow(tensor[:, :, 0], cmap=cmap)
     plt.show()
 
-
-def print_dicom_header(dicom_file_path):
-    ds = load_dicom(dicom_file_path)
-    for a in dir(ds):
-        print('{} --- {}'.format(a, getattr(ds, a)))
-
-
-# dir = "./dicom_objects/test/"
-# l = []
-# for file in os.listdir(dir):
-#     if file.endswith(".dcm.gz"):
-#         ds = load_dicom(dir+file)
-#         l.append(getattr(ds, 'InstanceNumber'))
-#
-# print(sorted(l))
-# print(len(l))
-
-file_name = 'dicom_objects/test/325261597578315993471860132776680.dcm.gz'
-# # dicom_get_tensor_and_label(file_name)
-# load_dicom(file_name)
-# plot_dicom(file_name)
-# plot_dicom(file_name, cmap='viridis')
-# plot_dicom(file_name, cmap='inferno')
-# print_dicom_header(file_name)
+# file_name = 'dicom_objects/test/325261597578315993471860132776680.dcm.gz'
+file_name = 'examples/1.dcm.gz'
 
 
 # Body Part Examined
