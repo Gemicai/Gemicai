@@ -29,7 +29,7 @@ def load_dicom(filename):
                 ds = dicom.dcmread(fd, force=True)
         ds.file_meta.TransferSyntaxUID = dicom.uid.ImplicitVRLittleEndian
     except:
-        print("Please priovide a valid .dcm or .dcm.gz file")
+        print('Please priovide a valid .dcm or .dcm.gz file')
         raise
     return ds
 
@@ -50,7 +50,7 @@ def open_directory(path):
     try:
         return pathlib.Path(path)
     except:
-        print("Could not open directory: " + str(path))
+        print('Could not open directory: ' + str(path))
         raise
 
 
@@ -58,7 +58,7 @@ def get_file_name(path):
     try:
         return str(pathlib.Path(path)).split('.')[0].split('/')[-1]
     except:
-        print("Cannot parse a file path: " + str(path))
+        print('Cannot parse a file path: ' + str(path))
         raise
 
 
@@ -70,7 +70,7 @@ def dicom_to_png_pkl(input, output, pickle):
         try:
             dcm_data.append(getattr(ds, field))
         except:
-            dcm_data.append("NULL")
+            dcm_data.append('NULL')
 
     # a colormap and a normalization instance
     cmap = plt.cm.gray
@@ -86,9 +86,9 @@ def dicom_to_png_pkl(input, output, pickle):
 
     # save the image
     try:
-        plt.imsave(os.path.normpath(output), image, cmap="gray")
+        plt.imsave(os.path.normpath(output), image, cmap='gray')
     except:
-        print("Invalid image path")
+        print('Invalid image path')
         raise
 
     # create data frame to keep records of the images
@@ -98,7 +98,7 @@ def dicom_to_png_pkl(input, output, pickle):
     try:
         df.to_pickle(os.path.normpath(pickle))
     except:
-        print("Invalid pickle location")
+        print('Invalid pickle location')
         raise
 
 
@@ -112,7 +112,7 @@ def process_dicom_from_to_folder(input_folder, output_folder):
             file_name = get_file_name(path)
             image_output = output_folder + '/images/' + file_name + '.png'
             pickle_output = output_folder + '/pickle/' + file_name + '.pkl'
-            extract_dicom_data(path, image_output, pickle_output)
+            dicom_to_png_pkl(path, image_output, pickle_output)
 
 
 # Returns ({imgage as tensor}, {label})
@@ -134,13 +134,41 @@ def dicom_get_tensor_and_label(dicom_file_path):
 
     tensor = create_tensor(data)
     label = getattr(ds, 'BodyPartExamined')
+    # print(dir(ds))
+    # print(getattr(ds, 'ImageOrientationPatient'))
+    # TODO: Figure out direction from which image is taken. e.g. frontal, lateral, top down or down top etc.
+    # TODO: this is probably in the dicom header, ask Jeroen about this.
     return tensor, label
 
 
-# process_dicom_from_to_folder('examples', 'examples/pngs')
-print(dicom_get_tensor_and_label("examples/1.dcm.gz"))
-#print(extract_img_and_label('examples/1.dcm.gz'))
-#print(extract_img_and_label('examples/2.dcm.gz'))
-#print(extract_img_and_label('examples/3.dcm.gz'))
-#print(extract_img_and_label('examples/4.dcm.gz'))
-#print(extract_img_and_label('examples/5.dcm.gz'))
+# Plots dicom image with some additional label info.
+def plot_dicom(dicom_file_path, cmap=None):
+    tensor, label = dicom_get_tensor_and_label(dicom_file_path)
+    tensor = tensor.permute(1, 2, 0)
+    plt.title(label)
+    if cmap is None:
+        plt.imshow(tensor)
+    else:
+        plt.imshow(tensor[:, :, 0], cmap=cmap)
+    plt.show()
+
+
+def print_dicom_header(dicom_file_path):
+    ds = load_dicom(dicom_file_path)
+    for a in dir(ds):
+        print('{} --- {}'.format(a, getattr(ds, a)))
+
+
+
+file_name = 'examples/3.dcm.gz'
+dicom_get_tensor_and_label(file_name)
+# plot_dicom(file_name)
+# plot_dicom(file_name, cmap='viridis')
+# plot_dicom(file_name, cmap='inferno')
+# print_dicom_header(file_name)
+
+
+# Body Part Examined
+# Series Description
+# Accesion Number is voor reverse lookup
+# zit in series description
