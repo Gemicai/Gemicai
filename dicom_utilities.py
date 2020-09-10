@@ -139,9 +139,8 @@ def dicom_get_tensor_and_label(dicom_file_path):
     ])
 
     tensor = create_tensor(data)
-    labels = (getattr(ds, 'BodyPartExamined'), getattr(ds, 'StudyDescription'), getattr(ds, 'SeriesDescription'), getattr(ds, 'modality'))
-    # print(dir(ds))
-    # print(getattr(ds, 'ImageOrientationPatient'))
+    labels = (getattr(ds, 'BodyPartExamined'), getattr(ds, 'StudyDescription'),
+              getattr(ds, 'SeriesDescription'), getattr(ds, 'modality'))
     # TODO: Figure out direction from which image is taken. e.g. frontal, lateral, top down or down top etc.
     # TODO: this is probably in the dicom header, ask Jeroen about this.
     return tensor, labels
@@ -166,8 +165,8 @@ def print_dicom_header(dicom_file_path):
 
 
 
-file_name = 'examples/3.dcm.gz'
-dicom_get_tensor_and_label(file_name)
+# file_name = 'examples/3.dcm.gz'
+# dicom_get_tensor_and_label(file_name)
 # plot_dicom(file_name)
 # plot_dicom(file_name, cmap='viridis')
 # plot_dicom(file_name, cmap='inferno')
