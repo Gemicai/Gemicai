@@ -20,6 +20,12 @@ fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyIn
                       'PatientOrientation', 'ImageLaterality', 'ImageComments', 'SeriesNumber', 'PatientName']
 
 
+class Dicom:
+    def __init__(self, filename):
+        self.tensor, labels = dicom_get_tensor_and_label(filename)
+        self.bpe, self.studydes, self.seriesdes, self.modality = labels
+
+
 def load_dicom(filename):
     try:
         if filename.endswith('.dcm'):
@@ -133,12 +139,12 @@ def dicom_get_tensor_and_label(dicom_file_path):
     ])
 
     tensor = create_tensor(data)
-    label = getattr(ds, 'BodyPartExamined')
+    labels = (getattr(ds, 'BodyPartExamined'), getattr(ds, 'StudyDescription'), getattr(ds, 'SeriesDescription'), getattr(ds, 'modality'))
     # print(dir(ds))
     # print(getattr(ds, 'ImageOrientationPatient'))
     # TODO: Figure out direction from which image is taken. e.g. frontal, lateral, top down or down top etc.
     # TODO: this is probably in the dicom header, ask Jeroen about this.
-    return tensor, label
+    return tensor, labels
 
 
 # Plots dicom image with some additional label info.
