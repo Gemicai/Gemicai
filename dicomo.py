@@ -1,12 +1,13 @@
 from itertools import count
-
+#from compress_pickle import dump, load
+import pickle
 import torchvision
 import torch
 import numpy
 import os
 import dicom_utilities as du
-from compress_pickle import dump, load
 from matplotlib import pyplot as plt
+
 
 
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
@@ -52,30 +53,44 @@ def plot_dicomo(d: Dicomo, cmap='gray'):
 
 # All files within the origin directory will be compressed.
 def compress_dicom_files(origin, destination, objects_per_file=1000):
-    filename = ("%06i" % i for i in count(1))
-    temp_list = []
+    filename_iterator = ("%06i" % i for i in count(1))
+    filename = next(filename_iterator)
+    objects_inside = 0
+
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
     for root, dirs, files in os.walk(origin):
         for file in files:
             try:
+
                 d = Dicomo(root + '/' + file)
                 if d.modality in modalities:
-                    temp_list.append(d)
-                    if len(temp_list) >= objects_per_file:
-                        dump_object(temp_list, destination+next(filename))
-                        temp_list = []
+                    # check if we are allowed to append more files
+                    # if not get next file
+                    if objects_inside >= objects_per_file:
+                        filename = next(filename_iterator)
+                        objects_inside = 0
+
+                    objects_inside += 1
+                    dump_to_pickle(d, destination+filename)
+
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print(message)
-    dump_object(temp_list, destination+next(filename))
 
+# TODO DISCUSS COMPRESSION
+def dump_to_pickle(obj, output_file):
+    with open(output_file, 'ab') as output:
+        pickle.dump(obj, output)
+        #dump(obj, output, compression="lzma", set_default_extension=False)
 
-def dump_object(obj, output_file):
-    with open(output_file, 'wb') as output:
-        dump(obj, output, compression="lzma", set_default_extension=False)
+def stream_pickles(path):
+    with open(path, 'rb') as file:
+        try:
+            while True:
+                #yield load(file, compression="lzma", set_default_extension=False)
+                yield pickle.load(file)
+        except EOFError:
+            pass
 
-
-def load_object(path):
-    return load(path, compression="lzma", set_default_extension=False)
