@@ -79,18 +79,19 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                 message = template.format(type(ex).__name__, ex.args)
                 print(message)
 
+
 # TODO DISCUSS COMPRESSION
 def dump_to_pickle(obj, output_file):
     with open(output_file, 'ab') as output:
         pickle.dump(obj, output)
-        #dump(obj, output, compression="lzma", set_default_extension=False)
+# dump(obj, output, compression="lzma", set_default_extension=False)
+
 
 def stream_pickles(path):
     with open(path, 'rb') as file:
         try:
             while True:
-                #yield load(file, compression="lzma", set_default_extension=False)
                 yield pickle.load(file)
         except EOFError:
             pass
-
+# yield load(file, compression="lzma", set_default_extension=False)
