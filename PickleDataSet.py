@@ -8,6 +8,7 @@ import torch
 from compress_pickle import dump, load
 import compress_pickle.utils
 
+
 class PickleDataSet(IterableDataset):
 
     def __init__(self, pickle_path, dicomo_fields, transform = None):
