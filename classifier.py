@@ -107,9 +107,15 @@ def load_classifier(pkl_file_path):
 
 #os.path.join makes a platform dependent path (so both linux and windows works)
 def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', '000001'), batch_size=4):
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToPILImage(),
+        torchvision.transforms.Grayscale(3),
+        torchvision.transforms.ToTensor()
+    ])
+
     # while creating PickleDataSet we pass a path to a pickle that hold the data
     # and a list of the fields that we want to extract from the dicomo object
-    pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'])
+    pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
 
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
@@ -117,6 +123,7 @@ def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', 
 
 
 # Demo code
+
 # create a pickle to use as a data source
 # origin = os.path.join('examples', 'dicom', 'CT')
 # destination = os.path.join('examples', 'compressed', 'CT/')
@@ -127,10 +134,16 @@ dataloader = get_data_loader()
 
 # fetch a new batch
 for tensor, bpe in dataloader:
-
     # in this case each batch contains 4 tensors and labels
-    # print them
-    PickleDataSet.print_labels_and_display_images(tensor, bpe)
+    # trying to feed the input to the model
+    classifier.model(tensor)
+    print("IT DID NOT CRASH")
+    
+    # print the tensors and labels
+    # WARNING!
+    # only works if PickleDataSet in the get_data_loader function does not takes transform
+    # variable as a parameter, Grayscale(3) somehow fucks it up
+    # PickleDataSet.print_labels_and_display_images(tensor, bpe)
 
 # print('Classifier summaray per layer, keras style')
 # classifier.summary()
@@ -140,7 +153,7 @@ for tensor, bpe in dataloader:
 # classifier.set_trainable_layers('all', False)
 # classifier.summary()
 
-pkl = 'classifiers/resnet18.pkl'
-classifier.save(pkl)
-del classifier
-classifier = load_classifier(pkl)
+# pkl = 'classifiers/resnet18.pkl'
+# classifier.save(pkl)
+# del classifier
+# classifier = load_classifier(pkl)
