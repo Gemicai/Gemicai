@@ -1,12 +1,6 @@
 from torch.utils.data import get_worker_info
-from torch.utils.data import IterableDataset, DataLoader
-import numpy as np
+from torch.utils.data import IterableDataset
 import dicomo
-import os
-import torch
-
-from compress_pickle import dump, load
-import compress_pickle.utils
 
 
 class PickleDataSet(IterableDataset):
@@ -57,26 +51,3 @@ def print_labels_and_display_images(tensors, labels):
         print(labels[index])
         dicomo.plt.imshow(tensor, cmap='gray')
         dicomo.plt.show()
-
-
-"""
-# testing code for the PickleDataSet
-#origin = os.path.join('examples', 'dicom', 'CT')
-#destination = os.path.join('examples', 'compressed', 'CT/')
-#dicomo.compress_dicom_files(origin, destination)
-
-# example usage of the PickleDataSet
-database_path = os.path.join('examples', 'compressed', 'CT', '000001')
-
-# while creating PickleDataSet we pass a path to a pickle that hold the data
-# and a list of the fields that we want to extract from the dicomo object
-pickle_iter = PickleDataSet(database_path, ['tensor', 'bpe'])
-trainloader = torch.utils.data.DataLoader(pickle_iter, batch_size=4, shuffle=False, num_workers=0)
-
-# get new a batch
-dataiter = iter(trainloader)
-tensors, labels = dataiter.next()
-
-# display the batch
-print_labels_and_display_images(tensors, labels)
-"""

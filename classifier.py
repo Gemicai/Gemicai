@@ -1,9 +1,10 @@
 import pickle
-
 import torch
 import torch.nn as nn
 import torchvision.models as models
 from torchsummary import summary
+import PickleDataSet
+import os
 
 import dicom_utilities as du
 
@@ -64,7 +65,7 @@ class Classifier:
         for epoch in range(epochs):
             running_loss = 0.0
             # TODO write dataloader function
-            dataloader = get_dataloader()
+            dataloader = get_data_loader()
             for i, data in enumerate(dataloader, 0):
                 # get the inputs; data is a list of [inputs, labels]
                 inputs, labels = data
@@ -104,15 +105,28 @@ def load_classifier(pkl_file_path):
         return cf
 
 
-# TODO write dataloader for dicom dataset. Has to be a torch.utils.data.DataLoader object
-# tutorial = https://pytorch.org/tutorials/beginner/data_loading_tutorial.html
-# Might want to use torchvision.datasets.ImageFolder or 
-def get_dataloader(data_directory='examples'):
-    return None
+#os.path.join makes a platform dependent path (so both linux and windows works)
+def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', '000001'), batch_size=4):
+    # while creating PickleDataSet we pass a path to a pickle that hold the data
+    # and a list of the fields that we want to extract from the dicomo object
+    pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'])
+
+    # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
+    # On the bright side we load only objects we currently need (batch_size) into memory
+    return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
 
 
 # Demo code
 classifier = Classifier(resnet18)
+dataloader = get_data_loader()
+
+# fetch a new batch
+for tensor, bpe in dataloader:
+
+    # in this case each batch contains 4 tensors and labels
+    # print them
+    PickleDataSet.print_labels_and_display_images(tensor, bpe)
+
 # print('Classifier summaray per layer, keras style')
 # classifier.summary()
 # print('Classifier summaray per layer')
