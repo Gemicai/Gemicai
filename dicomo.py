@@ -1,5 +1,4 @@
 from itertools import count
-#from compress_pickle import dump, load
 import pickle
 import torchvision
 import torch
@@ -80,11 +79,9 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                 print(message)
 
 
-# TODO DISCUSS COMPRESSION
 def dump_to_pickle(obj, output_file):
     with open(output_file, 'ab') as output:
         pickle.dump(obj, output)
-# dump(obj, output, compression="lzma", set_default_extension=False)
 
 
 def stream_pickles(path):
@@ -94,4 +91,3 @@ def stream_pickles(path):
                 yield pickle.load(file)
         except EOFError:
             pass
-# yield load(file, compression="lzma", set_default_extension=False)
