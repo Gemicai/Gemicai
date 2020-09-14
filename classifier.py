@@ -1,6 +1,7 @@
 import pickle
 import torch
 import torch.nn as nn
+import torchvision
 import torchvision.models as models
 from torchsummary import summary
 import PickleDataSet
@@ -50,21 +51,20 @@ class Classifier:
         # TODO write function that evaluates self.model
         pass
 
-    def train(self, epochs=None, loss_fucntion=None, optimizer=None, verbosity=0, save_as_default=False):
+    def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
         if epochs is None:
             epochs = self.epochs
-        if loss_fucntion is None:
-            loss_fucntion = self.loss_function
+        if loss_function is None:
+            loss_function = self.loss_function
         if optimizer is None:
             optimizer = self.optimizer
         if save_as_default:
             self.epochs = epochs
-            self.loss_function = loss_fucntion
+            self.loss_function = loss_function
             self.optimizer = optimizer
 
         for epoch in range(epochs):
             running_loss = 0.0
-            # TODO write dataloader function
             dataloader = get_data_loader()
             for i, data in enumerate(dataloader, 0):
                 # get the inputs; data is a list of [inputs, labels]
@@ -75,7 +75,7 @@ class Classifier:
 
                 # forward + backward + optimize
                 outputs = self.model(inputs)
-                loss = loss_fucntion(outputs, labels)
+                loss = loss_function(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
@@ -117,6 +117,11 @@ def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', 
 
 
 # Demo code
+# create a pickle to use as a data source
+# origin = os.path.join('examples', 'dicom', 'CT')
+# destination = os.path.join('examples', 'compressed', 'CT/')
+# PickleDataSet.dicomo.compress_dicom_files(origin, destination)
+
 classifier = Classifier(resnet18)
 dataloader = get_data_loader()
 

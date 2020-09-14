@@ -3,11 +3,7 @@ import pydicom as dicom
 import os
 import pandas as pd
 from matplotlib import pyplot as plt
-import sys
-import string
 import pathlib
-from PIL import Image
-import glob
 import torchvision
 import torch
 import numpy
@@ -148,7 +144,7 @@ def plot_dicom(dicom_file_path, cmap=None):
     plt.show()
 
 # file_name = 'dicom_objects/test/325261597578315993471860132776680.dcm.gz'
-file_name = 'examples/1.dcm.gz'
+# file_name = 'examples/1.dcm.gz'
 
 
 # Body Part Examined
