@@ -125,9 +125,9 @@ def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', 
 # Demo code
 
 # create a pickle to use as a data source
-#origin = os.path.join('examples', 'dicom', 'CT')
-#destination = os.path.join('examples', 'compressed', 'CT/')
-#PickleDataSet.dicomo.compress_dicom_files(origin, destination)
+# origin = os.path.join('examples', 'dicom', 'CT')
+# destination = os.path.join('examples', 'compressed', 'CT/')
+# PickleDataSet.dicomo.compress_dicom_files(origin, destination)
 
 classifier = Classifier(resnet18)
 dataloader = get_data_loader()
