@@ -6,8 +6,9 @@ import numpy
 import os
 import dicom_utilities as du
 from matplotlib import pyplot as plt
-
-
+import tempfile
+import gzip
+import shutil
 
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
 class Dicomo:
@@ -52,41 +53,55 @@ def plot_dicomo(d: Dicomo, cmap='gray'):
 
 # All files within the origin directory will be compressed.
 def compress_dicom_files(origin, destination, objects_per_file=1000):
-    filename_iterator = ("%06i" % i for i in count(1))
-    filename = next(filename_iterator)
-    objects_inside = 0
-
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
-    for root, dirs, files in os.walk(origin):
-        for file in files:
-            try:
+    with tempfile.NamedTemporaryFile(mode="ab+") as temp:
+        # holds names for the gziped files
+        filename_iterator = ("%06i.gz" % i for i in count(1))
+        objects_inside = 0
 
-                d = Dicomo(root + '/' + file)
-                if d.modality in modalities:
-                    # check if we are allowed to append more files
-                    # if not get next file
-                    if objects_inside >= objects_per_file:
-                        filename = next(filename_iterator)
-                        objects_inside = 0
+        for root, dirs, files in os.walk(origin):
+            for file in files:
+                try:
 
-                    objects_inside += 1
-                    dump_to_pickle(d, destination+filename)
+                    d = Dicomo(root + '/' + file)
+                    if d.modality in modalities:
 
-            except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                print(message)
+                        # check if we are not allowed to append more files
+                        if objects_inside >= objects_per_file:
+
+                            # gzip temp file and clear its content
+                            temp.flush()
+                            zip_to_file(temp, destination+next(filename_iterator))
+                            objects_inside = 0
+                            temp.truncate()
+
+                        # dump binary data to the temp file
+                        pickle.dump(d, temp)
+                        objects_inside += 1
+
+                except Exception as ex:
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+        temp.flush()
+        zip_to_file(temp, destination+next(filename_iterator))
 
 
-def dump_to_pickle(obj, output_file):
-    with open(output_file, 'ab') as output:
-        pickle.dump(obj, output)
+def zip_to_file(file, zip_path):
+    with gzip.open(zip_path, 'wb') as zipped:
+        shutil.copyfileobj(open(file.name, 'rb'), zipped)
+
+
+def unzip_to_file(file, zip_path):
+    with gzip.open(zip_path, 'rb') as zipped:
+        shutil.copyfileobj(zipped, open(file.name, 'ab+'))
 
 
 def stream_pickles(path):
-    with open(path, 'rb') as file:
+    with tempfile.NamedTemporaryFile(mode="ab+") as file:
         try:
+            unzip_to_file(file, path)
             while True:
                 yield pickle.load(file)
         except EOFError:

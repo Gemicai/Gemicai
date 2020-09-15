@@ -106,7 +106,7 @@ def load_classifier(pkl_file_path):
 
 
 #os.path.join makes a platform dependent path (so both linux and windows works)
-def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', '000001'), batch_size=4):
+def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', '000001.gz'), batch_size=4):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
         torchvision.transforms.Grayscale(3),
@@ -125,12 +125,13 @@ def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', 
 # Demo code
 
 # create a pickle to use as a data source
-# origin = os.path.join('examples', 'dicom', 'CT')
-# destination = os.path.join('examples', 'compressed', 'CT/')
-# PickleDataSet.dicomo.compress_dicom_files(origin, destination)
+#origin = os.path.join('examples', 'dicom', 'CT')
+#destination = os.path.join('examples', 'compressed', 'CT/')
+#PickleDataSet.dicomo.compress_dicom_files(origin, destination)
 
 classifier = Classifier(resnet18)
 dataloader = get_data_loader()
+
 
 # fetch a new batch
 for tensor, bpe in dataloader:
@@ -138,7 +139,7 @@ for tensor, bpe in dataloader:
     # trying to feed the input to the model
     classifier.model(tensor)
     print("IT DID NOT CRASH")
-    
+
     # print the tensors and labels
     # WARNING!
     # only works if PickleDataSet in the get_data_loader function does not takes transform
