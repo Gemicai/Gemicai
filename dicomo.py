@@ -74,7 +74,7 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                             temp.flush()
                             zip_to_file(temp, destination+next(filename_iterator))
                             objects_inside = 0
-                            temp.truncate()
+                            temp.truncate(0)
 
                         # dump binary data to the temp file
                         pickle.dump(d, temp)
