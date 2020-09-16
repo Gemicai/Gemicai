@@ -1,4 +1,5 @@
 from itertools import count
+from collections import Counter
 import pickle
 import torchvision
 import torch
@@ -9,6 +10,7 @@ from matplotlib import pyplot as plt
 import tempfile
 import gzip
 import shutil
+
 
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
 class Dicomo:
@@ -51,13 +53,16 @@ def plot_dicomo(d: Dicomo, cmap='gray'):
     plt.show()
 
 
-# All files within the origin directory will be compressed.
+# All files within the origin directory will be compressed, returns counter for the frequency of bpe label.
 def compress_dicom_files(origin, destination, objects_per_file=1000):
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
+    # Trying just the DX modality first, as that's probably the easist one.
+    modalities = ['DX']
+    cnt = Counter()
     with tempfile.NamedTemporaryFile(mode="ab+") as temp:
         # holds names for the gziped files
-        filename_iterator = ("%06i.gz" % i for i in count(1))
+        filename_iterator = ("%06i.dicomos.gz" % i for i in count(1))
         objects_inside = 0
 
         for root, dirs, files in os.walk(origin):
@@ -65,6 +70,7 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                 try:
 
                     d = Dicomo(root + '/' + file)
+                    cnt.update(d.bpe)
                     if d.modality in modalities:
 
                         # check if we are not allowed to append more files
@@ -86,6 +92,7 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                     print(message)
         temp.flush()
         zip_to_file(temp, destination+next(filename_iterator))
+        return cnt
 
 
 def zip_to_file(file, zip_path):
