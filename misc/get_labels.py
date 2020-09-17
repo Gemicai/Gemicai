@@ -2,10 +2,9 @@ import os
 import sys
 
 # Makes sure we can import dicomo, and run this file from the terminal
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import PickleDataSet
 import torchvision
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import classifier
 
 data_origin = '/home/nheinen/gemicai/dicom_objects/DX/'
