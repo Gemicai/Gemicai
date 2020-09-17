@@ -21,29 +21,27 @@ class PickleDataSet(IterableDataset):
             raise Exception("PickleDataSet does not support multi-process data loading")
 
     def __next__(self):
-        try:
-            # get next dicomo class from the stream
-            dicomo_class = next(self.pickle_stream)
+        # get next dicomo class from the stream
+        dicomo_class = next(self.pickle_stream)
 
-            # fetch values of the fields we are interested in
-            field_list = []
-            for field in self.dicomo_fields:
-                try:
-                    # ugly but works
-                    # check if transform is specified and if it should be applied
-                    temp = getattr(dicomo_class, field)
-                    if self.transform and field == 'tensor':
-                        try:
-                            temp = self.transform(temp)
-                        except:
-                            raise Exception('Could not apply specified transformation to the dicom image')
-                    field_list.append(temp)
-                except:
-                    None
+        # fetch values of the fields we are interested in
+        field_list = []
+        for field in self.dicomo_fields:
+            try:
+                # ugly but works
+                # check if transform is specified and if it should be applied
+                temp = getattr(dicomo_class, field)
+                if self.transform and field == 'tensor':
+                    try:
+                        temp = self.transform(temp)
+                    except:
+                        raise Exception('Could not apply specified transformation to the dicom image')
+                field_list.append(temp)
+            except:
+                None
 
-            return field_list
-        except:
-            raise StopIteration
+        return field_list
+
 
 
 def print_labels_and_display_images(tensors, labels):
