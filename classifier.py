@@ -52,7 +52,7 @@ class Classifier:
 
     def set_data_loader(self, train_directory):
         self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
-        cnt = Counter()
+        cnt = LabelCounter()
         for i, data in enumerate(self.data_loader):
             for label in data[1]:
                 cnt.update(label)
@@ -85,7 +85,7 @@ class Classifier:
 
                 # forward + backward + optimize
                 outputs = self.model(tensors)
-                loss = loss_function(outputs, labels)
+                loss = loss_function(outputs, torch.tensor(labels))
                 loss.backward()
                 optimizer.step()
 
@@ -136,7 +136,7 @@ def get_data_loader(data_directory, use_pds=False, batch_size=4):
 
 
 # Putting this here since standard collection.Counter doesn't do what I want it to do.
-class Counter:
+class LabelCounter:
     def __init__(self):
         self.dic = {}
 
@@ -146,10 +146,11 @@ class Counter:
         else:
             self.dic[s] = 1
 
+    # I know this looks hideous but it prints a wonderfull table :)
     def print(self):
-        print('frequency - label')
+        print('label                | frequency\n---------------------------------')
         t = 0
         for k, v in self.dic.items():
             t += v
-            print('{} - {}'.format(v, k))
-        print('Total number of training images: {} \n Total number of labels: {}'.format(t, len(self.dic.keys())))
+            print('{:<20s} | {:>8d}'.format(k, v))
+        print('\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys())))
