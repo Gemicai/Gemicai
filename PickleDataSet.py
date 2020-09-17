@@ -5,7 +5,7 @@ import dicomo
 
 class PickleDataSet(IterableDataset):
 
-    def __init__(self, pickle_path, dicomo_fields, transform = None):
+    def __init__(self, pickle_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
         self.dicomo_fields = dicomo_fields
