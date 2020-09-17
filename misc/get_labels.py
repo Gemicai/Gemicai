@@ -8,19 +8,6 @@ data_origin = '/home/nheinen/gemicai/dicom_objects/DX/000001.dicomos.gz'
 # data_origin = '../examples/compressed/DX/000001.dicomos.gz'
 
 
-class Counter:
-    def __init__(self):
-        self.dic = {}
-
-    def update(self, s):
-        if s in self.dic.keys():
-            self.dic[s] += 1
-        else:
-            self.dic[s] = 1
-
-    def print(self):
-        for k, v in self.dic.items():
-            print('{} \t {}'.format(k, v))
 
 
 cnt = Counter()
