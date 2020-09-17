@@ -1,5 +1,6 @@
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
+import torch
 import dicomo
 import os
 
@@ -13,22 +14,25 @@ class PickleDataFolder(IterableDataset):
         self.transform = transform
 
     def __iter__(self):
-        None
+        self.data_set_gen = self.get_next_data_set()
+        self.data_set = next(self.data_set_gen)
+        return self
 
     def __next__(self):
-        for data_set in self.get_next_data_set(self):
-            try:
-                while True:
-                    yield next(data_set)
-            except:
-                None
-        raise StopIteration
+        try:
+            while True:
+                try:
+                    return next(self.data_set)
+                except:
+                    self.data_set = next(self.data_set_gen)
+        except:
+            raise StopIteration
 
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
-                yield PickleDataSet(os.path.join(root, name), self.dicomo_fields, self.transform)
-
+                yield iter(PickleDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
+        raise StopIteration
 
 class PickleDataSet(IterableDataset):
 
@@ -78,3 +82,16 @@ def print_labels_and_display_images(tensors, labels):
         print(labels[index])
         dicomo.plt.imshow(tensor, cmap='gray')
         dicomo.plt.show()
+
+
+#Leaving it for now might be useful later
+#origin = os.path.join("examples", "dicom", "CT")
+#destination = os.path.join("examples", "gzip", "CT/")
+#dicomo.compress_dicom_files(origin, destination, 10)
+
+#data_directory = os.path.join("examples", "gzip", "CT")
+#pickle_iterator = PickleDataFolder(data_directory, ['tensor', 'bpe'], transform=None)
+#folder_iterator = torch.utils.data.DataLoader(pickle_iterator, batch_size, shuffle=False, num_workers=0)
+
+#for tensor, bpe in pickle_iterator:
+#    print(bpe)

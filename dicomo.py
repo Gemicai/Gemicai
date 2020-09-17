@@ -58,7 +58,7 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
     # Trying just the DX modality first, as that's probably the easist one.
-    modalities = ['DX']
+    #modalities = ['DX']
     cnt = Counter()
     with tempfile.NamedTemporaryFile(mode="ab+") as temp:
         # holds names for the gziped files
@@ -80,7 +80,8 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                             temp.flush()
                             zip_to_file(temp, destination+next(filename_iterator))
                             objects_inside = 0
-                            temp.truncate(0)
+                            temp.seek(0)
+                            temp.truncate()
 
                         # dump binary data to the temp file
                         pickle.dump(d, temp)
