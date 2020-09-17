@@ -8,20 +8,21 @@ import torchvision
 import classifier
 
 data_origin = '/home/nheinen/gemicai/dicom_objects/DX/'
+data_origin = '../examples/compressed/DX/000001.dicomos.gz'
+
+
+pds = PickleDataSet.PickleDataSet(data_origin, ['tensor', 'bpe'])
+pds_iter = iter(pds)
+# print(pds_iter)
+for _ in range(10):
+    print(next(pds_iter))
 
 # This should work but doesn't
 # dataloader = classifier.get_data_loader(data_directory=data_origin)
 #
-# for i, data in enumerate(dataloader, 0):
+# for i, data in enumerate(dataloader):
 #     # get the inputs; data is a list of [inputs, labels]
 #     tensor, labels = data
 #     print(data)
 
-transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Grayscale(3),
-        torchvision.transforms.ToTensor()
-    ])
-pds = PickleDataSet.PickleDataSet(data_origin, ['tensor', 'bpe'], transform)
-for _ in range(100):
-    print(next(pds))
+
