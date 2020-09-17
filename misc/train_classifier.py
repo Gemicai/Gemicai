@@ -1,3 +1,8 @@
+import os
+import sys
+
+# Makes sure we can import classifier, and run this file from the terminal
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import classifier
 import torchvision.models as models
 
