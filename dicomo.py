@@ -54,6 +54,8 @@ def plot_dicomo(d: Dicomo, cmap='gray'):
 
 
 # All files within the origin directory will be compressed, returns counter for the frequency of bpe label.
+# fixme: this doesn't work on windows bc of tempfile.NamedTemporaryFile.
+# (at this point in time not really worth fixing, bc who cares about windows anyway?)
 def compress_dicom_files(origin, destination, objects_per_file=1000):
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']

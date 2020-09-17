@@ -2,35 +2,30 @@ import pickle
 import torch
 import torch.nn as nn
 import torchvision
-import torchvision.models as models
 from torchsummary import summary
 import PickleDataSet
-import os
-
-import dicom_utilities as du
-
-# Input shape of the tensors used by the classifier
-input_shape = (3, 244, 244)
-
-# All possible classes, #TODO @Niek get complete list
-labels = ['Thorax PA', 'Thorax AP', 'Thorax AX', 'etc']
-
-resnet18 = models.resnet18(pretrained=True)
 
 
 class Classifier:
     def __init__(self, base_model: nn.Module):
-        # Sets model of the classifier and edits its last layer.
+        # Sets base model of the classifier
         self.model = base_model
-        self.model.fc = nn.Linear(self.model.fc.in_features, len(labels))
 
         # Default setting for training, can be overwirten in train() if save_as_default=True
         self.epochs = 20
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+        self.batch_size = 4
 
         # Save location, will be stored after setting it once with save()
         self.file_path = None
+
+        # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
+        self.data_loader = None
+        self.labels = None
+
+        # Input shape of the tensors used by the classifier, only needed for keras like model summary
+        self.input_shape = (3, 244, 244)
 
     def set_trainable_layers(self, layers, boolean):
         for name, param in self.model.named_parameters():
@@ -39,19 +34,35 @@ class Classifier:
                 param.requires_grad = boolean
 
     def summary(self):
-        summary(self.model, input_shape)
+        summary(self.model, self.input_shape)
 
-    # TODO implement this function with torch.utils.data.DataLoader object, we can then classify images easily
-    # with self.model(images) like in https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
-    def classifiy(self, dicom_file_path):
-        tensor, label = du.dicom_get_tensor_and_label(dicom_file_path)
-        return self.model(tensor)
+    def evaluate(self, evaluation_directory, verbosity=0):
+        # puts model in evaluation mode.
+        self.model.eval()
+        correct, total = 0, 0
+        testloader = get_data_loader(evaluation_directory, batch_size=self.batch_size)
+        with torch.no_grad():
+            for data in testloader:
+                images, labels = data
+                outputs = self.model(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100*correct/total, 2)))
 
-    def eval(self, verbosity=0):
-        # TODO write function that evaluates self.model
-        pass
+    def set_data_loader(self, train_directory):
+        self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
+        cnt = Counter()
+        for i, data in enumerate(self.data_loader):
+            for label in data[1]:
+                cnt.update(label)
+        cnt.print()
+        self.labels = cnt.dic.keys()
+        self.model.fc = nn.Linear(self.model.fc.in_features, len(self.labels))
 
     def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
+        # Puts model in training mode.
+        self.model.train()
         if epochs is None:
             epochs = self.epochs
         if loss_function is None:
@@ -65,17 +76,15 @@ class Classifier:
 
         for epoch in range(epochs):
             running_loss = 0.0
-            # dataloader = get_data_loader()
-            dataloader = get_data_loader('/home/nheinen/gemicai/dicom_objects/DX/')
-            for i, data in enumerate(dataloader, 0):
-                # get the inputs; data is a list of [inputs, labels]
-                tensor, labels = data
+            for i, data in enumerate(self.data_loader):
+                # get the inputs; data is a list of [tensors, labels]
+                tensors, labels = data
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward + backward + optimize
-                outputs = self.model(tensor)
+                outputs = self.model(tensors)
                 loss = loss_function(outputs, labels)
                 loss.backward()
                 optimizer.step()
@@ -83,8 +92,7 @@ class Classifier:
                 # print statistics
                 running_loss += loss.item()
                 if verbosity >= 1 and i % 2000 == 1999:  # print every 2000 mini-batches
-                    print('[%d, %5d] loss: %.3f' %
-                          (epoch + 1, i + 1, running_loss / 2000))
+                    print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
@@ -106,18 +114,42 @@ def load_classifier(pkl_file_path):
         return cf
 
 
-#os.path.join makes a platform dependent path (so both linux and windows works)
-def get_data_loader(data_directory=os.path.join('examples', 'compressed', 'CT', '000001.gz'), batch_size=4):
+# os.path.join makes a platform dependent path (so both linux and windows works)
+# =os.path.join('examples', 'compressed', 'CT', '000001.gz')
+def get_data_loader(data_directory, use_pds=False, batch_size=4):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
         torchvision.transforms.Grayscale(3),
         torchvision.transforms.ToTensor()
     ])
 
-    # while creating PickleDataSet we pass a path to a pickle that hold the data
-    # and a list of the fields that we want to extract from the dicomo object
-    pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
+    if use_pds:
+        # while creating PickleDataSet we pass a path to a pickle that hold the data
+        # and a list of the fields that we want to extract from the dicomo object
+        pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
+    else:
+        pickle_iter = PickleDataSet.PickleDataFolder(data_directory, ['tensor', 'bpe'], transform)
 
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
     return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
+
+
+# Putting this here since standard collection.Counter doesn't do what I want it to do.
+class Counter:
+    def __init__(self):
+        self.dic = {}
+
+    def update(self, s):
+        if s in self.dic.keys():
+            self.dic[s] += 1
+        else:
+            self.dic[s] = 1
+
+    def print(self):
+        print('frequency - label')
+        t = 0
+        for k, v in self.dic.items():
+            t += v
+            print('{} - {}'.format(v, k))
+        print('Total number of training images: {} \n Total number of labels: {}'.format(t, len(self.dic.keys())))
