@@ -1,10 +1,10 @@
 from itertools import count
-from collections import Counter
 import pickle
 import torchvision
 import torch
 import numpy
 import os
+from classifier import LabelCounter
 import dicom_utilities as du
 from matplotlib import pyplot as plt
 import tempfile
@@ -60,8 +60,8 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
     # Relevant modalities
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
     # Trying just the DX modality first, as that's probably the easist one.
-    #modalities = ['DX']
-    cnt = Counter()
+    modalities = ['DX']
+    cnt = LabelCounter()
     with tempfile.NamedTemporaryFile(mode="ab+") as temp:
         # holds names for the gziped files
         filename_iterator = ("%06i.dicomos.gz" % i for i in count(1))
@@ -70,11 +70,9 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
         for root, dirs, files in os.walk(origin):
             for file in files:
                 try:
-
                     d = Dicomo(root + '/' + file)
-                    cnt.update(d.bpe)
                     if d.modality in modalities:
-
+                        cnt.update(d.bpe)
                         # check if we are not allowed to append more files
                         if objects_inside >= objects_per_file:
 
