@@ -4,6 +4,7 @@ import torch.nn as nn
 import torchvision
 from torchsummary import summary
 import PickleDataSet
+from dicomo import LabelCounter
 
 
 class Classifier:
@@ -48,7 +49,7 @@ class Classifier:
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100*correct/total, 2)))
+            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
     def set_data_loader(self, train_directory):
         self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
@@ -133,24 +134,3 @@ def get_data_loader(data_directory, use_pds=False, batch_size=4):
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
     return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
-
-
-# Putting this here since standard collection.Counter doesn't do what I want it to do.
-class LabelCounter:
-    def __init__(self):
-        self.dic = {}
-
-    def update(self, s):
-        if s in self.dic.keys():
-            self.dic[s] += 1
-        else:
-            self.dic[s] = 1
-
-    # I know this looks hideous but it prints a wonderfull table :)
-    def print(self):
-        print('label                | frequency\n---------------------------------')
-        t = 0
-        for k, v in self.dic.items():
-            t += v
-            print('{:<20s} | {:>8d}'.format(k, v))
-        print('\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys())))

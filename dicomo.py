@@ -4,7 +4,6 @@ import torchvision
 import torch
 import numpy
 import os
-from classifier import LabelCounter
 import dicom_utilities as du
 from matplotlib import pyplot as plt
 import tempfile
@@ -75,10 +74,9 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                         cnt.update(d.bpe)
                         # check if we are not allowed to append more files
                         if objects_inside >= objects_per_file:
-
                             # gzip temp file and clear its content
                             temp.flush()
-                            zip_to_file(temp, destination+next(filename_iterator))
+                            zip_to_file(temp, destination + next(filename_iterator))
                             objects_inside = 0
                             temp.seek(0)
                             temp.truncate()
@@ -92,7 +90,7 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                     message = template.format(type(ex).__name__, ex.args)
                     print(message)
         temp.flush()
-        zip_to_file(temp, destination+next(filename_iterator))
+        zip_to_file(temp, destination + next(filename_iterator))
         return cnt
 
 
@@ -114,3 +112,24 @@ def stream_pickles(path):
                 yield pickle.load(file)
         except EOFError:
             pass
+
+
+# Putting this here since standard collection.Counter doesn't do what I want it to do.
+class LabelCounter:
+    def __init__(self):
+        self.dic = {}
+
+    def update(self, s):
+        if s in self.dic.keys():
+            self.dic[s] += 1
+        else:
+            self.dic[s] = 1
+
+    # I know this looks hideous but it prints a wonderfull table :)
+    def print(self):
+        print('label                | frequency\n---------------------------------')
+        t = 0
+        for k, v in self.dic.items():
+            t += v
+            print('{:<20s} | {:>8d}'.format(k, v))
+        print('\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys())))
