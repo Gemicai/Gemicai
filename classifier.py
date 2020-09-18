@@ -47,6 +47,7 @@ class Classifier:
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
+                labels = torch.tensor([self.classes.index(label) for label in labels])
                 outputs = self.model(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
@@ -109,9 +110,6 @@ class Classifier:
                 print('Epoch {} finished in {} --- loss: {}'.format(epoch+1, datetime.now()-start, running_loss))
         if verbosity >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
-
-
-
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
