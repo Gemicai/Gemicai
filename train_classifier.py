@@ -21,10 +21,12 @@ def demo_train_classifier():
 
     # Train the classifier
     net.train(epochs=20, verbosity=1)
+    net.save('classifiers/dx_bpe_trained.pkl')
 
+
+def demo_evaluate_classifier():
     # Evaluate the classifier, specify the directory of what images it should be evaluated with.
     net.evaluate('/home/nheinen/gemicai/dicom_objects/DX/', verbosity=1)
-    net.save('classifiers/dx_bpe_trained.pkl')
 
 
 # demo_initialize_classifier()
