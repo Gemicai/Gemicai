@@ -23,7 +23,7 @@ class Classifier:
 
         # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
         self.data_loader = None
-        self.labels = None
+        self.classes = None
 
         # Input shape of the tensors used by the classifier, only needed for keras like model summary
         self.input_shape = (3, 244, 244)
@@ -51,15 +51,16 @@ class Classifier:
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def set_data_loader(self, train_directory):
+    def set_data_loader(self, train_directory, verbosity=0):
         self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
         cnt = LabelCounter()
         for i, data in enumerate(self.data_loader):
             for label in data[1]:
                 cnt.update(label)
-        cnt.print()
-        self.labels = cnt.dic.keys()
-        self.model.fc = nn.Linear(self.model.fc.in_features, len(self.labels))
+        if verbosity >= 1:
+            cnt.print()
+        self.classes = cnt.dic.keys()
+        self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
 
     def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
         # Puts model in training mode.
@@ -81,12 +82,15 @@ class Classifier:
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
 
+                # labels returned by the classifier are strings, we need to convert this to an int
+                labels = [self.classes[label] for label in labels]
+
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward + backward + optimize
                 outputs = self.model(tensors)
-                loss = loss_function(outputs, torch.tensor(labels))
+                loss = loss_function(outputs, labels)
                 loss.backward()
                 optimizer.step()
 
