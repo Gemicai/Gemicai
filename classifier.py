@@ -23,6 +23,7 @@ class Classifier:
 
         # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
         self.data_loader = None
+        self.train_directory = None
         self.classes = None
 
         # Input shape of the tensors used by the classifier, only needed for keras like model summary
@@ -51,16 +52,19 @@ class Classifier:
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def set_data_loader(self, train_directory, verbosity=0):
+    def set_data_loader(self, train_directory, verbosity=0, determine_classes=True):
         self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
-        cnt = LabelCounter()
-        for i, data in enumerate(self.data_loader):
-            for label in data[1]:
-                cnt.update(label)
-        if verbosity >= 1:
-            cnt.print()
-        self.classes = cnt.dic.keys()
-        self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
+        self.train_directory = train_directory
+        # This automatically determines all classes within the training data, and alters the classifer accordingly
+        if determine_classes:
+            cnt = LabelCounter()
+            for i, data in enumerate(self.data_loader):
+                for label in data[1]:
+                    cnt.update(label)
+            if verbosity >= 1:
+                cnt.print()
+            self.classes = cnt.dic.keys()
+            self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
 
     def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
         # Puts model in training mode.
@@ -106,16 +110,20 @@ class Classifier:
             file_path = self.file_path
         else:
             self.file_path = file_path
+        # You can't store a generator object.
+        self.data_loader = None
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
 
 # Loads classifier objcet from .pkl file
-def load_classifier(pkl_file_path):
+def load_classifier(pkl_file_path, verbosity=0):
     with open(pkl_file_path, 'rb') as input:
         cf = pickle.load(input)
         assert isinstance(cf, Classifier), 'Not a valid Classifier'
-        print('Loaded classifier from {} as {}'.format(cf.file_path, cf))
+        cf.set_data_loader(cf.train_directory, determine_classes=False)
+        if verbosity >= 1:
+            print('Succesfully loaded classifier with classes: {}'.format(cf.classes))
         return cf
 
 
