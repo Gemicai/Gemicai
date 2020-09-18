@@ -25,6 +25,8 @@ def demo_train_classifier():
 
 
 def demo_evaluate_classifier():
+    net = classifier.load_classifier('classifiers/dx_bpe_trained.pkl')
+
     # Evaluate the classifier, specify the directory of what images it should be evaluated with.
     net.evaluate('/home/nheinen/gemicai/dicom_objects/DX/', verbosity=1)
 
