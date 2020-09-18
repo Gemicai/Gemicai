@@ -17,7 +17,7 @@ def demo_initialize_classifier():
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = classifier.load_classifier('classifiers/dx_bpe.pkl')
+    net = classifier.load_classifier('classifiers/dx_bpe.pkl', verbosity=1)
 
     # Train the classifier
     net.train(epochs=20, verbosity=1)

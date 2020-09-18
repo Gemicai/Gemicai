@@ -5,6 +5,7 @@ import torchvision
 from torchsummary import summary
 import PickleDataSet
 from dicomo import LabelCounter
+from datetime import datetime
 
 
 class Classifier:
@@ -80,6 +81,7 @@ class Classifier:
             self.loss_function = loss_function
             self.optimizer = optimizer
 
+        start = datetime.now()
         for epoch in range(epochs):
             running_loss = 0.0
             for i, data in enumerate(self.data_loader):
@@ -100,9 +102,16 @@ class Classifier:
 
                 # print statistics
                 running_loss += loss.item()
-                if verbosity >= 1 and i % 2000 == 1999:  # print every 2000 mini-batches
+                if verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
+            if verbosity >= 1:
+                print('Epoch {} finished in {} --- loss: {}'.format(epoch+1, datetime.now()-start, running_loss))
+        if verbosity >= 1:
+            print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
+
+
+
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
