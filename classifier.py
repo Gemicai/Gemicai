@@ -63,7 +63,7 @@ class Classifier:
                     cnt.update(label)
             if verbosity >= 1:
                 cnt.print()
-            self.classes = cnt.dic.keys()
+            self.classes = list(cnt.dic.keys())
             self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
 
     def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
@@ -87,7 +87,7 @@ class Classifier:
                 tensors, labels = data
 
                 # labels returned by the classifier are strings, we need to convert this to an int
-                labels = [self.classes[label] for label in labels]
+                labels = torch.tensor([self.classes.index(label) for label in labels])
 
                 # zero the parameter gradients
                 optimizer.zero_grad()

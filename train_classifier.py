@@ -27,4 +27,5 @@ def demo_train_classifier():
     net.save('classifiers/dx_bpe_trained.pkl')
 
 
-demo_initialize_classifier()
+# demo_initialize_classifier()
+demo_train_classifier()
