@@ -24,8 +24,14 @@ class Classifier:
 
         # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
         self.data_loader = None
-        self.train_directory = None
+
+        # Data loader's metadata , used to calculate benchmarks.
+        self.dl_train_directory = None
+        # self.dl_total_images = None
+
+        # The classes and classes counts will be initialized when setting a data loader.
         self.classes = None
+        self.class_counts = None
 
         # Input shape of the tensors used by the classifier, only needed for keras like model summary
         self.input_shape = (3, 244, 244)
@@ -56,7 +62,7 @@ class Classifier:
 
     def set_data_loader(self, train_directory, verbosity=0, determine_classes=True):
         self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
-        self.train_directory = train_directory
+        self.dl_train_directory = train_directory
         # This automatically determines all classes within the training data, and alters the classifer accordingly
         if determine_classes:
             cnt = LabelCounter()
@@ -65,6 +71,7 @@ class Classifier:
                     cnt.update(label)
             if verbosity >= 1:
                 cnt.print()
+            self.class_counts = cnt
             self.classes = list(cnt.dic.keys())
             self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
 
@@ -107,7 +114,11 @@ class Classifier:
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
             if verbosity >= 1:
-                print('Epoch {} finished in {} --- loss: {}'.format(epoch+1, datetime.now()-start, running_loss))
+                epoch_time = datetime.now() - start
+                eta = (datetime.now() + (self.epochs - epoch) * epoch_time).strftime('%H:%M:%S')
+                print('Epoch {} finished in {}. ETA: {} -- Avg loss: {}'
+                      .format(epoch + 1, epoch_time, eta, running_loss / len(self.data_loader.dataset)))
+                start = datetime.now()
         if verbosity >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
@@ -128,7 +139,7 @@ def load_classifier(pkl_file_path, verbosity=0):
     with open(pkl_file_path, 'rb') as input:
         cf = pickle.load(input)
         assert isinstance(cf, Classifier), 'Not a valid Classifier'
-        cf.set_data_loader(cf.train_directory, determine_classes=False)
+        cf.set_data_loader(cf.dl_train_directory, determine_classes=False)
         if verbosity >= 1:
             print('Succesfully loaded classifier with classes: {}'.format(cf.classes))
         return cf
@@ -153,3 +164,4 @@ def get_data_loader(data_directory, use_pds=False, batch_size=4):
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
     return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
+
