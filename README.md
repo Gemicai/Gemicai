@@ -1,5 +1,5 @@
 
-![Logo](./examples/pngs/placeholder_logo.png)
+<p align="center"><a href="https://www.gemic.ai"> <img width="1000" src="./examples/pngs/placeholder_logo.png"> </a></p>
 
  ![Python 3.8](https://img.shields.io/badge/python-3.8-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![build succeeded](https://img.shields.io/badge/build-succeeded-brightgreen.svg) ![Test passing](https://img.shields.io/badge/Tests-passing-brightgreen.svg) 
 
