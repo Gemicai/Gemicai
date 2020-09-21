@@ -10,11 +10,26 @@ from gemicai.dicomo import LabelCounter
 
 
 class Classifier:
-    def __init__(self, base_model: nn.Module):
+    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None):
         # Sets base model of the classifier
         self.model = base_model
 
-        # Default setting for training, can be overwirten in train() if save_as_default=True
+        # select a correct cuda device
+        if enable_cuda:
+            if not torch.cuda.is_available():
+                raise Exception("cuda is not available on this machine")
+
+            device_name = "cuda"
+            if cuda_device is not None:
+                if not isinstance(cuda_device, int) or cuda_device < 0:
+                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative number")
+                device_name += ":" + cuda_device
+
+            self.device = torch.device(device_name)
+        else:
+            self.device = torch.device("cpu")
+
+        # Default setting for training, can be overwritten in train() if save_as_default=True
         self.epochs = 20
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
@@ -96,6 +111,7 @@ class Classifier:
             for i, data in enumerate(self.data_loader):
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
+                tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
                 labels = torch.tensor([self.classes.index(label) for label in labels])
