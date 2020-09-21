@@ -4,7 +4,7 @@ import torchvision
 import torch
 import numpy
 import os
-import dicom_utilities as du
+from gemicai import dicom_utilities as du
 from matplotlib import pyplot as plt
 import tempfile
 import gzip

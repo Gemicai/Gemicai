@@ -4,7 +4,7 @@ from datetime import datetime
 
 # Makes sure we can import dicomo, and run this file from the terminal
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import dicomo
+from gemicai import dicomo
 
 start = datetime.now()
 

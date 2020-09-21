@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
-import PickleDataSet
-from dicomo import LabelCounter
+from gemicai import PickleDataSet
+from gemicai.dicomo import LabelCounter
 from datetime import datetime
 
 

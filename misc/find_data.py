@@ -1,5 +1,5 @@
 import os
-import dicomo
+from gemicai import dicomo
 
 modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
 modality = modalities[1]
