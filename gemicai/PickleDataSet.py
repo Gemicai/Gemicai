@@ -1,7 +1,6 @@
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
-import torch
-import dicomo
+from gemicai import dicomo
 import os
 
 

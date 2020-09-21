@@ -1,4 +1,4 @@
-import classifier
+from gemicai import classifier
 import torchvision.models as models
 
 
@@ -31,5 +31,5 @@ def demo_evaluate_classifier():
     net.evaluate('/home/nheinen/gemicai/dicom_objects/DX/', verbosity=1)
 
 
-# demo_initialize_classifier()
-demo_train_classifier()
+demo_initialize_classifier()
+# demo_train_classifier()
