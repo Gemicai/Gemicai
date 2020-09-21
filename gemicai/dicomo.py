@@ -58,7 +58,7 @@ def plot_dicomo(d: Dicomo, cmap='gray'):
 # (at this point in time not really worth fixing, bc who cares about windows anyway?)
 def compress_dicom_files(origin, destination, objects_per_file=1000):
     # Relevant modalities
-    modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
+    #modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
     # Trying just the DX modality first, as that's probably the easist one.
     modalities = ['DX']
     cnt = LabelCounter()
