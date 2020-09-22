@@ -5,7 +5,7 @@ import os
 from gemicai import dicomo
 
 
-class PickleDataFolder(IterableDataset):
+class PickledDicomoDataFolder(IterableDataset):
     def __init__(self, base_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -31,10 +31,12 @@ class PickleDataFolder(IterableDataset):
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
-                yield iter(PickleDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
+                print(name)
+                yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
         raise StopIteration
 
-class PickleDataSet(IterableDataset):
+
+class PickledDicomoDataSet(IterableDataset):
 
     def __init__(self, pickle_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
@@ -46,10 +48,10 @@ class PickleDataSet(IterableDataset):
     def __iter__(self):
         worker_info = get_worker_info()
         if worker_info is None:
-            self.pickle_stream = dicomo.stream_pickles(self.pickle_path)
+            self.pickle_stream = self.stream_pickled_dicomos()
             return self
         else:
-            raise Exception("PickleDataSet does not support multi-process data loading")
+            raise Exception("PickledDicomoDataSet does not support multi-process data loading")
 
     def __next__(self):
         try:
@@ -76,22 +78,20 @@ class PickleDataSet(IterableDataset):
         except:
             raise StopIteration
 
+    def stream_pickled_dicomos(self):
+        tmp = dicomo.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        try:
+            dicomo.unzip_to_file(tmp, self.pickle_path)
+            while True:
+                yield dicomo.pickle.load(tmp)
+        except EOFError:
+            pass
+        finally:
+            tmp.close()
+            os.remove(tmp.name)
 
 def print_labels_and_display_images(tensors, labels):
     for index, tensor in enumerate(tensors):
         print(labels[index])
         dicomo.plt.imshow(tensor, cmap='gray')
         dicomo.plt.show()
-
-
-#Leaving it for now might be useful later
-#origin = os.path.join("examples", "dicom", "CT")
-#destination = os.path.join("examples", "gzip", "CT/")
-#dicomo.compress_dicom_files(origin, destination, 10)
-
-#data_directory = os.path.join("examples", "gzip", "CT")
-#pickle_iterator = PickleDataFolder(data_directory, ['tensor', 'bpe'], transform=None)
-#folder_iterator = torch.utils.data.DataLoader(pickle_iterator, batch_size, shuffle=False, num_workers=0)
-
-#for tensor, bpe in pickle_iterator:
-#    print(bpe)

@@ -1,20 +1,34 @@
-import pickle
-import torch
-import torch.nn as nn
-import torchvision
+import gemicai.data_iterators as iterators
+from gemicai.dicomo import LabelCounter
 from torchsummary import summary
 from datetime import datetime
-
-from gemicai import dataset
-from gemicai.dicomo import LabelCounter
+import torch.nn as nn
+import torchvision
+import pickle
+import torch
 
 
 class Classifier:
-    def __init__(self, base_model: nn.Module):
+    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None):
         # Sets base model of the classifier
         self.model = base_model
 
-        # Default setting for training, can be overwirten in train() if save_as_default=True
+        # select a correct cuda device
+        if enable_cuda:
+            if not torch.cuda.is_available():
+                raise Exception("cuda is not available on this machine")
+
+            device_name = "cuda"
+            if cuda_device is not None:
+                if not isinstance(cuda_device, int) or cuda_device < 0:
+                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative number")
+                device_name += ":" + cuda_device
+
+            self.device = torch.device(device_name)
+        else:
+            self.device = torch.device("cpu")
+
+        # Default setting for training, can be overwritten in train() if save_as_default=True
         self.epochs = 20
         self.loss_function = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
@@ -96,6 +110,7 @@ class Classifier:
             for i, data in enumerate(self.data_loader):
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
+                tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
                 labels = torch.tensor([self.classes.index(label) for label in labels])
@@ -158,9 +173,9 @@ def get_data_loader(data_directory, use_pds=False, batch_size=4):
     if use_pds:
         # while creating PickleDataSet we pass a path to a pickle that hold the data
         # and a list of the fields that we want to extract from the dicomo object
-        pickle_iter = dataset.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
+        pickle_iter = iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
     else:
-        pickle_iter = dataset.PickleDataFolder(data_directory, ['tensor', 'bpe'], transform)
+        pickle_iter = iterators.PickledDicomoDataFolder(data_directory, ['tensor', 'bpe'], transform)
 
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
