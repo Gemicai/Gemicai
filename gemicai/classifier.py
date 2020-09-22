@@ -81,7 +81,7 @@ class Classifier:
         # This automatically determines all classes within the training data, and alters the classifer accordingly
         if determine_classes:
             cnt = LabelCounter()
-            for i, data in enumerate(self.data_loader):
+            for i, data in self.data_loader:
                 for label in data[1]:
                     cnt.update(label)
             if verbosity >= 1:
