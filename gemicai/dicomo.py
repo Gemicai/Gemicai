@@ -4,11 +4,12 @@ import torchvision
 import torch
 import numpy
 import os
-from gemicai import dicom_utilities as du
 from matplotlib import pyplot as plt
 import tempfile
 import gzip
 import shutil
+
+import gemicai.dicom_utilities as du
 
 
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
