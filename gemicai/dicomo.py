@@ -11,7 +11,6 @@ import shutil
 
 from gemicai import dicom_utilities as du
 
-
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
 class Dicomo:
     def __init__(self, filename):
@@ -37,8 +36,15 @@ class Dicomo:
         self.imtype = get_attr(ds, 'ImageType')
         self.protocol = get_attr(ds, 'ProtocolName')
 
+    # Plots dicom image with some additional label info.
+    def plot(self, cmap='gray'):
+        plt.title(
+            '{} | {} | {} | {} \n {} | {}'.format(self.modality, self.bpe, self.studydes, self.seriesdes, self.imtype, self.protocol))
+        plt.imshow(self.tensor, cmap)
+        plt.show()
 
-# Because getattr() trhows an AttributeError if the field is left empty in the dicom header
+
+# Because getattr() throws an AttributeError if the field is left empty in the dicom header
 def get_attr(ds, attr):
     try:
         return getattr(ds, attr)
@@ -46,23 +52,13 @@ def get_attr(ds, attr):
         return None
 
 
-# Plots dicom image with some additional label info.
-def plot_dicomo(d: Dicomo, cmap='gray'):
-    plt.title('{} | {} | {} | {} \n {} | {}'.format(d.modality, d.bpe, d.studydes, d.seriesdes, d.imtype, d.protocol))
-    plt.imshow(d.tensor, cmap)
-    plt.show()
-
-
 # All files within the origin directory will be compressed, returns counter for the frequency of bpe label.
-# fixme: this doesn't work on windows bc of tempfile.NamedTemporaryFile.
-# (at this point in time not really worth fixing, bc who cares about windows anyway?)
-def compress_dicom_files(origin, destination, objects_per_file=1000):
-    # Relevant modalities
-    #modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
-    # Trying just the DX modality first, as that's probably the easist one.
-    modalities = ['DX']
+def compress_dicom_files(origin, destination, objects_per_file=1000, modalities=['CT', 'MR', 'DX', 'MG', 'US', 'PT']):
+    # because of windows we have to manage temp file ourselves
+    temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
     cnt = LabelCounter()
-    with tempfile.NamedTemporaryFile(mode="ab+") as temp:
+
+    try:
         # holds names for the gziped files
         filename_iterator = ("%06i.dicomos.gz" % i for i in count(1))
         objects_inside = 0
@@ -73,11 +69,12 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                     d = Dicomo(root + '/' + file)
                     if d.modality in modalities:
                         cnt.update(d.bpe)
+
                         # check if we are not allowed to append more files
                         if objects_inside >= objects_per_file:
                             # gzip temp file and clear its content
                             temp.flush()
-                            zip_to_file(temp, destination + next(filename_iterator))
+                            zip_to_file(temp, os.path.join(destination, next(filename_iterator)))
                             objects_inside = 0
                             temp.seek(0)
                             temp.truncate()
@@ -90,9 +87,14 @@ def compress_dicom_files(origin, destination, objects_per_file=1000):
                     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                     message = template.format(type(ex).__name__, ex.args)
                     print(message)
+
         temp.flush()
-        zip_to_file(temp, destination + next(filename_iterator))
-        return cnt
+        zip_to_file(temp, os.path.join(destination, next(filename_iterator)))
+    finally:
+        temp.close()
+        os.remove(temp.name)
+
+    return cnt
 
 
 def zip_to_file(file, zip_path):
@@ -103,16 +105,6 @@ def zip_to_file(file, zip_path):
 def unzip_to_file(file, zip_path):
     with gzip.open(zip_path, 'rb') as zipped:
         shutil.copyfileobj(zipped, open(file.name, 'ab+'))
-
-
-def stream_pickles(path):
-    with tempfile.NamedTemporaryFile(mode="ab+") as file:
-        try:
-            unzip_to_file(file, path)
-            while True:
-                yield pickle.load(file)
-        except EOFError:
-            pass
 
 
 # Putting this here since standard collection.Counter doesn't do what I want it to do.
