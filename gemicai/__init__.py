@@ -4,4 +4,4 @@
 from .classifier import * #Classifier, get_data_loader, load_classifier
 from .dicom_utilities import *
 from .dicomo import *
-from .PickleDataSet import *
+from .dataset import *

@@ -5,7 +5,7 @@ import torchvision
 from torchsummary import summary
 from datetime import datetime
 
-from gemicai import PickleDataSet
+from gemicai import dataset
 from gemicai.dicomo import LabelCounter
 
 
@@ -158,9 +158,9 @@ def get_data_loader(data_directory, use_pds=False, batch_size=4):
     if use_pds:
         # while creating PickleDataSet we pass a path to a pickle that hold the data
         # and a list of the fields that we want to extract from the dicomo object
-        pickle_iter = PickleDataSet.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
+        pickle_iter = dataset.PickleDataSet(data_directory, ['tensor', 'bpe'], transform)
     else:
-        pickle_iter = PickleDataSet.PickleDataFolder(data_directory, ['tensor', 'bpe'], transform)
+        pickle_iter = dataset.PickleDataFolder(data_directory, ['tensor', 'bpe'], transform)
 
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
