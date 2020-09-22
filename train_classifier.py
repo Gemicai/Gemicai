@@ -1,11 +1,11 @@
-from gemicai import classifier
+import gemicai as gem
 import torchvision.models as models
 
 
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = classifier.Classifier(resnet18)
+    net = gem.Classifier(resnet18)
 
     # Setting data_loader of the network, this takes a while as it automaticly determines all classes.
     # Set verbosity to 1 if you like print statements to the terminal.
@@ -17,7 +17,7 @@ def demo_initialize_classifier():
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = classifier.load_classifier('classifiers/dx_bpe.pkl', verbosity=1)
+    net = gem.load_classifier('classifiers/dx_bpe.pkl', verbosity=1)
 
     # Train the classifier
     net.train(epochs=20, verbosity=1)
@@ -25,7 +25,7 @@ def demo_train_classifier():
 
 
 def demo_evaluate_classifier():
-    net = classifier.load_classifier('classifiers/dx_bpe_trained.pkl')
+    net = gem.load_classifier('classifiers/dx_bpe_trained.pkl')
 
     # Evaluate the classifier, specify the directory of what images it should be evaluated with.
     net.evaluate('/home/nheinen/gemicai/dicom_objects/DX/', verbosity=1)
@@ -33,3 +33,4 @@ def demo_evaluate_classifier():
 
 demo_initialize_classifier()
 # demo_train_classifier()
+# demo_evaluate_classifier()
