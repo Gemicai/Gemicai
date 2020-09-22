@@ -3,9 +3,10 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
+from datetime import datetime
+
 from gemicai import PickleDataSet
 from gemicai.dicomo import LabelCounter
-from datetime import datetime
 
 
 class Classifier:

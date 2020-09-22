@@ -2,7 +2,7 @@ from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 import os
 
-import gemicai.dicomo as dicomo
+from gemicai import dicomo
 
 
 class PickleDataFolder(IterableDataset):
