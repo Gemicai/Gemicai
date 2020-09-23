@@ -9,7 +9,7 @@ import torch
 
 
 class Classifier:
-    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None):
+    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None, loss_function=None, optimizer=None):
         # Sets base model of the classifier
         self.model = base_model
 
@@ -21,18 +21,26 @@ class Classifier:
             device_name = "cuda"
             if cuda_device is not None:
                 if not isinstance(cuda_device, int) or cuda_device < 0:
-                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative number")
-                device_name += ":" + cuda_device
+                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative integer")
+                device_name += ":" + str(cuda_device)
 
             self.device = torch.device(device_name)
         else:
             self.device = torch.device("cpu")
 
-        # Default setting for training, can be overwritten in train() if save_as_default=True
+        # Default setting for training
         self.epochs = 20
-        self.loss_function = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
         self.batch_size = 4
+
+        if loss_function is None:
+            self.loss_function = nn.CrossEntropyLoss()
+        else:
+            self.loss_function = loss_function
+
+        if optimizer is None:
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+        else:
+            self.optimizer = optimizer
 
         # Save location, will be stored after setting it once with save()
         self.file_path = None
@@ -68,7 +76,8 @@ class Classifier:
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
-                labels = torch.tensor([self.classes.index(label) for label in labels])
+                images = images.to(self.device)
+                labels = torch.tensor([self.classes.index(label) for label in labels]).to(self.device)
                 outputs = self.model(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
@@ -81,7 +90,7 @@ class Classifier:
         # This automatically determines all classes within the training data, and alters the classifer accordingly
         if determine_classes:
             cnt = LabelCounter()
-            for i, data in self.data_loader:
+            for i, data in enumerate(self.data_loader):
                 for label in data[1]:
                     cnt.update(label)
             if verbosity >= 1:
@@ -90,19 +99,15 @@ class Classifier:
             self.classes = list(cnt.dic.keys())
             self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
 
-    def train(self, epochs=None, loss_function=None, optimizer=None, verbosity=0, save_as_default=False):
+    def train(self, epochs=None, verbosity=0):
         # Puts model in training mode.
         self.model.train()
+        self.model.to(self.device)
+
         if epochs is None:
             epochs = self.epochs
-        if loss_function is None:
-            loss_function = self.loss_function
-        if optimizer is None:
-            optimizer = self.optimizer
-        if save_as_default:
-            self.epochs = epochs
-            self.loss_function = loss_function
-            self.optimizer = optimizer
+
+        self.loss_function = self.loss_function.to(self.device)
 
         start = datetime.now()
         for epoch in range(epochs):
@@ -113,16 +118,16 @@ class Classifier:
                 tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
-                labels = torch.tensor([self.classes.index(label) for label in labels])
+                labels = torch.tensor([self.classes.index(label) for label in labels]).to(self.device)
 
                 # zero the parameter gradients
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
                 # forward + backward + optimize
                 outputs = self.model(tensors)
-                loss = loss_function(outputs, labels)
+                loss = self.loss_function(outputs, labels)
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
 
                 # print statistics
                 running_loss += loss.item()

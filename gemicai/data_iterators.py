@@ -12,26 +12,32 @@ class PickledDicomoDataFolder(IterableDataset):
         self.dicomo_fields = dicomo_fields
         self.base_path = base_path
         self.transform = transform
+        self.len = 0
 
     def __iter__(self):
         self.data_set_gen = self.get_next_data_set()
         self.data_set = next(self.data_set_gen)
+        self.len = 0
         return self
 
     def __next__(self):
         try:
             while True:
                 try:
-                    return next(self.data_set)
+                    temp = next(self.data_set)
+                    self.len += 1
+                    return temp
                 except:
                     self.data_set = next(self.data_set_gen)
         except:
             raise StopIteration
 
+    def __len__(self):
+        return self.len
+
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
-                print(name)
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
         raise StopIteration
 
@@ -44,9 +50,12 @@ class PickledDicomoDataSet(IterableDataset):
         self.dicomo_fields = dicomo_fields
         self.pickle_path = pickle_path
         self.transform = transform
+        self.len = 0
 
     def __iter__(self):
         worker_info = get_worker_info()
+        self.len = 0
+
         if worker_info is None:
             self.pickle_stream = self.stream_pickled_dicomos()
             return self
@@ -74,9 +83,13 @@ class PickledDicomoDataSet(IterableDataset):
                 except:
                     None
 
+            self.len += 1
             return field_list
         except:
             raise StopIteration
+
+    def __len__(self):
+        return self.len
 
     def stream_pickled_dicomos(self):
         tmp = dicomo.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
