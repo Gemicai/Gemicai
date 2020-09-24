@@ -103,6 +103,7 @@ class PickledDicomoDataSet(IterableDataset):
             tmp.close()
             os.remove(tmp.name)
 
+
 def print_labels_and_display_images(tensors, labels):
     for index, tensor in enumerate(tensors):
         print(labels[index])

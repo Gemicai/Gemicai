@@ -9,11 +9,26 @@ import torch
 
 
 class Classifier:
-    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None, loss_function=None, optimizer=None):
+    def __init__(self, base_model: nn.Module, data_loader: torch.data.DataLoader, enable_cuda=False, cuda_device=None,
+                 loss_function=None, optimizer=None, classifies=None, verbosity=0):
         # Sets base model of the classifier
         self.model = base_model
 
+        # You should set the data_loader with the funciton set_data_loader(), this automatically configures self.model
+        # to work with the classes present in the data_loader. It also intializes self.classes and self.class_counts.
+        self.data_loader = None
+        self.classes = None
+        self.class_counts = None
+
+        self.set_data_loader(data_loader, verbosity=verbosity)
+
+        # You can't pickle a generator object, and therefore self.data_loader cannot be pickled. These attributes store
+        # data to recontruct the data_loader when
+        self.dl_directory = None
+        self.dl_batch_size = 4
+
         # select a correct cuda device
+        self.enable_cuda = enable_cuda
         if enable_cuda:
             if not torch.cuda.is_available():
                 raise Exception("cuda is not available on this machine")
@@ -30,34 +45,19 @@ class Classifier:
 
         # Default setting for training
         self.epochs = 20
-        self.batch_size = 4
 
-        if loss_function is None:
-            self.loss_function = nn.CrossEntropyLoss()
-        else:
-            self.loss_function = loss_function
+        # Default loss function and optimizer
+        self.loss_function = loss_function if loss_function else nn.CrossEntropyLoss()
+        self.optimizer = optimizer if optimizer else torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
 
-        if optimizer is None:
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
-        else:
-            self.optimizer = optimizer
-
-        # Save location, will be stored after setting it once with save()
+        # Save location, will be stored after setting it once with save().
         self.file_path = None
-
-        # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
-        self.data_loader = None
-
-        # Data loader's metadata , used to calculate benchmarks.
-        self.dl_train_directory = None
-        # self.dl_total_images = None
-
-        # The classes and classes counts will be initialized when setting a data loader.
-        self.classes = None
-        self.class_counts = None
 
         # Input shape of the tensors used by the classifier, only needed for keras like model summary
         self.input_shape = (3, 244, 244)
+
+        # Here you can store information about what the classifier clasifies. Used by gemicai.ClassifierTree
+        self.classifies = classifies
 
     def set_trainable_layers(self, layers, boolean):
         for name, param in self.model.named_parameters():
@@ -72,7 +72,7 @@ class Classifier:
         # puts model in evaluation mode.
         self.model.eval()
         correct, total = 0, 0
-        testloader = get_data_loader(evaluation_directory, batch_size=self.batch_size)
+        testloader = get_dicomo_data_loader(evaluation_directory, batch_size=self.dl_batch_size)
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
@@ -84,10 +84,11 @@ class Classifier:
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def set_data_loader(self, train_directory, verbosity=0, determine_classes=True):
-        self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
-        self.dl_train_directory = train_directory
-        # This automatically determines all classes within the training data, and alters the classifer accordingly
+    def set_data_loader(self, data_loader: torch.utils.data.DataLoader, verbosity=0, determine_classes=True):
+        self.data_loader = data_loader
+        self.dl_batch_size = self.data_loader.dl_batch_size
+
+        self.dl_directory = self.data_loader.dataset.base_path
         if determine_classes:
             cnt = LabelCounter()
             for i, data in enumerate(self.data_loader):
@@ -149,40 +150,34 @@ class Classifier:
             file_path = self.file_path
         else:
             self.file_path = file_path
-        # You can't store a generator object.
+        # You can't pickle a generator object.
         self.data_loader = None
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
 
 # Loads classifier objcet from .pkl file
+# FIXME: currently only works when the data_loader is a dicomo_data_loader
 def load_classifier(pkl_file_path, verbosity=0):
-    with open(pkl_file_path, 'rb') as input:
-        cf = pickle.load(input)
-        assert isinstance(cf, Classifier), 'Not a valid Classifier'
-        cf.set_data_loader(cf.dl_train_directory, determine_classes=False)
+    with open(pkl_file_path, 'rb') as inp:
+        c = pickle.load(inp)
+        assert isinstance(c, Classifier), 'Not a valid Classifier'
+        dl = get_dicomo_data_loader(c.dl_directory, dicomo_fields=['tensor', c.classifies], batch_size=c.dl_batch_size)
+        c.set_data_loader(dl, verbosity=verbosity, determine_classes=False)
         if verbosity >= 1:
-            print('Succesfully loaded classifier with classes: {}'.format(cf.classes))
-        return cf
+            print('Succesfully loaded classifier with classes: {}'.format(c.classes))
+        return c
 
 
-# os.path.join makes a platform dependent path (so both linux and windows works)
-# =os.path.join('examples', 'compressed', 'CT', '000001.gz')
-def get_data_loader(data_directory, use_pds=False, batch_size=4):
+# Returns a dicomo dataloader.
+# FIXME: this function should probably not be in this file
+def get_dicomo_data_loader(data_directory, dicomo_fields=['tensor', 'bpe'], batch_size=4):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
         torchvision.transforms.Grayscale(3),
         torchvision.transforms.ToTensor()
     ])
-
-    if use_pds:
-        # while creating PickleDataSet we pass a path to a pickle that hold the data
-        # and a list of the fields that we want to extract from the dicomo object
-        pickle_iter = iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
-    else:
-        pickle_iter = iterators.PickledDicomoDataFolder(data_directory, ['tensor', 'bpe'], transform)
-
+    pickle_iter = iterators.PickledDicomoDataFolder(data_directory, dicomo_fields, transform)
     # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
     # On the bright side we load only objects we currently need (batch_size) into memory
     return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
-
