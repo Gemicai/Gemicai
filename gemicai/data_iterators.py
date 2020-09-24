@@ -5,7 +5,7 @@ from gemicai import dicomo
 import os
 
 
-class ABCIterator(ABC, IterableDataset):
+class GEMICAIABCIterator(ABC, IterableDataset):
     @abstractmethod
     def __init__(self):
         pass
@@ -27,7 +27,7 @@ class ABCIterator(ABC, IterableDataset):
         pass
 
 
-class PickledDicomoDataFolder(ABCIterator):
+class PickledDicomoDataFolder(GEMICAIABCIterator):
     def __init__(self, base_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -67,7 +67,7 @@ class PickledDicomoDataFolder(ABCIterator):
         return False
 
 
-class PickledDicomoDataSet(ABCIterator):
+class PickledDicomoDataSet(GEMICAIABCIterator):
 
     def __init__(self, pickle_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
