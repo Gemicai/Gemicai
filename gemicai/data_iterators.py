@@ -1,11 +1,33 @@
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
+from abc import ABC, abstractmethod
+from gemicai import dicomo
 import os
 
-from gemicai import dicomo
+
+class ABCIterator(ABC, IterableDataset):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def __iter__(self):
+        pass
+
+    @abstractmethod
+    def __next__(self):
+        pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
+
+    @abstractmethod
+    def can_be_parallelized(self):
+        pass
 
 
-class PickledDicomoDataFolder(IterableDataset):
+class PickledDicomoDataFolder(ABCIterator):
     def __init__(self, base_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -41,8 +63,11 @@ class PickledDicomoDataFolder(IterableDataset):
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
         raise StopIteration
 
+    def can_be_parallelized(self):
+        return False
 
-class PickledDicomoDataSet(IterableDataset):
+
+class PickledDicomoDataSet(ABCIterator):
 
     def __init__(self, pickle_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
@@ -71,14 +96,15 @@ class PickledDicomoDataSet(IterableDataset):
             field_list = []
             for field in self.dicomo_fields:
                 try:
-                    # ugly but works
-                    # check if transform is specified and if it should be applied
                     temp = getattr(dicomo_class, field)
-                    if self.transform and field == 'tensor':
+
+                    # check if transform is specified and if it should be applied
+                    if self.transform is not None and field == 'tensor':
                         try:
                             temp = self.transform(temp)
                         except:
                             raise Exception('Could not apply specified transformation to the dicom image')
+
                     field_list.append(temp)
                 except:
                     None
@@ -103,9 +129,8 @@ class PickledDicomoDataSet(IterableDataset):
             tmp.close()
             os.remove(tmp.name)
 
+    def is_pinned(self):
+        return self.pin_memory
 
-def print_labels_and_display_images(tensors, labels):
-    for index, tensor in enumerate(tensors):
-        print(labels[index])
-        dicomo.plt.imshow(tensor, cmap='gray')
-        dicomo.plt.show()
+    def can_be_parallelized(self):
+        return False
