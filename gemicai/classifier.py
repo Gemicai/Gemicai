@@ -1,12 +1,9 @@
 import gemicai.data_iterators as iterators
 from gemicai.dicomo import LabelCounter
-from torchsummary import summary
 from datetime import datetime
 import torch.nn as nn
-import torchvision
 import pickle
 import torch
-import os
 
 
 class Classifier:
@@ -17,6 +14,7 @@ class Classifier:
             raise Exception("base_model should have a base class of nn.Module")
 
         self.model = base_model
+        self.device = None
         self.set_device(enable_cuda, cuda_device)
 
         # set a proper loss function
@@ -63,7 +61,6 @@ class Classifier:
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         classes = self.determine_classes(data_loader)
-
 
         # puts model in evaluation mode.
         self.model.eval()
