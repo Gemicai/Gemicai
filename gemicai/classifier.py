@@ -6,11 +6,14 @@ import torch.nn as nn
 import torchvision
 import pickle
 import torch
+import os
 
 
 class Classifier:
-    def __init__(self, base_model: nn.Module, enable_cuda=False, cuda_device=None, loss_function=None, optimizer=None):
+    def __init__(self, base_model=nn.Module, loss_function=None, optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
         # Sets base model of the classifier
+        if not isinstance(base_model, nn.Module):
+            raise Exception("base_model should have a base class of nn.Module")
         self.model = base_model
 
         # select a correct cuda device
@@ -28,99 +31,96 @@ class Classifier:
         else:
             self.device = torch.device("cpu")
 
-        # Default setting for training
-        self.epochs = 20
-        self.batch_size = 4
-
+        # set a proper loss function
         if loss_function is None:
             self.loss_function = nn.CrossEntropyLoss()
+        elif not isinstance(loss_function, nn.CrossEntropyLossImpl):
+            raise Exception("Custom loss_function should have a base class of nn.CrossEntropyLossImpl")
         else:
             self.loss_function = loss_function
 
+        # set a proper optimizer
         if optimizer is None:
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+        elif not isinstance(optimizer, torch.optim.Optimizer):
+            raise Exception("Custom optimizer should have a base class of torch.optim.Optimizer")
         else:
             self.optimizer = optimizer
 
-        # Save location, will be stored after setting it once with save()
-        self.file_path = None
+        if not isinstance(verbosity_level, int):
+            raise Exception("verbosity_level parameter should be of an integer type")
+        self.verbosity_level = verbosity_level
 
-        # Data loader will be set to None, has to bet set with set_data_loader() in order to train the classifier.
-        self.data_loader = None
-
+        # TODO IS THE REST REALLY NEEDED?
         # Data loader's metadata , used to calculate benchmarks.
         self.dl_train_directory = None
         # self.dl_total_images = None
 
-        # The classes and classes counts will be initialized when setting a data loader.
-        self.classes = None
-        self.class_counts = None
-
         # Input shape of the tensors used by the classifier, only needed for keras like model summary
         self.input_shape = (3, 244, 244)
 
+    # TODO REFACTOR
     def set_trainable_layers(self, layers, boolean):
         for name, param in self.model.named_parameters():
             name = '.'.join(name.split('.')[:-1])
             if layers == 'all' or name in layers:
                 param.requires_grad = boolean
 
+    # TODO REFACTOR
     def summary(self):
         summary(self.model, self.input_shape)
 
-    def evaluate(self, evaluation_directory, verbosity=0):
+    def evaluate(self, data_set=None, batch_size=4, num_workers=0):
+        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size, num_workers=num_workers)
+
+        correct, total = 0, 0
+        if not data_set.can_be_parallelized():
+            num_workers = 0
+        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False, num_workers=num_workers)
+
+        classes = self.determine_classes(data_loader)
+        is_pinned = data_set.is_pinned()
+
         # puts model in evaluation mode.
         self.model.eval()
-        self.model.to(self.device)
-        
-        correct, total = 0, 0
-        testloader = get_data_loader(evaluation_directory, batch_size=self.batch_size)
+        self.model = self.model.to(self.device)
+
         with torch.no_grad():
-            for data in testloader:
+            for data in data_loader:
                 images, labels = data
                 images = images.to(self.device)
-                labels = torch.tensor([self.classes.index(label) for label in labels]).to(self.device)
+                labels = torch.tensor([classes.index(label) for label in labels]).to(self.device)
                 outputs = self.model(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def set_data_loader(self, train_directory, verbosity=0, determine_classes=True):
-        self.data_loader = get_data_loader(data_directory=train_directory, batch_size=self.batch_size)
-        self.dl_train_directory = train_directory
-        # This automatically determines all classes within the training data, and alters the classifer accordingly
-        if determine_classes:
-            cnt = LabelCounter()
-            for i, data in enumerate(self.data_loader):
-                for label in data[1]:
-                    cnt.update(label)
-            if verbosity >= 1:
-                cnt.print()
-            self.class_counts = cnt
-            self.classes = list(cnt.dic.keys())
-            self.model.fc = nn.Linear(self.model.fc.in_features, len(self.classes))
+    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0):
+        Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers)
 
-    def train(self, epochs=None, verbosity=0):
+        if not data_set.can_be_parallelized():
+            num_workers = 0
+        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False, num_workers=num_workers)
+
+        classes = self.determine_classes(data_loader)
+        is_pinned = data_set.is_pinned()
+
         # Puts model in training mode.
         self.model.train()
-        self.model.to(self.device)
-
-        if epochs is None:
-            epochs = self.epochs
-
+        self.model = self.model.to(self.device)
         self.loss_function = self.loss_function.to(self.device)
 
         start = datetime.now()
         for epoch in range(epochs):
             running_loss = 0.0
-            for i, data in enumerate(self.data_loader):
+            for i, data in enumerate(data_loader):
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
                 tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
-                labels = torch.tensor([self.classes.index(label) for label in labels]).to(self.device)
+                labels = torch.tensor([classes.index(label) for label in labels]).to(self.device)
 
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
@@ -133,58 +133,67 @@ class Classifier:
 
                 # print statistics
                 running_loss += loss.item()
-                if verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
+                if self.verbosity_level >= 2 and i % 2000 == 1999:  # print every 2000 batches
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
-            if verbosity >= 1:
+            if self.verbosity_level >= 1:
                 epoch_time = datetime.now() - start
-                eta = (datetime.now() + (self.epochs - epoch) * epoch_time).strftime('%H:%M:%S')
+                eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
                 print('Epoch {} finished in {}. ETA: {} -- Avg loss: {}'
-                      .format(epoch + 1, epoch_time, eta, running_loss / len(self.data_loader.dataset)))
+                      .format(epoch + 1, epoch_time, eta, running_loss / len(data_loader.dataset)))
                 start = datetime.now()
-        if verbosity >= 1:
+        if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
-        if file_path is None:
-            file_path = self.file_path
-        else:
-            self.file_path = file_path
-        # You can't store a generator object.
-        self.data_loader = None
+        if not isinstance(file_path, str):
+            raise Exception("save method expects a file_path to be an instance of string")
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
+    def set_verbosity_level(self, verbosity_level=0):
+        if not isinstance(verbosity_level, int):
+            raise Exception("verbosity_level parameter should be of an integer type")
+        self.verbosity_level = verbosity_level
 
-# Loads classifier objcet from .pkl file
-def load_classifier(pkl_file_path, verbosity=0):
-    with open(pkl_file_path, 'rb') as input:
-        cf = pickle.load(input)
-        assert isinstance(cf, Classifier), 'Not a valid Classifier'
-        cf.set_data_loader(cf.dl_train_directory, determine_classes=False)
-        if verbosity >= 1:
-            print('Succesfully loaded classifier with classes: {}'.format(cf.classes))
-        return cf
+    def determine_classes(self, data_loader):
+        if not isinstance(data_loader, torch.utils.data.DataLoader):
+            raise Exception("data_loader parameter should be an instance of torch.utils.data.DataLoader")
 
+        cnt = LabelCounter()
+        for i, data in enumerate(data_loader):
+            for label in data[1]:
+                cnt.update(label)
+        if self.verbosity_level:
+            cnt.print()
+        classes = list(cnt.dic.keys())
+        # TODO this can be user provided so change it to reflect this
+        self.model.fc = nn.Linear(self.model.fc.in_features, len(classes))
+        return classes
 
-# os.path.join makes a platform dependent path (so both linux and windows works)
-# =os.path.join('examples', 'compressed', 'CT', '000001.gz')
-def get_data_loader(data_directory, use_pds=False, batch_size=4):
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Grayscale(3),
-        torchvision.transforms.ToTensor()
-    ])
+    # Loads classifier object from .pkl file
+    @staticmethod
+    def from_pickle(pkl_file_path=None):
+        if not isinstance(pkl_file_path, str):
+            raise Exception("load_from_pickle method expects a pkl_file_path to be an instance of string")
 
-    if use_pds:
-        # while creating PickleDataSet we pass a path to a pickle that hold the data
-        # and a list of the fields that we want to extract from the dicomo object
-        pickle_iter = iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
-    else:
-        pickle_iter = iterators.PickledDicomoDataFolder(data_directory, ['tensor', 'bpe'], transform)
+        with open(pkl_file_path, 'rb') as input:
+            cf = pickle.load(input)
+            if not isinstance(cf, Classifier):
+                raise Exception(pkl_file_path + ' does not contain a valid Classifier class object')
+            return cf
 
-    # since we use a file with arbitrary number of dicomo objects we cannot parallelize loading data.
-    # On the bright side we load only objects we currently need (batch_size) into memory
-    return torch.utils.data.DataLoader(pickle_iter, batch_size, shuffle=False, num_workers=0)
+    @staticmethod
+    def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0):
+        if not isinstance(epochs, int) or epochs < 0:
+            raise Exception("epochs parameter should be a non-negative integer")
 
+        if not isinstance(batch_size, int) or batch_size < 0:
+            raise Exception("batch_size parameter should be a non-negative integer")
+
+        if not isinstance(num_workers, int) or num_workers < 0:
+            raise Exception("num_workers parameter should be a non-negative integer")
+
+        if not isinstance(data_set, iterators.ABCIterator):
+            raise Exception("data_set parameter should have a base class of data_iterators.ABCIterator")

@@ -1,9 +1,8 @@
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from abc import ABC, abstractmethod
-import os
-
 from gemicai import dicomo
+import os
 
 
 class ABCIterator(ABC, IterableDataset):
@@ -25,6 +24,10 @@ class ABCIterator(ABC, IterableDataset):
 
     @abstractmethod
     def is_pinned(self):
+        pass
+
+    @abstractmethod
+    def can_be_parallelized(self):
         pass
 
 
@@ -67,6 +70,9 @@ class PickledDicomoDataFolder(ABCIterator):
 
     def is_pinned(self):
         return self.pin_memory
+
+    def can_be_parallelized(self):
+        return False
 
 
 class PickledDicomoDataSet(ABCIterator):
@@ -138,3 +144,6 @@ class PickledDicomoDataSet(ABCIterator):
 
     def is_pinned(self):
         return self.pin_memory
+
+    def can_be_parallelized(self):
+        return False
