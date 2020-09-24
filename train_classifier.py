@@ -11,7 +11,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
-    resnet18 = models.resnet18(pretrained=True)
+    resnet18 = gem.module_wrappers.ModuleWrapper(models.resnet18(pretrained=True))
     net = gem.Classifier(resnet18, verbosity_level=1, enable_cuda=True)
     net.save(classifier_path)
 
