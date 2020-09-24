@@ -26,7 +26,7 @@ def demo_train_classifier():
 
     # Train the classifier
 
-    net.train(epochs=3, verbosity=1)
+    net.train(epochs=1, verbosity=1)
     net.save('classifiers/dx_bpe_trained.pkl')
 
 
@@ -43,7 +43,7 @@ def demo_create_dicomo_dataset():
     data_destination = '/home/nheinen/gemicai/dicom_objects/DX/'
     gem.compress_dicom_files(data_origin, data_destination, modalities=['DX'])
 
-#demo_initialize_classifier()
-# demo_train_classifier()
+demo_initialize_classifier()
+demo_train_classifier()
 # demo_evaluate_classifier()
-demo_create_dicomo_dataset()
+#demo_create_dicomo_dataset()

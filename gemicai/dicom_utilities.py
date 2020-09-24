@@ -7,6 +7,7 @@ import pathlib
 import torchvision
 import torch
 import numpy
+import dicomo
 
 # if needed we can export it later
 fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyInstanceUID', 'SeriesInstanceUID',
@@ -143,11 +144,9 @@ def plot_dicom(dicom_file_path, cmap=None):
         plt.imshow(tensor[:, :, 0], cmap=cmap)
     plt.show()
 
-# file_name = 'dicom_objects/test/325261597578315993471860132776680.dcm.gz'
-# file_name = 'examples/1.dcm.gz'
 
-
-# Body Part Examined
-# Series Description
-# Accesion Number is voor reverse lookup
-# zit in series description
+def print_labels_and_display_images(tensors, labels):
+    for index, tensor in enumerate(tensors):
+        print(labels[index])
+        dicomo.plt.imshow(tensor, cmap='gray')
+        dicomo.plt.show()
