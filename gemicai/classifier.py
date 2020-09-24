@@ -198,4 +198,4 @@ class Classifier:
             raise Exception("pin_memory parameter should be a boolean")
 
         if not isinstance(data_set, iterators.GEMICAIABCIterator):
-            raise Exception("data_set parameter should have a base class of data_iterators.ABCIterator")
+            raise Exception("data_set parameter should have a base class of data_iterators.GEMICAIABCIterator")
