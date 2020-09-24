@@ -10,26 +10,14 @@ import os
 
 
 class Classifier:
-    def __init__(self, base_model=nn.Module, loss_function=None, optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
+    def __init__(self, base_model=nn.Module, loss_function=None, optimizer=None, verbosity_level=0,
+                 enable_cuda=False, cuda_device=None):
         # Sets base model of the classifier
         if not isinstance(base_model, nn.Module):
             raise Exception("base_model should have a base class of nn.Module")
+
         self.model = base_model
-
-        # select a correct cuda device
-        if enable_cuda:
-            if not torch.cuda.is_available():
-                raise Exception("cuda is not available on this machine")
-
-            device_name = "cuda"
-            if cuda_device is not None:
-                if not isinstance(cuda_device, int) or cuda_device < 0:
-                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative integer")
-                device_name += ":" + str(cuda_device)
-
-            self.device = torch.device(device_name)
-        else:
-            self.device = torch.device("cpu")
+        self.set_device(enable_cuda, cuda_device)
 
         # set a proper loss function
         if loss_function is None:
@@ -51,24 +39,18 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
-        # TODO IS THE REST REALLY NEEDED?
-        # Data loader's metadata , used to calculate benchmarks.
-        self.dl_train_directory = None
-        # self.dl_total_images = None
+    def set_trainable_layers(self, layers):
+        if not isinstance(layers, list) and len(list) == 0:
+            raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
+                            "of tuples (layer_name: string, status: bool)")
+        valid_layers = []
 
-        # Input shape of the tensors used by the classifier, only needed for keras like model summary
-        self.input_shape = (3, 244, 244)
-
-    # TODO REFACTOR
-    def set_trainable_layers(self, layers, boolean):
+        # check whenever passed layers are valid/exist and set them if they are
         for name, param in self.model.named_parameters():
             name = '.'.join(name.split('.')[:-1])
-            if layers == 'all' or name in layers:
-                param.requires_grad = boolean
-
-    # TODO REFACTOR
-    def summary(self):
-        summary(self.model, self.input_shape)
+            to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
+            if len(to_set):
+                param.requires_grad = to_set[0][1]
 
     def evaluate(self, data_set=None, batch_size=4, num_workers=0):
         Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size, num_workers=num_workers)
@@ -156,6 +138,22 @@ class Classifier:
         if not isinstance(verbosity_level, int):
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
+
+    def set_device(self, enable_cuda=False, cuda_device=None):
+        # select a correct cuda device
+        if enable_cuda:
+            if not torch.cuda.is_available():
+                raise Exception("cuda is not available on this machine")
+
+            device_name = "cuda"
+            if cuda_device is not None:
+                if not isinstance(cuda_device, int) or cuda_device < 0:
+                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative integer")
+                device_name += ":" + str(cuda_device)
+
+            self.device = torch.device(device_name)
+        else:
+            self.device = torch.device("cpu")
 
     def determine_classes(self, data_loader):
         if not isinstance(data_loader, torch.utils.data.DataLoader):

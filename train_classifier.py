@@ -12,7 +12,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, verbosity_level=True, enable_cuda=True)
+    net = gem.Classifier(resnet18, verbosity_level=1, enable_cuda=True)
     net.save(classifier_path)
 
 
@@ -21,6 +21,7 @@ def demo_train_classifier():
     net = gem.Classifier.from_pickle(classifier_path)
 
     # Train the classifier
+    #net.set_trainable_layers([("all", True)])
     net.train(get_data_set(train_data_set_path), epochs=1)
     net.save(trained_classifier_path)
 
