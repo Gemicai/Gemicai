@@ -71,6 +71,8 @@ class Classifier:
     def evaluate(self, evaluation_directory, verbosity=0):
         # puts model in evaluation mode.
         self.model.eval()
+        self.model.to(self.device)
+        
         correct, total = 0, 0
         testloader = get_data_loader(evaluation_directory, batch_size=self.batch_size)
         with torch.no_grad():
