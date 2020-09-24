@@ -1,41 +1,33 @@
 import torchvision.models as models
 import gemicai as gem
-import os
 import time
+import os
+
+train_data_set_path = os.path.join("examples", "gzip", "CT")
+eval_data_set_path = os.path.join("examples", "gzip", "CT")
+classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
+trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
 
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, enable_cuda=True)
-
-    # Setting data_loader of the network, this takes a while as it automaticly determines all classes.
-    # Set verbosity to 1 if you like print statements to the terminal.
-    #/home/nheinen/gemicai/dicom_objects/DX/'
-
-    path = os.path.join("examples", "gzip", "CT")
-    net.set_data_loader(path, verbosity=1)
-
-    # Saves the classifier to a file, this way you don't have to rebuild the whole classifier everytime.
-    net.save('classifiers/dx_bpe.pkl')
+    net = gem.Classifier(resnet18, verbosity_level=True, enable_cuda=True)
+    net.save(classifier_path)
 
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = gem.load_classifier('classifiers/dx_bpe.pkl', verbosity=1)
+    net = gem.Classifier.from_pickle(classifier_path)
 
     # Train the classifier
-
-    net.train(epochs=1, verbosity=1)
-    net.save('classifiers/dx_bpe_trained.pkl')
+    net.train(get_data_set(train_data_set_path), epochs=1)
+    net.save(trained_classifier_path)
 
 
 def demo_evaluate_classifier():
-    net = gem.load_classifier('classifiers/dx_bpe_trained.pkl')
-
-    # Evaluate the classifier, specify the directory of what images it should be evaluated with.
-    evaluation_data = '/home/nheinen/gemicai/dicom_objects/DX/'
-    net.evaluate('examples/compressed/DX/', verbosity=1)
+    net = gem.Classifier.from_pickle(trained_classifier_path)
+    net.evaluate(get_data_set(eval_data_set_path))
 
 
 def demo_create_dicomo_dataset():
@@ -43,7 +35,26 @@ def demo_create_dicomo_dataset():
     data_destination = '/home/nheinen/gemicai/dicom_objects/DX/'
     gem.compress_dicom_files(data_origin, data_destination, modalities=['DX'])
 
+
+def get_data_set(data_directory, use_pds=False):
+    transform = gem.torchvision.transforms.Compose([
+        gem.torchvision.transforms.ToPILImage(),
+        gem.torchvision.transforms.Grayscale(3),
+        gem.torchvision.transforms.ToTensor()
+    ])
+
+    if use_pds:
+        # while creating PickleDataSet we pass a path to a pickle that hold the data
+        # and a list of the fields that we want to extract from the dicomo object
+        return gem.iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
+    else:
+        return gem.iterators.PickledDicomoDataFolder(data_directory, ['tensor', 'bpe'], transform)
+
+
+# os.path.join makes a platform dependent path (so both linux and windows works)
+# =os.path.join('examples', 'compressed', 'CT', '000001.gz')
+
 demo_initialize_classifier()
 demo_train_classifier()
-# demo_evaluate_classifier()
+demo_evaluate_classifier()
 #demo_create_dicomo_dataset()

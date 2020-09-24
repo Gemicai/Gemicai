@@ -1,13 +1,13 @@
-import gzip
-import pydicom as dicom
-import os
-import pandas as pd
 from matplotlib import pyplot as plt
-import pathlib
+import gemicai.dicomo as dicomo
+import pydicom as dicom
+import pandas as pd
 import torchvision
+import pathlib
 import torch
 import numpy
-import dicomo
+import gzip
+import os
 
 # if needed we can export it later
 fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyInstanceUID', 'SeriesInstanceUID',
