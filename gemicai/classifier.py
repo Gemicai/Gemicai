@@ -52,46 +52,48 @@ class Classifier:
             if len(to_set):
                 param.requires_grad = to_set[0][1]
 
-    def evaluate(self, data_set=None, batch_size=4, num_workers=0):
-        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size, num_workers=num_workers)
+    def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
+        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
+                                                num_workers=num_workers, pin_memory=pin_memory)
 
         correct, total = 0, 0
         if not data_set.can_be_parallelized():
             num_workers = 0
-        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False, num_workers=num_workers)
+        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
+                                                  num_workers=num_workers, pin_memory=pin_memory)
 
         classes = self.determine_classes(data_loader)
-        is_pinned = data_set.is_pinned()
+
 
         # puts model in evaluation mode.
         self.model.eval()
-        self.model = self.model.to(self.device)
+        self.model = self.model.to(self.device, non_blocking=pin_memory)
 
         with torch.no_grad():
             for data in data_loader:
                 images, labels = data
                 images = images.to(self.device)
-                labels = torch.tensor([classes.index(label) for label in labels]).to(self.device)
+                labels = torch.tensor([classes.index(label) for label in labels])\
+                    .to(self.device, non_blocking=pin_memory)
                 outputs = self.model(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0):
-        Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers)
+    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
+        Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers, pin_memory)
 
         if not data_set.can_be_parallelized():
             num_workers = 0
-        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False, num_workers=num_workers)
-
+        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
+                                                  num_workers=num_workers, pin_memory=pin_memory)
         classes = self.determine_classes(data_loader)
-        is_pinned = data_set.is_pinned()
 
         # Puts model in training mode.
         self.model.train()
-        self.model = self.model.to(self.device)
-        self.loss_function = self.loss_function.to(self.device)
+        self.model = self.model.to(self.device, non_blocking=pin_memory)
+        self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
         start = datetime.now()
         for epoch in range(epochs):
@@ -102,7 +104,8 @@ class Classifier:
                 tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
-                labels = torch.tensor([classes.index(label) for label in labels]).to(self.device)
+                labels = torch.tensor([classes.index(label) for label in labels])\
+                    .to(self.device, non_blocking=pin_memory)
 
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
@@ -183,7 +186,7 @@ class Classifier:
             return cf
 
     @staticmethod
-    def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0):
+    def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
         if not isinstance(epochs, int) or epochs < 0:
             raise Exception("epochs parameter should be a non-negative integer")
 
@@ -192,6 +195,9 @@ class Classifier:
 
         if not isinstance(num_workers, int) or num_workers < 0:
             raise Exception("num_workers parameter should be a non-negative integer")
+
+        if not isinstance(pin_memory, bool) or num_workers < 0:
+            raise Exception("pin_memory parameter should be a boolean")
 
         if not isinstance(data_set, iterators.ABCIterator):
             raise Exception("data_set parameter should have a base class of data_iterators.ABCIterator")

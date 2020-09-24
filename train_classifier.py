@@ -21,14 +21,15 @@ def demo_train_classifier():
     net = gem.Classifier.from_pickle(classifier_path)
 
     # Train the classifier
-    #net.set_trainable_layers([("all", True)])
-    net.train(get_data_set(train_data_set_path), epochs=1)
+    # net.set_trainable_layers([("all", True)])
+    # net.set_device(enable_cuda=False)
+    net.train(get_data_set(train_data_set_path), epochs=1, pin_memory=True)
     net.save(trained_classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_pickle(trained_classifier_path)
-    net.evaluate(get_data_set(eval_data_set_path))
+    net.evaluate(get_data_set(eval_data_set_path), pin_memory=True)
 
 
 def demo_create_dicomo_dataset():
