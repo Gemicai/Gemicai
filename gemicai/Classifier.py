@@ -1,5 +1,6 @@
 import gemicai.data_iterators as iterators
 from gemicai.dicomo import LabelCounter
+import gemicai.module_wrappers as modules
 from datetime import datetime
 import torch.nn as nn
 import pickle
@@ -7,13 +8,14 @@ import torch
 
 
 class Classifier:
-    def __init__(self, base_model=nn.Module, loss_function=None, optimizer=None, verbosity_level=0,
+    def __init__(self, module_wrapper=modules.GEMICAIABCModuleWrapper, loss_function=None, optimizer=None, verbosity_level=0,
                  enable_cuda=False, cuda_device=None):
-        # Sets base model of the classifier
-        if not isinstance(base_model, nn.Module):
-            raise Exception("base_model should have a base class of nn.Module")
+        # Sets base moduleWrapper of the classifier
+        if not isinstance(module_wrapper, modules.GEMICAIABCModuleWrapper):
+            raise Exception("module_wrapper should have a parent class of a type gemicai.modules.GEMICAIABCModuleWrapper, where as"
+                            "it is " + str(type(module_wrapper)))
 
-        self.model = base_model
+        self.module_wrapper = module_wrapper
         self.device = None
         self.set_device(enable_cuda, cuda_device)
 
@@ -27,7 +29,7 @@ class Classifier:
 
         # set a proper optimizer
         if optimizer is None:
-            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+            self.optimizer = torch.optim.SGD(self.module_wrapper.module.parameters(), lr=0.001, momentum=0.9)
         elif not isinstance(optimizer, torch.optim.Optimizer):
             raise Exception("Custom optimizer should have a base class of torch.optim.Optimizer")
         else:
@@ -44,7 +46,7 @@ class Classifier:
         valid_layers = []
 
         # check whenever passed layers are valid/exist and set them if they are
-        for name, param in self.model.named_parameters():
+        for name, param in self.module_wrapper.module.named_parameters():
             name = '.'.join(name.split('.')[:-1])
             to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
             if len(to_set):
@@ -53,26 +55,26 @@ class Classifier:
     def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
         Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
-
-        correct, total = 0, 0
         if not data_set.can_be_parallelized():
             num_workers = 0
+
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
-
         classes = self.determine_classes(data_loader)
+        self.module_wrapper.update_modules_input_features(classes)
 
-        # puts model in evaluation mode.
-        self.model.eval()
-        self.model = self.model.to(self.device, non_blocking=pin_memory)
+        # puts module in evaluation mode.
+        self.module_wrapper.module.eval()
+        self.module_wrapper.module = self.module_wrapper.module.to(self.device, non_blocking=pin_memory)
 
+        correct, total = 0, 0
         with torch.no_grad():
             for data in data_loader:
                 images, labels = data
                 images = images.to(self.device)
                 labels = torch.tensor([classes.index(label) for label in labels])\
                     .to(self.device, non_blocking=pin_memory)
-                outputs = self.model(images)
+                outputs = self.module_wrapper.module(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -86,10 +88,11 @@ class Classifier:
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
         classes = self.determine_classes(data_loader)
+        self.module_wrapper.update_modules_input_features(classes)
 
-        # Puts model in training mode.
-        self.model.train()
-        self.model = self.model.to(self.device, non_blocking=pin_memory)
+        # Puts module in training mode.
+        self.module_wrapper.module.train()
+        self.module_wrapper.module = self.module_wrapper.module.to(self.device, non_blocking=pin_memory)
         self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
         start = datetime.now()
@@ -108,7 +111,7 @@ class Classifier:
                 self.optimizer.zero_grad()
 
                 # forward + backward + optimize
-                outputs = self.model(tensors)
+                outputs = self.module_wrapper.module(tensors)
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
@@ -166,8 +169,6 @@ class Classifier:
         if self.verbosity_level:
             cnt.print()
         classes = list(cnt.dic.keys())
-        # TODO this can be user provided so change it to reflect this
-        self.model.fc = nn.Linear(self.model.fc.in_features, len(classes))
         return classes
 
     # Loads classifier object from .pkl file
@@ -196,5 +197,5 @@ class Classifier:
         if not isinstance(pin_memory, bool) or num_workers < 0:
             raise Exception("pin_memory parameter should be a boolean")
 
-        if not isinstance(data_set, iterators.ABCIterator):
+        if not isinstance(data_set, iterators.GEMICAIABCIterator):
             raise Exception("data_set parameter should have a base class of data_iterators.ABCIterator")
