@@ -23,20 +23,15 @@ class ABCIterator(ABC, IterableDataset):
         pass
 
     @abstractmethod
-    def is_pinned(self):
-        pass
-
-    @abstractmethod
     def can_be_parallelized(self):
         pass
 
 
 class PickledDicomoDataFolder(ABCIterator):
-    def __init__(self, base_path, dicomo_fields, transform=None, pin_memory=False):
+    def __init__(self, base_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
         self.dicomo_fields = dicomo_fields
-        self.pin_memory = pin_memory
         self.base_path = base_path
         self.transform = transform
         self.len = 0
@@ -65,11 +60,8 @@ class PickledDicomoDataFolder(ABCIterator):
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
-                yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform, self.pin_memory))
+                yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform))
         raise StopIteration
-
-    def is_pinned(self):
-        return self.pin_memory
 
     def can_be_parallelized(self):
         return False
@@ -77,12 +69,11 @@ class PickledDicomoDataFolder(ABCIterator):
 
 class PickledDicomoDataSet(ABCIterator):
 
-    def __init__(self, pickle_path, dicomo_fields, transform=None, pin_memory=False):
+    def __init__(self, pickle_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
         self.dicomo_fields = dicomo_fields
         self.pickle_path = pickle_path
-        self.pin_memory = pin_memory
         self.transform = transform
         self.len = 0
 
@@ -113,10 +104,6 @@ class PickledDicomoDataSet(ABCIterator):
                             temp = self.transform(temp)
                         except:
                             raise Exception('Could not apply specified transformation to the dicom image')
-
-                    # pin (page-lock) memory, it allows us to use asynchronous GPU copies
-                    if self.pin_memory:
-                        temp = temp.pin_memory()
 
                     field_list.append(temp)
                 except:
