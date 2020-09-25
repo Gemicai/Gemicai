@@ -1,6 +1,6 @@
+import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
 from gemicai.dicomo import LabelCounter
-import gemicai.module_wrappers as modules
 from datetime import datetime
 import torch.nn as nn
 import pickle
@@ -8,15 +8,19 @@ import torch
 
 
 class Classifier:
-    def __init__(self, module_wrapper=modules.GEMICAIABCModuleWrapper, loss_function=None, optimizer=None, verbosity_level=0,
-                 enable_cuda=False, cuda_device=None):
-        # Sets base moduleWrapper of the classifier
-        if not isinstance(module_wrapper, modules.GEMICAIABCModuleWrapper):
-            raise Exception("module_wrapper should have a parent class of a type gemicai.modules.GEMICAIABCModuleWrapper, where as"
-                            "it is " + str(type(module_wrapper)))
-
-        self.module_wrapper = module_wrapper
+    def __init__(self, module=nn.Module, layer_config=functr.DefaultLastLayerConfig(),
+                 loss_function=None, optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
+        # Sets base module of the classifier
+        if not isinstance(module, nn.Module):
+            raise Exception("module_wrapper should extend a nn.Modules class")
+        self.module = module
         self.device = None
+
+        # Sets a functor that allows us to configure the layers for training/evaluating
+        if not isinstance(layer_config, functr.GEMICAIABCFunctor):
+            raise Exception("layer_config should extend a gemicai.classifier_functors.GEMICAIABCFunctor")
+        self.layer_config = layer_config
+
         self.set_device(enable_cuda, cuda_device)
 
         # set a proper loss function
@@ -29,7 +33,7 @@ class Classifier:
 
         # set a proper optimizer
         if optimizer is None:
-            self.optimizer = torch.optim.SGD(self.module_wrapper.module.parameters(), lr=0.001, momentum=0.9)
+            self.optimizer = torch.optim.SGD(self.module.parameters(), lr=0.001, momentum=0.9)
         elif not isinstance(optimizer, torch.optim.Optimizer):
             raise Exception("Custom optimizer should have a base class of torch.optim.Optimizer")
         else:
@@ -46,7 +50,7 @@ class Classifier:
         valid_layers = []
 
         # check whenever passed layers are valid/exist and set them if they are
-        for name, param in self.module_wrapper.module.named_parameters():
+        for name, param in self.module.named_parameters():
             name = '.'.join(name.split('.')[:-1])
             to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
             if len(to_set):
@@ -60,12 +64,14 @@ class Classifier:
 
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
+
+        # Determine tensor classes and configure layers
         classes = self.determine_classes(data_loader)
-        self.module_wrapper.update_modules_input_features(classes)
+        self.module = self.layer_config(self.module, classes)
 
         # puts module in evaluation mode.
-        self.module_wrapper.module.eval()
-        self.module_wrapper.module = self.module_wrapper.module.to(self.device, non_blocking=pin_memory)
+        self.module.eval()
+        self.module = self.module.to(self.device, non_blocking=pin_memory)
 
         correct, total = 0, 0
         with torch.no_grad():
@@ -74,7 +80,7 @@ class Classifier:
                 images = images.to(self.device)
                 labels = torch.tensor([classes.index(label) for label in labels])\
                     .to(self.device, non_blocking=pin_memory)
-                outputs = self.module_wrapper.module(images)
+                outputs = self.module(images)
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -87,12 +93,14 @@ class Classifier:
             num_workers = 0
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
+
+        # Determine tensor classes and configure layers
         classes = self.determine_classes(data_loader)
-        self.module_wrapper.update_modules_input_features(classes)
+        self.module = self.layer_config(self.module, classes)
 
         # Puts module in training mode.
-        self.module_wrapper.module.train()
-        self.module_wrapper.module = self.module_wrapper.module.to(self.device, non_blocking=pin_memory)
+        self.module.train()
+        self.module = self.module.to(self.device, non_blocking=pin_memory)
         self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
         start = datetime.now()
@@ -111,7 +119,7 @@ class Classifier:
                 self.optimizer.zero_grad()
 
                 # forward + backward + optimize
-                outputs = self.module_wrapper.module(tensors)
+                outputs = self.module(tensors)
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
@@ -141,6 +149,12 @@ class Classifier:
         if not isinstance(verbosity_level, int):
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
+
+    # todo read more about torch.nn.parallel.DistributedDataParallel
+    # since this wont work as expected
+    def parallelize_module(self, parallelize_module=False):
+        if parallelize_module:
+            self.module = nn.DataParallel(self.module)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
         # select a correct cuda device
