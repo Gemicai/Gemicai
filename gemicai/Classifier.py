@@ -8,8 +8,8 @@ import torch
 
 
 class Classifier:
-    def __init__(self, module=nn.Module, layer_config=functr.DefaultLastLayerConfig(),
-                 loss_function=None, optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
+    def __init__(self, module=nn.Module, layer_config=None, loss_function=None,
+                 optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise Exception("module_wrapper should extend a nn.Modules class")
@@ -17,9 +17,12 @@ class Classifier:
         self.device = None
 
         # Sets a functor that allows us to configure the layers for training/evaluating
-        if not isinstance(layer_config, functr.GEMICAIABCFunctor):
+        if layer_config is None:
+            self.layer_config = functr.DefaultLastLayerConfig()
+        elif not isinstance(layer_config, functr.GEMICAIABCFunctor):
             raise Exception("layer_config should extend a gemicai.classifier_functors.GEMICAIABCFunctor")
-        self.layer_config = layer_config
+        else:
+            self.layer_config = layer_config
 
         self.set_device(enable_cuda, cuda_device)
 
