@@ -5,4 +5,4 @@ from .Classifier import *
 from .dicom_utilities import *
 from .dicomo import *
 from .data_iterators import *
-from .module_wrappers import *
+from .classifier_functors import *
