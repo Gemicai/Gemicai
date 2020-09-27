@@ -24,6 +24,7 @@ class Classifier:
         else:
             self.layer_config = layer_config
 
+        self.enable_cuda = enable_cuda
         self.set_device(enable_cuda, cuda_device)
 
         # set a proper loss function
@@ -190,7 +191,7 @@ class Classifier:
             print(cnt)
         self.classes = list(cnt.dic.keys())
         self.layer_config(self.module, self.classes)
-        # This shouldn't return anything, classes has to be an attribute of the Classifier.
+        # This doesn't have to return anything, as classes has to be an attribute of the Classifier.
 
     # Loads classifier object from .pkl file
     @staticmethod
