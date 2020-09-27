@@ -45,9 +45,20 @@ class ClassifierTree:
                 self.root.children[c] = ClassifierTree(child, classify=classify[1:], data_directory=data_directory,
                                                        constraints=cons, verbosity=verbosity)
 
-    # TODO write function that prints information about the tree
-    def summary(self):
-        pass
+    # TODO: Should we give Classifier contraints?
+    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
+        self.root.train(data_set=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
+                        pin_memory=pin_memory, redetermine_classes=redetermine_classes)
+        for child in self.children:
+            child.train(data_set=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
+                        pin_memory=pin_memory, redetermine_classes=redetermine_classes)
+
+    def __str__(self):
+        depth = 0
+        print('Depth | Classifies | Classifiers |  Avg. Classes')
+        print()
+        print('{} | ')
+        return 'yeah'
 
 
 resnet18 = models.resnet18(pretrained=True)
