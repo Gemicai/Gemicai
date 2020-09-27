@@ -1,5 +1,6 @@
 import torchvision.models as models
 import gemicai as gem
+import torch
 import time
 import os
 
@@ -38,7 +39,17 @@ def demo_create_dicomo_dataset():
     gem.compress_dicom_files(data_origin, data_destination, modalities=['DX'])
 
 
-def get_data_set(data_directory, use_pds=False):
+def demo_things_we_should_fix():
+    # FIXME: Exception handling in the data_iterators (Not extremely important rn but something we should consider)
+    #  This raises a StopIteration exception, should be a FileNotFound or something like that.
+    dataset = get_data_set('wrong_path')
+    data_loader = torch.utils.data.DataLoader(dataset, 4)
+    for data in data_loader:
+        pass
+
+
+# TODO: Perhaps generalize this as well for the library, or make a function 'get_dicomo_dataset()'
+def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False):
     transform = gem.torchvision.transforms.Compose([
         gem.torchvision.transforms.ToPILImage(),
         gem.torchvision.transforms.Grayscale(3),
@@ -56,7 +67,7 @@ def get_data_set(data_directory, use_pds=False):
 # os.path.join makes a platform dependent path (so both linux and windows works)
 # =os.path.join('examples', 'compressed', 'CT', '000001.gz')
 
-demo_initialize_classifier()
-demo_train_classifier()
-demo_evaluate_classifier()
-#demo_create_dicomo_dataset()
+# demo_initialize_classifier()
+# demo_train_classifier()
+# demo_evaluate_classifier()
+# demo_create_dicomo_dataset()

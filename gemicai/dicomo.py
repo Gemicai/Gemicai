@@ -11,6 +11,7 @@ import shutil
 
 from gemicai import dicom_utilities as du
 
+
 # Dicom object, used to extract only the relevant data (for training) from a dicom file.
 class Dicomo:
     def __init__(self, filename):
@@ -39,7 +40,8 @@ class Dicomo:
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
         plt.title(
-            '{} | {} | {} | {} \n {} | {}'.format(self.modality, self.bpe, self.studydes, self.seriesdes, self.imtype, self.protocol))
+            '{} | {} | {} | {} \n {} | {}'.format(self.modality, self.bpe, self.studydes, self.seriesdes, self.imtype,
+                                                  self.protocol))
         plt.imshow(self.tensor, cmap)
         plt.show()
 
@@ -112,17 +114,17 @@ class LabelCounter:
     def __init__(self):
         self.dic = {}
 
+    # I know this looks hideous but it prints a wonderfull table :)
+    def __str__(self):
+        s = 'label                | frequency\n---------------------------------\n'
+        t = 0
+        for k, v in self.dic.items():
+            t += v
+            s += ('{:<20s} | {:>8d}\n'.format(k, v))
+        return s + '\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys()))
+
     def update(self, s):
         if s in self.dic.keys():
             self.dic[s] += 1
         else:
             self.dic[s] = 1
-
-    # I know this looks hideous but it prints a wonderfull table :)
-    def print(self):
-        print('label                | frequency\n---------------------------------')
-        t = 0
-        for k, v in self.dic.items():
-            t += v
-            print('{:<20s} | {:>8d}'.format(k, v))
-        print('\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys())))
