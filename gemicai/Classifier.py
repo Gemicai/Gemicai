@@ -66,15 +66,16 @@ class Classifier:
     def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
         Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
+        
         if not data_set.can_be_parallelized():
-            num_workers = 0
-
+            raise Exception("Specified data set cannot be parallelized")
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         # Determine tensor classes and configure layers
-        classes = self.determine_classes(data_loader)
-        self.module = self.layer_config(self.module, classes)
+        if self.classes is None:
+            self.determine_classes(data_loader)
+        self.layer_config(self.module, self.classes)
 
         # puts module in evaluation mode.
         self.module.eval()
@@ -85,7 +86,7 @@ class Classifier:
             for data in data_loader:
                 images, labels = data
                 images = images.to(self.device)
-                labels = torch.tensor([classes.index(label) for label in labels])\
+                labels = torch.tensor([self.classes.index(label) for label in labels])\
                     .to(self.device, non_blocking=pin_memory)
                 outputs = self.module(images)
                 _, predicted = torch.max(outputs.data, 1)
@@ -97,13 +98,14 @@ class Classifier:
         Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers, pin_memory)
 
         if not data_set.can_be_parallelized():
-            num_workers = 0
+            raise Exception("Specified data set cannot be parallelized")
         data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         # Determine tensor classes and configure layers
         if self.classes is None or redetermine_classes:
-            self.classes = self.determine_classes(data_loader)
+            self.determine_classes(data_loader)
+        self.layer_config(self.module, self.classes)
 
         # Puts module in training mode.
         self.module.train()
@@ -113,13 +115,14 @@ class Classifier:
         start = datetime.now()
         for epoch in range(epochs):
             running_loss = 0.0
+            total = 0
             for i, data in enumerate(data_loader):
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
                 tensors = tensors.to(self.device)
 
                 # labels returned by the classifier are strings, we need to convert this to an int
-                labels = torch.tensor([classes.index(label) for label in labels])\
+                labels = torch.tensor([self.classes.index(label) for label in labels])\
                     .to(self.device, non_blocking=pin_memory)
 
                 # zero the parameter gradients
@@ -136,11 +139,12 @@ class Classifier:
                 if self.verbosity_level >= 2 and i % 2000 == 1999:  # print every 2000 batches
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
+                total += len(data[0])
             if self.verbosity_level >= 1:
                 epoch_time = datetime.now() - start
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
                 print('Epoch {} finished in {}. ETA: {} -- Avg loss: {}'
-                      .format(epoch + 1, epoch_time, eta, running_loss / len(data_loader.dataset)))
+                      .format(epoch + 1, epoch_time, eta, running_loss / total))
                 start = datetime.now()
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
@@ -190,8 +194,6 @@ class Classifier:
         if self.verbosity_level >= 1:
             print(cnt)
         self.classes = list(cnt.dic.keys())
-        self.layer_config(self.module, self.classes)
-        # This doesn't have to return anything, as classes has to be an attribute of the Classifier.
 
     # Loads classifier object from .pkl file
     @staticmethod

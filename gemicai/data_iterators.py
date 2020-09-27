@@ -3,6 +3,7 @@ from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
 from abc import ABC, abstractmethod
 from gemicai import dicomo
+import math
 import os
 import torchvision
 import torch
@@ -28,6 +29,85 @@ class GEMICAIABCIterator(ABC, IterableDataset):
     @abstractmethod
     def can_be_parallelized(self):
         pass
+
+
+class ConcurrentPickledDicomoTaskSplitter(GEMICAIABCIterator):
+    def __init__(self, base_path, dicomo_fields, transform=None):
+        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+        assert isinstance(base_path, str), 'base_path is not a string'
+        self.dicomo_fields = dicomo_fields
+        self.base_path = base_path
+        self.transform = transform
+        self.len = 0
+
+        self.file_pool = []
+        for root, dirs, files in os.walk(self.base_path):
+            for name in files:
+                self.file_pool.append(os.path.join(root, name))
+
+    def __iter__(self):
+        worker_info = get_worker_info()
+        if worker_info is None:
+            # we are in a single threaded environment so there is no need to modify the data set
+            return iter(PickledDicomoFilePool(self.file_pool, self.dicomo_fields, self.transform))
+        else:
+            # we are in a multi-threaded environment, slice the dataset
+            per_worker = int(math.ceil(len(self.file_pool) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            start = worker_id * per_worker
+            end = min(start + per_worker, len(self.file_pool))
+            return iter(PickledDicomoFilePool(self.file_pool[start:end], self.dicomo_fields, self.transform))
+
+    def __next__(self):
+        raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
+
+    def __len__(self):
+        raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
+
+    def can_be_parallelized(self):
+        return True
+
+
+class PickledDicomoFilePool(GEMICAIABCIterator):
+    def __init__(self, file_pool, dicomo_fields, transform=None):
+        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+        assert isinstance(file_pool, list), 'file_pool is not a string'
+        self.dicomo_fields = dicomo_fields
+        self.file_pool = file_pool
+        self.transform = transform
+        self.set_generator = None
+        self.data_set = None
+        self.len = 0
+
+    def __iter__(self):
+        self.set_generator = None
+        self.data_set = None
+        return self
+
+    def __next__(self):
+        try:
+            while True:
+                try:
+                    temp = next(self.data_set)
+                    self.len += 1
+                    return temp
+                except:
+                    if self.set_generator is None:
+                        self.set_generator = self.pool_walker()
+                    self.data_set = next(self.set_generator)
+        except:
+            raise StopIteration
+
+    def __len__(self):
+        return self.len
+
+    def can_be_parallelized(self):
+        return False
+
+    def pool_walker(self):
+        for file_path in self.file_pool:
+            yield iter(PickledDicomoDataSet(file_path, self.dicomo_fields, self.transform))
+        raise StopIteration
 
 
 class PickledDicomoDataFolder(GEMICAIABCIterator):
@@ -95,14 +175,9 @@ class PickledDicomoDataSet(GEMICAIABCIterator):
         self.len = 0
 
     def __iter__(self):
-        worker_info = get_worker_info()
         self.len = 0
-
-        if worker_info is None:
-            self.pickle_stream = self.stream_pickled_dicomos()
-            return self
-        else:
-            raise Exception("PickledDicomoDataSet does not support multi-process data loading")
+        self.pickle_stream = self.stream_pickled_dicomos()
+        return self
 
     def __next__(self):
         try:
