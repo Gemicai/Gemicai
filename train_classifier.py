@@ -13,7 +13,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, verbosity_level=1, enable_cuda=True)
+    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=True)
     net.save(classifier_path)
 
 
@@ -24,13 +24,13 @@ def demo_train_classifier():
     # Train the classifier
     # net.set_trainable_layers([("all", True)])
     # net.set_device(enable_cuda=False)
-    net.train(get_data_set(train_data_set_path), epochs=1, pin_memory=True)
+    net.train(get_data_set(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
     net.save(trained_classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_pickle(trained_classifier_path)
-    net.evaluate(get_data_set(eval_data_set_path), pin_memory=True)
+    net.evaluate(get_data_set(eval_data_set_path), num_workers=0, pin_memory=True)
 
 
 def demo_create_dicomo_dataset():
@@ -61,13 +61,17 @@ def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False)
         # and a list of the fields that we want to extract from the dicomo object
         return gem.iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
     else:
-        return gem.iterators.PickledDicomoDataFolder(data_directory, ['tensor', 'bpe'], transform)
+        return gem.iterators.ConcurrentPickledDicomoTaskSplitter(data_directory, ['tensor', 'bpe'], transform)
 
 
 # os.path.join makes a platform dependent path (so both linux and windows works)
 # =os.path.join('examples', 'compressed', 'CT', '000001.gz')
 
-# demo_initialize_classifier()
-# demo_train_classifier()
-# demo_evaluate_classifier()
+# this has to wrap the code we call
+# you can say thank you to how python implements multithreading
+# and yes it has to be here and not in the Classifier.py
+if __name__ == '__main__':
+    demo_initialize_classifier()
+    demo_train_classifier()
+#   demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
