@@ -46,6 +46,9 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
+        # Classes will default to None, but will be set for the first time by either calling train or determine_classes
+        self.classes = None
+
     def set_trainable_layers(self, layers):
         if not isinstance(layers, list) and len(list) == 0:
             raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
@@ -89,7 +92,7 @@ class Classifier:
                 correct += (predicted == labels).sum().item()
             print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
-    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
+    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
         Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers, pin_memory)
 
         if not data_set.can_be_parallelized():
@@ -98,8 +101,8 @@ class Classifier:
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         # Determine tensor classes and configure layers
-        classes = self.determine_classes(data_loader)
-        self.module = self.layer_config(self.module, classes)
+        if self.classes is None or redetermine_classes:
+            self.classes = self.determine_classes(data_loader)
 
         # Puts module in training mode.
         self.module.train()
@@ -180,13 +183,14 @@ class Classifier:
             raise Exception("data_loader parameter should be an instance of torch.utils.data.DataLoader")
 
         cnt = LabelCounter()
-        for i, data in enumerate(data_loader):
+        for data in data_loader:
             for label in data[1]:
                 cnt.update(label)
-        if self.verbosity_level:
-            cnt.print()
-        classes = list(cnt.dic.keys())
-        return classes
+        if self.verbosity_level >= 1:
+            print(cnt)
+        self.classes = list(cnt.dic.keys())
+        self.layer_config(self.module, self.classes)
+        # This shouldn't return anything, classes has to be an attribute of the Classifier.
 
     # Loads classifier object from .pkl file
     @staticmethod

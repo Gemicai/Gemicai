@@ -1,5 +1,6 @@
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
+from torch.utils.data import DataLoader
 from abc import ABC, abstractmethod
 from gemicai import dicomo
 import os
@@ -56,6 +57,17 @@ class PickledDicomoDataFolder(GEMICAIABCIterator):
 
     def __len__(self):
         return self.len
+
+    def __str__(self):
+        return str(self.summaray(count_field=self.dicomo_fields[1]))
+
+    def summaray(self, count_field=None):
+        assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.dicomo_fields)
+        cnt = dicomo.LabelCounter()
+        for data in DataLoader(self, 4, shuffle=False):
+            for label in data[self.dicomo_fields.index(count_field)]:
+                cnt.update(label)
+        return cnt
 
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
