@@ -3,25 +3,22 @@ from torchvision import models
 import gemicai as gem
 import torch
 import copy
+import time
 
 
 class ClassifierTree:
-    def __init__(self, root, classify, data_directory, constraints={}, verbosity=0):
+    def __init__(self, root, classify, constraints={}, verbosity=0):
         if not isinstance(root, gem.Classifier):
             raise Exception('Root of ClassifierTree should be a gem.Classifier')
         if not isinstance(classify, list):
             raise Exception('classify should be a list of attributes the tree should classify')
         assert len(classify) >= 2, 'Classify should contain at least 2 classes.'
-        if not isinstance(data_directory, str):
-            raise Exception('data_direcotry should be a string')
 
         self.root = root
         self.constraints = constraints
         self.verbosity = verbosity
+        self.classify = classify
         self.classifies = classify[0]
-
-        # The root of the tree should classify the first atrribute in classify, its children take care of the rest.
-        self.root.determine_classes(gem.get_dicomo_data_loader(data_directory, ['tensor', self.classifies]))
 
         # Children can either be a gemicai.Classifier or gemicai.ClassifierTree
         # Sidenote: I think for now we don't need to keep track of parents but I might be wrong.
@@ -31,37 +28,63 @@ class ClassifierTree:
         for c in self.root.classes:
             cons = copy.deepcopy(self.constraints)
             cons[self.classifies] = c
-            data_loader = gem.get_dicomo_data_loader(data_directory, ['tensor', classify[1]], contraints=cons)
-            child = gem.Classifier(module=copy.deepcopy(self.root.module), layer_config=self.root.layer_config,
+            dataset = gem.PickledDicomoDataFolder(base_path=self.root.dataset_config['path'],
+                                                  dicomo_fields=['tensor', classify[1]],
+                                                  transform=self.root.dataset_config['transform'], constraints=cons)
+            child = gem.Classifier(module=copy.deepcopy(self.root.module),
+                                   layer_config=copy.deepcopy(self.root.layer_config),
                                    loss_function=copy.deepcopy(self.root.loss_function), verbosity_level=verbosity,
                                    optimizer=copy.deepcopy(self.root.optimizer), enable_cuda=self.root.enable_cuda)
-            child.determine_classes(data_loader)
+
+            # This automatically configures the Classifiers' classes and final layer.
+            child.set_base_dataset(dataset)
 
             # If at the end of the tree, all  are leafs and therefore instances of gemicai.Classifier.
             # Else not the end of the tree, which means this child must be an instance of gemicai.ClassifierTree.
             if len(classify) == 2:
-                self.root.children[c] = child
+                self.children[c] = child
             else:
-                self.root.children[c] = ClassifierTree(child, classify=classify[1:], data_directory=data_directory,
-                                                       constraints=cons, verbosity=verbosity)
+                self.children[c] = ClassifierTree(child, classify=classify[1:], constraints=cons, verbosity=verbosity)
 
-    # TODO: Should we give Classifier contraints?
     def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
-        self.root.train(data_set=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
+        self.root.train(dataset=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
                         pin_memory=pin_memory, redetermine_classes=redetermine_classes)
         for child in self.children:
-            child.train(data_set=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
+            child.train(dataset=data_set, batch_size=batch_size, epochs=epochs, num_workers=num_workers,
                         pin_memory=pin_memory, redetermine_classes=redetermine_classes)
 
     def __str__(self):
-        depth = 0
-        print('Depth | Classifies | Classifiers |  Avg. Classes')
-        print()
-        print('{} | ')
-        return 'yeah'
+        s = 'Depth | Classifies | Classifiers | Avg. Classes'
+        all_classifiers = self.get_all_classifiers()
+        all_classifiers.append(self.root)
+        tot_classifiers, tot_classes = 0, 0
+        for i, cl in enumerate(self.classify):
+            for c in all_classifiers:
+                if c.dataset_config['object_fields'][1] == cl:
+                    tot_classifiers += 1
+                    tot_classes += len(c.classes)
+            s += '{:<6s}|{:<12s}|{:>13d}|{:>14d}'.format(str(i), cl, tot_classifiers, round(tot_classes/tot_classifiers, 1))
+            tot_classifiers, tot_classes = 0, 0
+        return s
+
+    # Returns a set with all classifiers in the tree
+    def get_all_classifiers(self):
+        s = []
+        for c in self.children.values():
+            if isinstance(c, ClassifierTree):
+                s += c.get_all_classifiers()
+            else:
+                s.append(c)
+        return s
 
 
+classify = ['bpe', 'studydes']
 resnet18 = models.resnet18(pretrained=True)
-dl = gem.get_dicomo_data_loader('examples/gzip/dx/train/')
-net = gem.Classifier(resnet18, dl, verbosity=1)
-tree = ClassifierTree(net, 'studydes')
+ds = gem.PickledDicomoDataFolder(base_path='../examples/gzip/dx/train/', dicomo_fields=['tensor', classify[0]])
+net = gem.Classifier(resnet18, verbosity_level=1)
+net.set_base_dataset(ds)
+start = time.time()
+tree = ClassifierTree(net, classify)
+print('loading tree took {}'.format(time.time() - start))
+print(tree)
+print('printing tree took {}'.format(time.time() - start))

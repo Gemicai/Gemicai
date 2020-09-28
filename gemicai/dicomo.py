@@ -109,18 +109,17 @@ def unzip_to_file(file, zip_path):
         shutil.copyfileobj(zipped, open(file.name, 'ab+'))
 
 
-# Putting this here since standard collection.Counter doesn't do what I want it to do.
 class LabelCounter:
     def __init__(self):
         self.dic = {}
 
     # I know this looks hideous but it prints a wonderfull table :)
     def __str__(self):
-        s = 'label                | frequency\n---------------------------------\n'
+        s = 'label                          | frequency\n---------------------------------\n'
         t = 0
         for k, v in self.dic.items():
             t += v
-            s += ('{:<20s} | {:>8d}\n'.format(k, v))
+            s += ('{:<30s} | {:>8d}\n'.format(k, v))
         return s + '\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys()))
 
     def update(self, s):
