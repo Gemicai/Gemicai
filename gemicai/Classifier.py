@@ -8,8 +8,8 @@ import torch
 
 
 class Classifier:
-    def __init__(self, module=nn.Module, layer_config=None, loss_function=None,
-                 optimizer=None, verbosity_level=0, enable_cuda=False, cuda_device=None):
+    def __init__(self, module=nn.Module, layer_config=None, loss_function=None, optimizer=None, verbosity_level=0,
+                 enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise Exception("module_wrapper should extend a nn.Modules class")
@@ -30,8 +30,9 @@ class Classifier:
         # set a proper loss function
         if loss_function is None:
             self.loss_function = nn.CrossEntropyLoss()
-        elif not isinstance(loss_function, nn.CrossEntropyLossImpl):
-            raise Exception("Custom loss_function should have a base class of nn.CrossEntropyLossImpl")
+        # AttributeError: module 'torch.nn' has no attribute 'CrossEntropyLossImpl'
+        # elif not isinstance(loss_function, nn.CrossEntropyLossImpl):
+        #     raise Exception("Custom loss_function should have a base class of nn.CrossEntropyLossImpl")
         else:
             self.loss_function = loss_function
 
@@ -49,63 +50,37 @@ class Classifier:
 
         # Classes will default to None, but will be set for the first time by either calling train or determine_classes
         self.classes = None
+        self.dataset_config = None
 
-    def set_trainable_layers(self, layers):
-        if not isinstance(layers, list) and len(list) == 0:
-            raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
-                            "of tuples (layer_name: string, status: bool)")
-        valid_layers = []
+    # The base dataset of a classifier is the dataset that determines the Classifiers' classes and dataset constraints.
+    # If you want to train or evaluate with a diffrent dataset, that's fine.
+    def set_base_dataset(self, dataset):
+        if not isinstance(dataset, iterators.GemicaiDataset):
+            raise Exception('set_base_dataset() expects an dataset of type GemicaiDataset')
+        # With this dictionary, the dataset can be recontructed when unpickling a Classifier with from_pickle()
+        self.dataset_config = {
+            'path': dataset.base_path,
+            'object_fields': dataset.dicomo_fields,
+            'transform': dataset.transform,
+            'constraints': dataset.constraints,
+            'type': type(dataset)
+        }
+        self.determine_classes(torch.utils.data.DataLoader(dataset))
 
-        # check whenever passed layers are valid/exist and set them if they are
-        for name, param in self.module.named_parameters():
-            name = '.'.join(name.split('.')[:-1])
-            to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
-            if len(to_set):
-                param.requires_grad = to_set[0][1]
+    def train(self, dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
+        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
-    def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
-        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
-                                                num_workers=num_workers, pin_memory=pin_memory)
-        
-        if not data_set.can_be_parallelized():
+        if dataset is None:
+            dataset = self.get_base_dataset()
+
+        if not dataset.can_be_parallelized():
             raise Exception("Specified data set cannot be parallelized")
-        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
-                                                  num_workers=num_workers, pin_memory=pin_memory)
-
-        # Determine tensor classes and configure layers
-        if self.classes is None:
-            self.determine_classes(data_loader)
-        self.layer_config(self.module, self.classes)
-
-        # puts module in evaluation mode.
-        self.module.eval()
-        self.module = self.module.to(self.device, non_blocking=pin_memory)
-
-        correct, total = 0, 0
-        with torch.no_grad():
-            for data in data_loader:
-                images, labels = data
-                images = images.to(self.device)
-                labels = torch.tensor([self.classes.index(label) for label in labels])\
-                    .to(self.device, non_blocking=pin_memory)
-                outputs = self.module(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
-
-    def train(self, data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
-        Classifier.validate_data_set_parameters(data_set, batch_size, epochs, num_workers, pin_memory)
-
-        if not data_set.can_be_parallelized():
-            raise Exception("Specified data set cannot be parallelized")
-        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         # Determine tensor classes and configure layers
         if self.classes is None or redetermine_classes:
             self.determine_classes(data_loader)
-        self.layer_config(self.module, self.classes)
 
         # Puts module in training mode.
         self.module.train()
@@ -121,8 +96,8 @@ class Classifier:
                 tensors, labels = data
                 tensors = tensors.to(self.device)
 
-                # labels returned by the classifier are strings, we need to convert this to an int
-                labels = torch.tensor([self.classes.index(label) for label in labels])\
+                # labels returned by the data loader are strings, we need to convert this to an int
+                labels = torch.tensor([self.classes.index(label) for label in labels]) \
                     .to(self.device, non_blocking=pin_memory)
 
                 # zero the parameter gradients
@@ -148,6 +123,36 @@ class Classifier:
                 start = datetime.now()
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
+
+    def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
+        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
+                                                num_workers=num_workers, pin_memory=pin_memory)
+
+        if not data_set.can_be_parallelized():
+            raise Exception("Specified data set cannot be parallelized")
+        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
+                                                  num_workers=num_workers, pin_memory=pin_memory)
+
+        # Determine tensor classes and configure layers
+        if self.classes is None:
+            self.determine_classes(data_loader)
+
+        # puts module in evaluation mode.
+        self.module.eval()
+        self.module = self.module.to(self.device, non_blocking=pin_memory)
+
+        correct, total = 0, 0
+        with torch.no_grad():
+            for data in data_loader:
+                images, labels = data
+                images = images.to(self.device)
+                labels = torch.tensor([self.classes.index(label) for label in labels]) \
+                    .to(self.device, non_blocking=pin_memory)
+                outputs = self.module(images)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
@@ -194,6 +199,23 @@ class Classifier:
         if self.verbosity_level >= 1:
             print(cnt)
         self.classes = list(cnt.dic.keys())
+        self.layer_config(self.module, self.classes)
+
+    def set_trainable_layers(self, layers):
+        if not isinstance(layers, list) and len(list) == 0:
+            raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
+                            "of tuples (layer_name: string, status: bool)")
+        valid_layers = []
+
+        # check whenever passed layers are valid/exist and set them if they are
+        for name, param in self.module.named_parameters():
+            name = '.'.join(name.split('.')[:-1])
+            to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
+            if len(to_set):
+                param.requires_grad = to_set[0][1]
+
+    def get_base_dataset(self):
+        return iterators.GemicaiDataset.from_config(self.dataset_config)
 
     # Loads classifier object from .pkl file
     @staticmethod
@@ -221,5 +243,5 @@ class Classifier:
         if not isinstance(pin_memory, bool) or num_workers < 0:
             raise Exception("pin_memory parameter should be a boolean")
 
-        if not isinstance(data_set, iterators.GEMICAIABCIterator):
+        if not isinstance(data_set, iterators.GemicaiDataset):
             raise Exception("data_set parameter should have a base class of data_iterators.GEMICAIABCIterator")

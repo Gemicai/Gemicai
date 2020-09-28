@@ -9,7 +9,7 @@ import torchvision
 import torch
 
 
-class GEMICAIABCIterator(ABC, IterableDataset):
+class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
     def __init__(self):
         pass
@@ -30,8 +30,17 @@ class GEMICAIABCIterator(ABC, IterableDataset):
     def can_be_parallelized(self):
         pass
 
+    # Loads classifier object from .pkl file
+    @staticmethod
+    def from_config(dataset_config):
+        if dataset_config['type'] == 'PickledDicomoDataFolder':
+            return PickledDicomoDataFolder(base_path=dataset_config['path'],
+                                           dicomo_fields=dataset_config['object_fields'],
+                                           transform=dataset_config['transform'],
+                                           constraints=dataset_config['constraint'])
 
-class ConcurrentPickledDicomoTaskSplitter(GEMICAIABCIterator):
+
+class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
     def __init__(self, base_path, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -68,7 +77,7 @@ class ConcurrentPickledDicomoTaskSplitter(GEMICAIABCIterator):
         return True
 
 
-class PickledDicomoFilePool(GEMICAIABCIterator):
+class PickledDicomoFilePool(GemicaiDataset):
     def __init__(self, file_pool, dicomo_fields, transform=None):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(file_pool, list), 'file_pool is not a string'
@@ -110,14 +119,14 @@ class PickledDicomoFilePool(GEMICAIABCIterator):
         raise StopIteration
 
 
-class PickledDicomoDataFolder(GEMICAIABCIterator):
-    def __init__(self, base_path, dicomo_fields, transform=None, contraints=None):
+class PickledDicomoDataFolder(GemicaiDataset):
+    def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
         self.dicomo_fields = dicomo_fields
         self.base_path = base_path
         self.transform = transform
-        self.contraints = contraints
+        self.constraints = constraints
         self.len = 0
 
     def __iter__(self):
@@ -156,22 +165,21 @@ class PickledDicomoDataFolder(GEMICAIABCIterator):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform,
-                                                self.contraints))
+                                                self.constraints))
         raise StopIteration
 
     def can_be_parallelized(self):
         return False
 
 
-class PickledDicomoDataSet(GEMICAIABCIterator):
-
-    def __init__(self, pickle_path, dicomo_fields, transform=None, contraints=None):
+class PickledDicomoDataSet(GemicaiDataset):
+    def __init__(self, pickle_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
         self.dicomo_fields = dicomo_fields
         self.pickle_path = pickle_path
         self.transform = transform
-        self.contraints = contraints
+        self.constraints = constraints
         self.len = 0
 
     def __iter__(self):
@@ -183,18 +191,15 @@ class PickledDicomoDataSet(GEMICAIABCIterator):
         try:
             # get next dicomo class from the stream
             dicomo_class = next(self.pickle_stream)
-
+            # constraints is a dictionary.
+            for k in self.constraints.keys():
+                if self.constraints[k] != getattr(dicomo_class, k):
+                    return self.__next__()
             # fetch values of the fields we are interested in
             field_list = []
             for field in self.dicomo_fields:
                 try:
-                    # Contraints is a dictionary.
-                    if self.contraints is not None:
-                        for k in self.contraints.keys():
-                            if self.contraints[k] != getattr(dicomo_class, k):
-                                continue
                     temp = getattr(dicomo_class, field)
-
                     # check if transform is specified and if it should be applied
                     if self.transform is not None and field == 'tensor':
                         try:
@@ -233,11 +238,11 @@ class PickledDicomoDataSet(GEMICAIABCIterator):
         return False
 
 
-def get_dicomo_data_loader(data_directory, dicomo_fields, batch_size=4, contraints=None):
+def get_dicomo_data_loader(data_directory, dicomo_fields, batch_size=4, constraints=None):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToPILImage(),
         torchvision.transforms.Grayscale(3),
         torchvision.transforms.ToTensor()
     ])
-    dataset = PickledDicomoDataFolder(data_directory, dicomo_fields, transform, contraints)
+    dataset = PickledDicomoDataFolder(data_directory, dicomo_fields, transform, constraints)
     return torch.utils.data.DataLoader(dataset, batch_size)
