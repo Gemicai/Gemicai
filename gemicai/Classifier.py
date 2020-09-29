@@ -68,10 +68,9 @@ class Classifier:
         self.determine_classes(torch.utils.data.DataLoader(dataset))
 
     def train(self, dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
-        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
-
         if dataset is None:
             dataset = self.get_base_dataset()
+        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
         if not dataset.can_be_parallelized():
             raise Exception("Specified data set cannot be parallelized")
@@ -124,13 +123,14 @@ class Classifier:
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
-    def evaluate(self, data_set=None, batch_size=4, num_workers=0, pin_memory=False):
-        Classifier.validate_data_set_parameters(data_set=data_set, batch_size=batch_size,
+    def evaluate(self, dataset=None, batch_size=4, num_workers=0, pin_memory=False):
+        if dataset is None:
+            dataset = self.get_base_dataset()
+        Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
-
-        if not data_set.can_be_parallelized():
+        if not dataset.can_be_parallelized():
             raise Exception("Specified data set cannot be parallelized")
-        data_loader = torch.utils.data.DataLoader(data_set, batch_size, shuffle=False,
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
         # Determine tensor classes and configure layers

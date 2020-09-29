@@ -9,11 +9,19 @@ eval_data_set_path = os.path.join("examples", "gzip", "CT")
 classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
 trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
+train_dataset = ''
+test_dataset = ''
+
 
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=True)
+    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=False)
+
+    # When setting a Classifers base dataset, it automatically configures the Classifier to work with all classes in
+    # the base dataset. When no other dataset specified for training or testing, the classier will use its base dataset
+    base_dataset = gem.PickledDicomoDataFolder(base_path='examples/gzip/dx/train/', dicomo_fields=['tensor', 'bpe'])
+    net.set_base_dataset(base_dataset)
     net.save(classifier_path)
 
 
@@ -22,9 +30,10 @@ def demo_train_classifier():
     net = gem.Classifier.from_pickle(classifier_path)
 
     # Train the classifier
-    # net.set_trainable_layers([("all", True)])
+    # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
-    net.train(get_data_set(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
+    # net.train(get_data_set(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
+    net.train(epochs=20)
     net.save(trained_classifier_path)
 
 
@@ -64,14 +73,11 @@ def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False)
         return gem.iterators.ConcurrentPickledDicomoTaskSplitter(data_directory, ['tensor', 'bpe'], transform)
 
 
-# os.path.join makes a platform dependent path (so both linux and windows works)
-# =os.path.join('examples', 'compressed', 'CT', '000001.gz')
-
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    demo_initialize_classifier()
+    # demo_initialize_classifier()
     demo_train_classifier()
 #   demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
