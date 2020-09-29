@@ -41,10 +41,11 @@ class GemicaiDataset(ABC, IterableDataset):
 
 
 class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
-    def __init__(self, base_path, dicomo_fields, transform=None):
+    def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
         self.dicomo_fields = dicomo_fields
+        self.constraints = constraints
         self.base_path = base_path
         self.transform = transform
         self.len = 0
@@ -58,14 +59,15 @@ class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
         worker_info = get_worker_info()
         if worker_info is None:
             # we are in a single threaded environment so there is no need to modify the data set
-            return iter(PickledDicomoFilePool(self.file_pool, self.dicomo_fields, self.transform))
+            return iter(PickledDicomoFilePool(self.file_pool, self.dicomo_fields, self.transform, self.constraints))
         else:
             # we are in a multi-threaded environment, slice the dataset
             per_worker = int(math.ceil(len(self.file_pool) / float(worker_info.num_workers)))
             worker_id = worker_info.id
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.file_pool))
-            return iter(PickledDicomoFilePool(self.file_pool[start:end], self.dicomo_fields, self.transform))
+            return iter(PickledDicomoFilePool(self.file_pool[start:end],
+                                              self.dicomo_fields, self.transform, self.constraints))
 
     def __next__(self):
         raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
@@ -78,10 +80,11 @@ class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
 
 
 class PickledDicomoFilePool(GemicaiDataset):
-    def __init__(self, file_pool, dicomo_fields, transform=None):
+    def __init__(self, file_pool, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(file_pool, list), 'file_pool is not a string'
         self.dicomo_fields = dicomo_fields
+        self.constraints = constraints
         self.file_pool = file_pool
         self.transform = transform
         self.set_generator = None
@@ -115,7 +118,7 @@ class PickledDicomoFilePool(GemicaiDataset):
 
     def pool_walker(self):
         for file_path in self.file_pool:
-            yield iter(PickledDicomoDataSet(file_path, self.dicomo_fields, self.transform))
+            yield iter(PickledDicomoDataSet(file_path, self.dicomo_fields, self.transform, self.constraints))
         raise StopIteration
 
 
