@@ -11,7 +11,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
 train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 test_dataset = '/mnt/SharedStor/datasets/dx/test/'
-classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
+# classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
 
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
@@ -20,7 +20,7 @@ def demo_initialize_classifier():
 
     # When setting a Classifers base dataset, it automatically configures the Classifier to work with all classes in
     # the base dataset. When no other dataset specified for training or testing, the classier will use its base dataset
-    base_dataset = gem.ConcurrentPickledDicomoTaskSplitter(base_path=train_dataset, dicomo_fields=['tensor', 'bpe'])
+    base_dataset = gem.ConcurrentPickledDicomoTaskSplitter(base_path=train_data_set_path, dicomo_fields=['tensor', 'bpe'])
     net.set_base_dataset(base_dataset)
     net.save(classifier_path)
 
@@ -57,6 +57,12 @@ def demo_things_we_should_fix():
         pass
 
 
+# TODO this should work but doesnt @Mateusz I think you might have solved this issue before. Could you take a look at it?
+def demo_dicomo_dataset():
+    dataset = gem.DicomoDataset(train_data_set_path)
+    for data in dataset:
+        print(data)
+
 # TODO: Perhaps generalize this as well for the library, or make a function 'get_dicomo_dataset()'
 def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False):
     transform = gem.torchvision.transforms.Compose([
@@ -79,7 +85,8 @@ def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False)
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    demo_initialize_classifier()
-    demo_train_classifier()
+    # demo_initialize_classifier()
+    # demo_train_classifier()
+    demo_dicomo_dataset()
 #   demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
