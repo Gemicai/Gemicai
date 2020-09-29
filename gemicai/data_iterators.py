@@ -234,9 +234,6 @@ class PickledDicomoDataSet(GemicaiDataset):
             tmp.close()
             os.remove(tmp.name)
 
-    def is_pinned(self):
-        return self.pin_memory
-
     def can_be_parallelized(self):
         return False
 
