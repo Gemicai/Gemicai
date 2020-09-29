@@ -2,7 +2,7 @@ from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
 from abc import ABC, abstractmethod
-from gemicai import dicomo
+import gemicai as gem
 import math
 import os
 import torchvision
@@ -163,7 +163,7 @@ class PickledDicomoDataFolder(GemicaiDataset):
 
     def summaray(self, count_field=None):
         assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.dicomo_fields)
-        cnt = dicomo.LabelCounter()
+        cnt = gem.LabelCounter()
         for data in DataLoader(self, 4, shuffle=False):
             for label in data[self.dicomo_fields.index(count_field)]:
                 cnt.update(label)
@@ -228,11 +228,52 @@ class PickledDicomoDataSet(GemicaiDataset):
         return self.len
 
     def stream_pickled_dicomos(self):
-        tmp = dicomo.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
         try:
-            dicomo.unzip_to_file(tmp, self.pickle_path)
+            gem.unzip_to_file(tmp, self.pickle_path)
             while True:
-                yield dicomo.pickle.load(tmp)
+                yield gem.pickle.load(tmp)
+        except EOFError:
+            pass
+        finally:
+            tmp.close()
+            os.remove(tmp.name)
+
+    def can_be_parallelized(self):
+        return False
+
+
+# This just returns the whole dicomo object, this is usefull for constructing other datasets of allready pickled files.
+# and I also want to use this in the Jupyter Notebook tutorials as it's easy to use.
+class DicomoDataset(GemicaiDataset):
+    def __init__(self, pickle_path):
+        assert isinstance(pickle_path, str), 'pickle_path is not a string'
+        self.pickle_path = pickle_path
+        self.len = 0
+
+    def __iter__(self):
+        self.len = 0
+        self.pickle_stream = self.stream_pickled_dicomos()
+        return self
+
+    def __next__(self):
+        try:
+            # get next dicom object (dicomo) from the stream
+            dicomo = next(self.pickle_stream)
+            self.len += 1
+            return dicomo
+        except StopIteration:
+            raise StopIteration
+
+    def __len__(self):
+        return self.len
+
+    def stream_pickled_dicomos(self):
+        tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        try:
+            gem.unzip_to_file(tmp, self.pickle_path)
+            while True:
+                yield gem.pickle.load(tmp)
         except EOFError:
             pass
         finally:
