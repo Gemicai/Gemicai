@@ -33,11 +33,11 @@ class GemicaiDataset(ABC, IterableDataset):
     # Loads classifier object from .pkl file
     @staticmethod
     def from_config(dataset_config):
-        if dataset_config['type'] == 'PickledDicomoDataFolder':
+        if dataset_config['type'] == PickledDicomoDataFolder:
             return PickledDicomoDataFolder(base_path=dataset_config['path'],
                                            dicomo_fields=dataset_config['object_fields'],
                                            transform=dataset_config['transform'],
-                                           constraints=dataset_config['constraint'])
+                                           constraints=dataset_config['constraints'])
 
 
 class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):

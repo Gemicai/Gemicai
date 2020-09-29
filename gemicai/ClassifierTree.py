@@ -54,7 +54,7 @@ class ClassifierTree:
                         pin_memory=pin_memory, redetermine_classes=redetermine_classes)
 
     def __str__(self):
-        s = 'Depth | Classifies | Classifiers | Avg. Classes'
+        s = 'Depth | Classifies | Classifiers | Avg. Classes\n'
         all_classifiers = self.get_all_classifiers()
         all_classifiers.append(self.root)
         tot_classifiers, tot_classes = 0, 0
@@ -63,7 +63,7 @@ class ClassifierTree:
                 if c.dataset_config['object_fields'][1] == cl:
                     tot_classifiers += 1
                     tot_classes += len(c.classes)
-            s += '{:<6s}|{:<12s}|{:>13d}|{:>14d}'.format(str(i), cl, tot_classifiers, round(tot_classes/tot_classifiers, 1))
+            s += '{:<6d}|{:<12s}|{:>13d}|{:>14f}\n'.format(i, cl, tot_classifiers, round(tot_classes/tot_classifiers, 1))
             tot_classifiers, tot_classes = 0, 0
         return s
 
