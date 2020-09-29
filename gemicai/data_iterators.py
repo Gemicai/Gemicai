@@ -38,6 +38,11 @@ class GemicaiDataset(ABC, IterableDataset):
                                            dicomo_fields=dataset_config['object_fields'],
                                            transform=dataset_config['transform'],
                                            constraints=dataset_config['constraints'])
+        if dataset_config['type'] == ConcurrentPickledDicomoTaskSplitter:
+            return ConcurrentPickledDicomoTaskSplitter(base_path=dataset_config['path'],
+                                                       dicomo_fields=dataset_config['object_fields'],
+                                                       transform=dataset_config['transform'],
+                                                       constraints=dataset_config['constraints'])
 
 
 class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
@@ -236,13 +241,3 @@ class PickledDicomoDataSet(GemicaiDataset):
 
     def can_be_parallelized(self):
         return False
-
-
-def get_dicomo_data_loader(data_directory, dicomo_fields, batch_size=4, constraints=None):
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Grayscale(3),
-        torchvision.transforms.ToTensor()
-    ])
-    dataset = PickledDicomoDataFolder(data_directory, dicomo_fields, transform, constraints)
-    return torch.utils.data.DataLoader(dataset, batch_size)

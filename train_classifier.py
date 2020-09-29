@@ -20,7 +20,8 @@ def demo_initialize_classifier():
 
     # When setting a Classifers base dataset, it automatically configures the Classifier to work with all classes in
     # the base dataset. When no other dataset specified for training or testing, the classier will use its base dataset
-    base_dataset = gem.PickledDicomoDataFolder(base_path='examples/gzip/dx/train/', dicomo_fields=['tensor', 'bpe'])
+    base_dataset = gem.ConcurrentPickledDicomoTaskSplitter(base_path='examples/gzip/dx/train/',
+                                                           dicomo_fields=['tensor', 'bpe'])
     net.set_base_dataset(base_dataset)
     net.save(classifier_path)
 
@@ -64,6 +65,8 @@ def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False)
         gem.torchvision.transforms.Grayscale(3),
         gem.torchvision.transforms.ToTensor()
     ])
+    # We don't need a transform everytime right? The data has been transformed, and stored as tensor in the dicomo files
+    transform = None
 
     if use_pds:
         # while creating PickleDataSet we pass a path to a pickle that hold the data
@@ -77,7 +80,7 @@ def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False)
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    # demo_initialize_classifier()
+    demo_initialize_classifier()
     demo_train_classifier()
 #   demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
