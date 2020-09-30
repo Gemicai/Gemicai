@@ -6,6 +6,7 @@ import gemicai as gem
 import math
 import os
 
+
 # This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
