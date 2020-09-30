@@ -166,12 +166,6 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
-    # todo read more about torch.nn.parallel.DistributedDataParallel
-    # since this wont work as expected
-    def parallelize_module(self, parallelize_module=False):
-        if parallelize_module:
-            self.module = nn.DataParallel(self.module)
-
     def set_device(self, enable_cuda=False, cuda_device=None):
         # select a correct cuda device
         if enable_cuda:
@@ -244,4 +238,4 @@ class Classifier:
             raise Exception("pin_memory parameter should be a boolean")
 
         if not isinstance(data_set, iterators.GemicaiDataset):
-            raise Exception("data_set parameter should have a base class of data_iterators.GEMICAIABCIterator")
+            raise Exception("data_set parameter should have a base class of data_iterators.GemicaiDataset")

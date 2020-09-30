@@ -20,7 +20,7 @@ def demo_initialize_classifier():
 
     # When setting a Classifers base dataset, it automatically configures the Classifier to work with all classes in
     # the base dataset. When no other dataset specified for training or testing, the classier will use its base dataset
-    base_dataset = gem.ConcurrentPickledDicomoTaskSplitter(base_path=train_data_set_path, dicomo_fields=['tensor', 'bpe'])
+    base_dataset = DataSet.get_dicomo_data_set(train_data_set_path, ['tensor', 'bpe'])
     net.set_base_dataset(base_dataset)
     net.save(classifier_path)
 
@@ -33,13 +33,13 @@ def demo_train_classifier():
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
     # net.train(get_data_set(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
-    net.train(epochs=20)
+    net.train(num_workers=6, epochs=20, pin_memory=True)
     net.save(trained_classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_pickle(trained_classifier_path)
-    net.evaluate(gem.GemicaiDataset.from_folder(eval_data_set_path), num_workers=0, pin_memory=True)
+    net.evaluate(num_workers=0, pin_memory=True)
 
 
 def demo_create_dicomo_dataset():
@@ -68,8 +68,8 @@ def demo_dicomo_dataset():
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    # demo_initialize_classifier()
-    # demo_train_classifier()
-    demo_dicomo_dataset()
-#   demo_evaluate_classifier()
+    demo_initialize_classifier()
+    demo_train_classifier()
+#    demo_dicomo_dataset()
+    demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
