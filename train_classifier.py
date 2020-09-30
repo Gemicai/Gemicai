@@ -1,7 +1,7 @@
+from gemicai.data_iterators import DicomoDataset as DataSet
 import torchvision.models as models
 import gemicai as gem
 import torch
-import time
 import os
 
 train_data_set_path = os.path.join("examples", "gzip", "CT")
@@ -39,7 +39,7 @@ def demo_train_classifier():
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_pickle(trained_classifier_path)
-    net.evaluate(get_data_set(eval_data_set_path), num_workers=0, pin_memory=True)
+    net.evaluate(gem.GemicaiDataset.from_folder(eval_data_set_path), num_workers=0, pin_memory=True)
 
 
 def demo_create_dicomo_dataset():
@@ -51,7 +51,7 @@ def demo_create_dicomo_dataset():
 def demo_things_we_should_fix():
     # FIXME: Exception handling in the data_iterators (Not extremely important rn but something we should consider)
     #  This raises a StopIteration exception, should be a FileNotFound or something like that.
-    dataset = get_data_set('wrong_path')
+    dataset = DataSet.get_dicomo_data_set('wrong_path')
     data_loader = torch.utils.data.DataLoader(dataset, 4)
     for data in data_loader:
         pass
@@ -63,22 +63,7 @@ def demo_dicomo_dataset():
     for data in dataset:
         print(data)
 
-# TODO: Perhaps generalize this as well for the library, or make a function 'get_dicomo_dataset()'
-def get_data_set(data_directory, object_fields=['tensor', 'bpe'], use_pds=False):
-    transform = gem.torchvision.transforms.Compose([
-        gem.torchvision.transforms.ToPILImage(),
-        gem.torchvision.transforms.Grayscale(3),
-        gem.torchvision.transforms.ToTensor()
-    ])
-    # We don't need a transform everytime right? The data has been transformed, and stored as tensor in the dicomo files
-    transform = None
-
-    if use_pds:
-        # while creating PickleDataSet we pass a path to a pickle that hold the data
-        # and a list of the fields that we want to extract from the dicomo object
-        return gem.iterators.PickledDicomoDataSet(data_directory, ['tensor', 'bpe'], transform)
-    else:
-        return gem.iterators.ConcurrentPickledDicomoTaskSplitter(data_directory, ['tensor', 'bpe'], transform)
+#['tensor', 'bpe']
 
 
 # this has to wrap the code we call

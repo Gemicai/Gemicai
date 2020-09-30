@@ -5,11 +5,32 @@ from abc import ABC, abstractmethod
 import gemicai as gem
 import math
 import os
-import torchvision
-import torch
 
-
+# This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def __iter__(self):
+        pass
+
+    @abstractmethod
+    def __next__(self):
+        pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
+
+    @abstractmethod
+    def can_be_parallelized(self):
+        pass
+
+
+# This class interface serves as a basis for any dicomo data iterator
+class DicomoDataset(GemicaiDataset):
     @abstractmethod
     def __init__(self):
         pass
@@ -44,8 +65,35 @@ class GemicaiDataset(ABC, IterableDataset):
                                                        transform=dataset_config['transform'],
                                                        constraints=dataset_config['constraints'])
 
+    @staticmethod
+    def from_file(file_path, dicomo_fields=[], transform=None, constraints={}):
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError
+        return PickledDicomoDataSet(GemicaiDataset, dicomo_fields, transform, constraints)
 
-class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
+    @staticmethod
+    def from_folder(folder_path, dicomo_fields=[], transform=None, constraints={}):
+        if not os.path.isdir(folder_path):
+            raise NotADirectoryError
+        return ConcurrentPickledDicomoTaskSplitter(folder_path, dicomo_fields, transform, constraints)
+
+    @staticmethod
+    def get_dicomo_data_set(data_set_path, dicomo_fields=[], constraints={}):
+        transform = gem.torchvision.transforms.Compose([
+            gem.torchvision.transforms.ToPILImage(),
+            gem.torchvision.transforms.Grayscale(3),
+            gem.torchvision.transforms.ToTensor()
+        ])
+
+        if os.path.isfile(data_set_path):
+            # while creating PickleDataSet we pass a path to a pickle that hold the data
+            # and a list of the fields that we want to extract from the dicomo object
+            return DicomoDataset.from_file(data_set_path, dicomo_fields, transform)
+        else:
+            return DicomoDataset.from_folder(data_set_path, dicomo_fields, transform)
+
+
+class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
     def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -84,7 +132,7 @@ class ConcurrentPickledDicomoTaskSplitter(GemicaiDataset):
         return True
 
 
-class PickledDicomoFilePool(GemicaiDataset):
+class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(file_pool, list), 'file_pool is not a string'
@@ -127,7 +175,7 @@ class PickledDicomoFilePool(GemicaiDataset):
         raise StopIteration
 
 
-class PickledDicomoDataFolder(GemicaiDataset):
+class PickledDicomoDataFolder(DicomoDataset):
     def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
@@ -180,7 +228,7 @@ class PickledDicomoDataFolder(GemicaiDataset):
         return False
 
 
-class PickledDicomoDataSet(GemicaiDataset):
+class PickledDicomoDataSet(DicomoDataset):
     def __init__(self, pickle_path, dicomo_fields, transform=None, constraints={}):
         assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
@@ -222,47 +270,6 @@ class PickledDicomoDataSet(GemicaiDataset):
             self.len += 1
             return field_list
         except:
-            raise StopIteration
-
-    def __len__(self):
-        return self.len
-
-    def stream_pickled_dicomos(self):
-        tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
-        try:
-            gem.unzip_to_file(tmp, self.pickle_path)
-            while True:
-                yield gem.pickle.load(tmp)
-        except EOFError:
-            pass
-        finally:
-            tmp.close()
-            os.remove(tmp.name)
-
-    def can_be_parallelized(self):
-        return False
-
-
-# This just returns the whole dicomo object, this is usefull for constructing other datasets of allready pickled files.
-# and I also want to use this in the Jupyter Notebook tutorials as it's easy to use.
-class DicomoDataset(GemicaiDataset):
-    def __init__(self, pickle_path):
-        assert isinstance(pickle_path, str), 'pickle_path is not a string'
-        self.pickle_path = pickle_path
-        self.len = 0
-
-    def __iter__(self):
-        self.len = 0
-        self.pickle_stream = self.stream_pickled_dicomos()
-        return self
-
-    def __next__(self):
-        try:
-            # get next dicom object (dicomo) from the stream
-            dicomo = next(self.pickle_stream)
-            self.len += 1
-            return dicomo
-        except StopIteration:
             raise StopIteration
 
     def __len__(self):
