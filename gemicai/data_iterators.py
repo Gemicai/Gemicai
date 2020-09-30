@@ -72,7 +72,7 @@ class DicomoDataset(GemicaiDataset):
         return PickledDicomoDataSet(GemicaiDataset, dicomo_fields, transform, constraints)
 
     @staticmethod
-    def from_folder(folder_path, dicomo_fields=[], transform=None, constraints={}):
+    def from_directory(folder_path, dicomo_fields=[], transform=None, constraints={}):
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
         return ConcurrentPickledDicomoTaskSplitter(folder_path, dicomo_fields, transform, constraints)
@@ -90,7 +90,7 @@ class DicomoDataset(GemicaiDataset):
             # and a list of the fields that we want to extract from the dicomo object
             return DicomoDataset.from_file(data_set_path, dicomo_fields, transform)
         else:
-            return DicomoDataset.from_folder(data_set_path, dicomo_fields, transform)
+            return DicomoDataset.from_directory(data_set_path, dicomo_fields, transform)
 
 
 class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
