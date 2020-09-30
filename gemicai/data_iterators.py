@@ -29,6 +29,11 @@ class GemicaiDataset(ABC, IterableDataset):
     def can_be_parallelized(self):
         pass
 
+    @staticmethod
+    @abstractmethod
+    def from_config(dataset_config):
+        pass
+
 
 # This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
