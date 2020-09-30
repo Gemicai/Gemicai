@@ -4,7 +4,7 @@
  ![Python 3.8](https://img.shields.io/badge/python-3.8-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![build succeeded](https://img.shields.io/badge/build-succeeded-brightgreen.svg) ![Test passing](https://img.shields.io/badge/Tests-passing-brightgreen.svg) 
 
 ## Introduction
-Gemic is at its core a deep learning library that makes working with TensorFlow easier. Gemic also contains extensive functionality for the Dicom standard. This makes Gemic an excellent tool for dealing with deep-learning-based medical image classifiers. bla bla bla more introduction (The logo is just a placeholder for now and generated at https://app.brandmark.io/v3/)
+Gemicai is at its core a deep learning library that makes working with PyToch. Gemicai also contains extensive functionality for the Dicom standard. This makes Gemicai an excellent tool for dealing with deep-learning-based medical image classifiers. bla bla bla more introduction (The logo is just a placeholder for now and generated at https://app.brandmark.io/v3/)
 
 ## Documentation
 Go to https://docs.gemic.ai for the documentation. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
