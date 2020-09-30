@@ -52,24 +52,12 @@ class Classifier:
         self.classes = None
         self.dataset_config = None
 
-    # The base dataset of a classifier is the dataset that determines the Classifiers' classes and dataset constraints.
-    # If you want to train or evaluate with a diffrent dataset, that's fine.
-    def set_base_dataset(self, dataset):
+    def determine_classes(self, dataset):
         if not isinstance(dataset, iterators.GemicaiDataset):
             raise Exception('set_base_dataset() expects an dataset of type GemicaiDataset')
-        # With this dictionary, the dataset can be recontructed when unpickling a Classifier with from_pickle()
-        self.dataset_config = {
-            'path': dataset.base_path,
-            'object_fields': dataset.dicomo_fields,
-            'transform': dataset.transform,
-            'constraints': dataset.constraints,
-            'type': type(dataset)
-        }
-        self.determine_classes(torch.utils.data.DataLoader(dataset))
+        self._determine_classes(torch.utils.data.DataLoader(dataset))
 
-    def train(self, dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
-        if dataset is None:
-            dataset = self.get_base_dataset()
+    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
         if not dataset.can_be_parallelized():
@@ -79,7 +67,7 @@ class Classifier:
 
         # Determine tensor classes and configure layers
         if self.classes is None or redetermine_classes:
-            self.determine_classes(data_loader)
+            self._determine_classes(data_loader)
 
         # Puts module in training mode.
         self.module.train()
@@ -123,9 +111,7 @@ class Classifier:
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
-    def evaluate(self, dataset=None, batch_size=4, num_workers=0, pin_memory=False):
-        if dataset is None:
-            dataset = self.get_base_dataset()
+    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False):
         Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
         if not dataset.can_be_parallelized():
@@ -135,7 +121,7 @@ class Classifier:
 
         # Determine tensor classes and configure layers
         if self.classes is None:
-            self.determine_classes(data_loader)
+            self._determine_classes(data_loader)
 
         # puts module in evaluation mode.
         self.module.eval()
@@ -182,7 +168,7 @@ class Classifier:
         else:
             self.device = torch.device("cpu")
 
-    def determine_classes(self, data_loader):
+    def _determine_classes(self, data_loader):
         if not isinstance(data_loader, torch.utils.data.DataLoader):
             raise Exception("data_loader parameter should be an instance of torch.utils.data.DataLoader")
 
@@ -207,9 +193,6 @@ class Classifier:
             to_set = list(filter(lambda layer: layer[0] == name or layer[0] == "all", layers))
             if len(to_set):
                 param.requires_grad = to_set[0][1]
-
-    def get_base_dataset(self):
-        return iterators.GemicaiDataset.from_config(self.dataset_config)
 
     # Loads classifier object from .pkl file
     @staticmethod

@@ -13,15 +13,18 @@ train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 test_dataset = '/mnt/SharedStor/datasets/dx/test/'
 # classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
 
+
+def demo_get_dataset(path):
+    return DataSet.get_dicomo_data_set(path, ['tensor', 'bpe'])
+
+
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=False)
+    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=True)
 
-    # When setting a Classifers base dataset, it automatically configures the Classifier to work with all classes in
-    # the base dataset. When no other dataset specified for training or testing, the classier will use its base dataset
-    base_dataset = DataSet.get_dicomo_data_set(train_data_set_path, ['tensor', 'bpe'])
-    net.set_base_dataset(base_dataset)
+    # Determine classes so the model knows number of it's outputs
+    net.determine_classes(demo_get_dataset(train_data_set_path))
     net.save(classifier_path)
 
 
@@ -32,14 +35,13 @@ def demo_train_classifier():
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
-    # net.train(get_data_set(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
-    net.train(num_workers=6, epochs=20, pin_memory=True)
+    net.train(demo_get_dataset(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
     net.save(trained_classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_pickle(trained_classifier_path)
-    net.evaluate(num_workers=0, pin_memory=True)
+    net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
 
 
 def demo_create_dicomo_dataset():
