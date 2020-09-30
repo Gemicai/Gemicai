@@ -54,7 +54,7 @@ class Classifier:
 
     def determine_classes(self, dataset):
         if not isinstance(dataset, iterators.GemicaiDataset):
-            raise Exception('set_base_dataset() expects an dataset of type GemicaiDataset')
+            raise Exception('determine_classes expects an dataset of type GemicaiDataset')
         self._determine_classes(torch.utils.data.DataLoader(dataset))
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
