@@ -59,11 +59,9 @@ def demo_things_we_should_fix():
 
 # TODO this should work but doesnt @Mateusz I think you might have solved this issue before. Could you take a look at it?
 def demo_dicomo_dataset():
-    dataset = gem.DicomoDataset(train_data_set_path)
+    dataset = gem.DicomoDataset.from_directory(train_data_set_path)  # ['tensor', 'bpe']
     for data in dataset:
         print(data)
-
-#['tensor', 'bpe']
 
 
 # this has to wrap the code we call
