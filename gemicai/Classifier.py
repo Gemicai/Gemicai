@@ -1,6 +1,6 @@
 import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
-from gemicai.dicomo import LabelCounter
+from gemicai.LabelCounter import LabelCounter
 from datetime import datetime
 import torch.nn as nn
 import pickle
@@ -171,7 +171,7 @@ class Classifier:
     def _determine_classes(self, data_loader):
         if not isinstance(data_loader, torch.utils.data.DataLoader):
             raise Exception("data_loader parameter should be an instance of torch.utils.data.DataLoader")
-
+        # TODO THIS HAS TO BE IMPROVED SINCE LABELS CAN BE A LIST NOW
         cnt = LabelCounter()
         for data in data_loader:
             for label in data[1]:

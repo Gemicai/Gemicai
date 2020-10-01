@@ -3,6 +3,7 @@
 
 from .Classifier import *
 from .dicom_utilities import *
-from .dicomo import *
+from .data_objects import *
 from .data_iterators import *
 from .classifier_functors import *
+from .LabelCounter import *

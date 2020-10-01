@@ -2,6 +2,7 @@ from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
 from abc import ABC, abstractmethod
+import gemicai.data_objects
 import gemicai as gem
 import math
 import os
@@ -29,11 +30,6 @@ class GemicaiDataset(ABC, IterableDataset):
     def can_be_parallelized(self):
         pass
 
-    @staticmethod
-    @abstractmethod
-    def from_config(dataset_config):
-        pass
-
 
 # This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
@@ -57,34 +53,20 @@ class DicomoDataset(GemicaiDataset):
     def can_be_parallelized(self):
         pass
 
-    # Loads classifier object from .pkl file
     @staticmethod
-    def from_config(dataset_config):
-        if dataset_config['type'] == PickledDicomoDataFolder:
-            return PickledDicomoDataFolder(base_path=dataset_config['path'],
-                                           dicomo_fields=dataset_config['object_fields'],
-                                           transform=dataset_config['transform'],
-                                           constraints=dataset_config['constraints'])
-        if dataset_config['type'] == ConcurrentPickledDicomoTaskSplitter:
-            return ConcurrentPickledDicomoTaskSplitter(base_path=dataset_config['path'],
-                                                       dicomo_fields=dataset_config['object_fields'],
-                                                       transform=dataset_config['transform'],
-                                                       constraints=dataset_config['constraints'])
-
-    @staticmethod
-    def from_file(file_path, dicomo_fields=[], transform=None, constraints={}):
+    def from_file(file_path, labels=[], transform=None, constraints={}):
         if not os.path.isfile(file_path):
             raise FileNotFoundError
-        return PickledDicomoDataSet(GemicaiDataset, dicomo_fields, transform, constraints)
+        return PickledDicomoDataSet(GemicaiDataset, labels, transform, constraints)
 
     @staticmethod
-    def from_directory(folder_path, dicomo_fields=[], transform=None, constraints={}):
+    def from_directory(folder_path, labels=[], transform=None, constraints={}):
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
-        return ConcurrentPickledDicomoTaskSplitter(folder_path, dicomo_fields, transform, constraints)
+        return ConcurrentPickledDicomoTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
-    def get_dicomo_data_set(data_set_path, dicomo_fields=[], constraints={}):
+    def get_dicomo_data_set(data_set_path, labels=[], constraints={}):
         transform = gem.torchvision.transforms.Compose([
             gem.torchvision.transforms.ToPILImage(),
             gem.torchvision.transforms.Grayscale(3),
@@ -94,16 +76,16 @@ class DicomoDataset(GemicaiDataset):
         if os.path.isfile(data_set_path):
             # while creating PickleDataSet we pass a path to a pickle that hold the data
             # and a list of the fields that we want to extract from the dicomo object
-            return DicomoDataset.from_file(data_set_path, dicomo_fields, transform)
+            return DicomoDataset.from_file(data_set_path, labels, transform)
         else:
-            return DicomoDataset.from_directory(data_set_path, dicomo_fields, transform)
+            return DicomoDataset.from_directory(data_set_path, labels, transform)
 
 
 class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
-    def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
-        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+    def __init__(self, base_path, labels, transform=None, constraints={}):
+        assert isinstance(labels, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
-        self.dicomo_fields = dicomo_fields
+        self.labels = labels
         self.constraints = constraints
         self.base_path = base_path
         self.transform = transform
@@ -118,7 +100,7 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
         worker_info = get_worker_info()
         if worker_info is None:
             # we are in a single threaded environment so there is no need to modify the data set
-            return iter(PickledDicomoFilePool(self.file_pool, self.dicomo_fields, self.transform, self.constraints))
+            return iter(PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints))
         else:
             # we are in a multi-threaded environment, slice the dataset
             per_worker = int(math.ceil(len(self.file_pool) / float(worker_info.num_workers)))
@@ -126,7 +108,7 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
             start = worker_id * per_worker
             end = min(start + per_worker, len(self.file_pool))
             return iter(PickledDicomoFilePool(self.file_pool[start:end],
-                                              self.dicomo_fields, self.transform, self.constraints))
+                                              self.labels, self.transform, self.constraints))
 
     def __next__(self):
         raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
@@ -139,10 +121,10 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
 
 
 class PickledDicomoFilePool(DicomoDataset):
-    def __init__(self, file_pool, dicomo_fields, transform=None, constraints={}):
-        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+    def __init__(self, file_pool, labels, transform=None, constraints={}):
+        assert isinstance(labels, list), 'dicomo_fields is not a list'
         assert isinstance(file_pool, list), 'file_pool is not a string'
-        self.dicomo_fields = dicomo_fields
+        self.labels = labels
         self.constraints = constraints
         self.file_pool = file_pool
         self.transform = transform
@@ -177,15 +159,15 @@ class PickledDicomoFilePool(DicomoDataset):
 
     def pool_walker(self):
         for file_path in self.file_pool:
-            yield iter(PickledDicomoDataSet(file_path, self.dicomo_fields, self.transform, self.constraints))
+            yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
         raise StopIteration
 
 
 class PickledDicomoDataFolder(DicomoDataset):
-    def __init__(self, base_path, dicomo_fields, transform=None, constraints={}):
-        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+    def __init__(self, base_path, labels, transform=None, constraints={}):
+        assert isinstance(labels, list), 'dicomo_fields is not a list'
         assert isinstance(base_path, str), 'base_path is not a string'
-        self.dicomo_fields = dicomo_fields
+        self.labels = labels
         self.base_path = base_path
         self.transform = transform
         self.constraints = constraints
@@ -213,20 +195,20 @@ class PickledDicomoDataFolder(DicomoDataset):
         return self.len
 
     def __str__(self):
-        return str(self.summaray(count_field=self.dicomo_fields[1]))
+        return str(self.summaray(count_field=self.labels[1]))
 
     def summaray(self, count_field=None):
-        assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.dicomo_fields)
+        assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.labels)
         cnt = gem.LabelCounter()
         for data in DataLoader(self, 4, shuffle=False):
-            for label in data[self.dicomo_fields.index(count_field)]:
+            for label in data[self.labels.index(count_field)]:
                 cnt.update(label)
         return cnt
 
     def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
-                yield iter(PickledDicomoDataSet(os.path.join(root, name), self.dicomo_fields, self.transform,
+                yield iter(PickledDicomoDataSet(os.path.join(root, name), self.labels, self.transform,
                                                 self.constraints))
         raise StopIteration
 
@@ -235,10 +217,10 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 
 class PickledDicomoDataSet(DicomoDataset):
-    def __init__(self, pickle_path, dicomo_fields, transform=None, constraints={}):
-        assert isinstance(dicomo_fields, list), 'dicomo_fields is not a list'
+    def __init__(self, pickle_path, labels, transform=None, constraints={}):
+        assert isinstance(labels, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
-        self.dicomo_fields = dicomo_fields
+        self.labels = labels
         self.pickle_path = pickle_path
         self.transform = transform
         self.constraints = constraints
@@ -253,28 +235,35 @@ class PickledDicomoDataSet(DicomoDataset):
         try:
             # get next dicomo class from the stream
             dicomo_class = next(self.pickle_stream)
+            if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
+                raise Exception("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                                + type(dicomo_class))
+
             # constraints is a dictionary.
             for k in self.constraints.keys():
-                if self.constraints[k] != getattr(dicomo_class, k):
+                if self.constraints[k] != dicomo_class.get_value_of(k):
                     return self.__next__()
-            # fetch values of the fields we are interested in
-            field_list = []
-            for field in self.dicomo_fields:
-                try:
-                    temp = getattr(dicomo_class, field)
-                    # check if transform is specified and if it should be applied
-                    if self.transform is not None and field == 'tensor':
-                        try:
-                            temp = self.transform(temp)
-                        except:
-                            raise Exception('Could not apply specified transformation to the dicom image')
 
-                    field_list.append(temp)
+            # fetch a tensor
+            tensor = dicomo_class.tensor
+
+            # check if transform is specified if yes apply it
+            if self.transform is not None:
+                try:
+                    tensor = self.transform(tensor)
                 except:
-                    None
+                    raise Exception('Could not apply specified transformation to the dicom image')
+
+            labels = []
+            # fetch values of the labels we are interested in
+            for label in self.labels:
+                labels.append(dicomo_class.get_value_of(label))
 
             self.len += 1
-            return field_list
+
+            # All hail to python for not returning reference to the temp object after calling .append
+            # which forces me to do this
+            return [tensor] + labels
         except:
             raise StopIteration
 

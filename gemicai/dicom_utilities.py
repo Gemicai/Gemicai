@@ -1,21 +1,23 @@
+from gemicai.LabelCounter import LabelCounter
 from matplotlib import pyplot as plt
-import gemicai.dicomo as dicomo
+from itertools import count
+import gemicai.data_objects
 import pydicom as dicom
 import pandas as pd
 import torchvision
+import tempfile
 import pathlib
+import shutil
+import pickle
 import torch
 import numpy
 import gzip
 import os
 
-# if needed we can export it later
 fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyInstanceUID', 'SeriesInstanceUID',
-                      'SOPInstanceUID',
-                      'Modality', 'SeriesDate', 'AccessionNumber', 'BodyPartExamined', 'StudyDescription',
-                      'SeriesDescription', 'InstanceNumber',
-                      'PatientOrientation', 'ImageLaterality', 'ImageComments', 'SeriesNumber', 'PatientName']
-
+                      'SOPInstanceUID', 'Modality', 'SeriesDate', 'AccessionNumber', 'BodyPartExamined',
+                      'StudyDescription', 'SeriesDescription', 'InstanceNumber', 'PatientOrientation',
+                      'ImageLaterality', 'ImageComments', 'SeriesNumber', 'PatientName']
 
 def load_dicom(filename):
     if filename.endswith('.dcm'):
@@ -95,7 +97,7 @@ def dicom_to_png_pkl(input, output, pickle):
         raise
 
 
-# Process dicom files in the input_folder and stores result in the output_fodler
+# Process dicom files in the input_folder and stores result in the output_folder
 def process_dicom_from_to_folder(input_folder, output_folder):
     # Open specified input directory
     in_dir = open_directory(input_folder);
@@ -145,8 +147,85 @@ def plot_dicom(dicom_file_path, cmap=None):
     plt.show()
 
 
-def print_labels_and_display_images(tensors, labels):
-    for index, tensor in enumerate(tensors):
-        print(labels[index])
-        dicomo.plt.imshow(tensor, cmap='gray')
-        dicomo.plt.show()
+def create_dicomobject_dataset_from_folder(input, output, field_list, field_values=[], objects_per_file=1000):
+    if not os.path.isdir(input):
+        raise NotADirectoryError
+    if not os.path.isdir(output):
+        raise NotADirectoryError
+    if not isinstance(field_list, list):
+        raise Exception("field_list parameter should be a list of strings with a name of a relevant fields to fetch "
+                        "and put in the DicomoObject")
+    if not isinstance(field_values, list):
+        raise Exception("field_values parameter should be a list of tuples (field_name, field_values). This parameter "
+                        "allows for filtering which DicomoObjects should be put in a dataset")
+    if not isinstance(objects_per_file, int):
+        raise Exception("objects_per_file parameter should be an integer")
+
+    # because of windows we have to manage temp file ourselves
+    temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+
+    try:
+        # counts distinct field values
+        cnt = LabelCounter()
+
+        # holds names for the gziped files
+        filename_iterator = ("%06i.dicomos.gz" % i for i in count(1))
+        objects_inside = 0
+
+        for root, dirs, files in os.walk(input):
+            for file in files:
+                try:
+                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list)
+                    pickle_object = True
+
+                    # check whenever we filter fields of DicomoObject
+                    if len(field_values):
+                        for field, values in field_values:
+
+                            value = d.get_value_of(field)
+                            if isinstance(value, dicom.multival.MultiValue):
+                                if len([x for x in value if x in values]) == len(value):
+                                    pickle_object = False
+                            else:
+                                if not d.get_value_of(field) in values:
+                                    pickle_object = False
+
+                    if not pickle_object:
+                        continue
+
+                    cnt.update(d.labels)
+                    # check if we are not allowed to append more files
+                    if objects_inside >= objects_per_file:
+                        # gzip temp file and clear its content
+                        temp.flush()
+                        zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+                        objects_inside = 0
+                        temp.seek(0)
+                        temp.truncate()
+
+                    # dump binary data to the temp file
+                    pickle.dump(d, temp)
+                    objects_inside += 1
+
+                except Exception as ex:
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    print(message)
+
+        temp.flush()
+        zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+    finally:
+        temp.close()
+        os.remove(temp.name)
+    return cnt
+
+
+def zip_to_file(file, zip_path):
+    None
+    with gzip.open(zip_path, 'wb') as zipped:
+        shutil.copyfileobj(open(file.name, 'rb'), zipped)
+
+
+def unzip_to_file(file, zip_path):
+    with gzip.open(zip_path, 'rb') as zipped:
+        shutil.copyfileobj(zipped, open(file.name, 'ab+'))

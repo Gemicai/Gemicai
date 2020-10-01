@@ -4,6 +4,10 @@ import gemicai as gem
 import torch
 import os
 
+dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'SeriesDescription', 'BodyPartExamined']
+path_input = os.path.join("examples", "dicom", "CT")
+path_output = os.path.join("examples", "gzip", "CT")
+
 train_data_set_path = os.path.join("examples", "gzip", "CT")
 eval_data_set_path = os.path.join("examples", "gzip", "CT")
 classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
@@ -14,8 +18,13 @@ test_dataset = '/mnt/SharedStor/datasets/dx/test/'
 # classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
 
 
+def demo_prepare_data_set():
+    gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
+                                               field_values=[('Modality', ['CT'])])
+
+
 def demo_get_dataset(path):
-    return DataSet.get_dicomo_data_set(path, ['tensor', 'bpe'])
+    return DataSet.get_dicomo_data_set(path, ['Modality'])
 
 
 def demo_initialize_classifier():
@@ -35,7 +44,7 @@ def demo_train_classifier():
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
-    net.train(demo_get_dataset(train_data_set_path), num_workers=6, epochs=1, pin_memory=True)
+    net.train(demo_get_dataset(train_data_set_path), num_workers=0, epochs=1, pin_memory=True)
     net.save(trained_classifier_path)
 
 
@@ -47,7 +56,8 @@ def demo_evaluate_classifier():
 def demo_create_dicomo_dataset():
     data_origin = '/mnt/data2/pukkaj/teach/study/PJ_TEACH/PJ_RESEARCH/'
     data_destination = '/home/nheinen/gemicai/dicom_objects/DX/'
-    gem.compress_dicom_files(data_origin, data_destination, modalities=['DX'])
+    gem.create_dicomobject_dataset_from_folder(data_origin, data_destination, ['Modality'],
+                                               field_values=[('Modality', ['DX'])])
 
 
 def demo_things_we_should_fix():
@@ -59,19 +69,12 @@ def demo_things_we_should_fix():
         pass
 
 
-# TODO this should work but doesnt @Mateusz I think you might have solved this issue before. Could you take a look at it?
-def demo_dicomo_dataset():
-    dataset = gem.DicomoDataset.from_directory(train_data_set_path)  # ['tensor', 'bpe']
-    for data in dataset:
-        print(data)
-
-
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
+#    demo_prepare_data_set()
     demo_initialize_classifier()
     demo_train_classifier()
-#    demo_dicomo_dataset()
     demo_evaluate_classifier()
 # demo_create_dicomo_dataset()
