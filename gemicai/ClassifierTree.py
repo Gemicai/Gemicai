@@ -29,7 +29,7 @@ class ClassifierTree:
             cons = copy.deepcopy(self.constraints)
             cons[self.classifies] = c
             dataset = gem.PickledDicomoDataFolder(base_path=self.root.dataset_config['path'],
-                                                  dicomo_fields=['tensor', classify[1]],
+                                                  labels=['tensor', classify[1]],
                                                   transform=self.root.dataset_config['transform'], constraints=cons)
             child = gem.Classifier(module=copy.deepcopy(self.root.module),
                                    layer_config=copy.deepcopy(self.root.layer_config),
@@ -80,7 +80,7 @@ class ClassifierTree:
 
 classify = ['bpe', 'studydes']
 resnet18 = models.resnet18(pretrained=True)
-ds = gem.PickledDicomoDataFolder(base_path='../examples/gzip/dx/train/', dicomo_fields=['tensor', classify[0]])
+ds = gem.PickledDicomoDataFolder(base_path='../examples/gzip/dx/train/', labels=['tensor', classify[0]])
 net = gem.Classifier(resnet18, verbosity_level=1)
 net.set_base_dataset(ds)
 start = time.time()
