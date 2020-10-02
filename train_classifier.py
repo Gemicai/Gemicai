@@ -30,10 +30,7 @@ def demo_get_dataset(path):
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, verbosity_level=2, enable_cuda=True)
-
-    # Determine classes so the model knows number of it's outputs
-    net.determine_classes(demo_get_dataset(train_data_set_path))
+    net = gem.Classifier(resnet18, ['CT'], verbosity_level=1, enable_cuda=True)
     net.save(classifier_path)
 
 
@@ -63,11 +60,11 @@ def demo_create_dicomo_dataset():
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
-# if __name__ == '__main__':
-# #    demo_prepare_data_set()
-#     demo_initialize_classifier()
-#     demo_train_classifier()
-#     demo_evaluate_classifier()
+#if __name__ == '__main__':
+#    demo_prepare_data_set()
+#    demo_initialize_classifier()
+#    demo_train_classifier()
+#    demo_evaluate_classifier()
 # # demo_create_dicomo_dataset()
 
 #ds = demo_get_dataset()
