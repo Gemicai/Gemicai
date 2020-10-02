@@ -24,7 +24,7 @@ def demo_prepare_data_set():
 
 
 def demo_get_dataset(path):
-    return DataSet.get_dicomo_data_set(path, ['Modality'])
+    return DataSet.get_dicomo_dataset(path, ['Modality'])
 
 
 def demo_initialize_classifier():
@@ -39,7 +39,7 @@ def demo_initialize_classifier():
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = gem.Classifier.from_pickle(classifier_path)
+    net = gem.Classifier.load(classifier_path)
 
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
@@ -49,7 +49,7 @@ def demo_train_classifier():
 
 
 def demo_evaluate_classifier():
-    net = gem.Classifier.from_pickle(trained_classifier_path)
+    net = gem.Classifier.load(trained_classifier_path)
     net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
 
 
@@ -60,21 +60,25 @@ def demo_create_dicomo_dataset():
                                                field_values=[('Modality', ['DX'])])
 
 
-def demo_things_we_should_fix():
-    # FIXME: Exception handling in the data_iterators (Not extremely important rn but something we should consider)
-    #  This raises a StopIteration exception, should be a FileNotFound or something like that.
-    dataset = DataSet.get_dicomo_data_set('wrong_path')
-    data_loader = torch.utils.data.DataLoader(dataset, 4)
-    for data in data_loader:
-        pass
-
-
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
-if __name__ == '__main__':
-#    demo_prepare_data_set()
-    demo_initialize_classifier()
-    demo_train_classifier()
-    demo_evaluate_classifier()
-# demo_create_dicomo_dataset()
+# if __name__ == '__main__':
+# #    demo_prepare_data_set()
+#     demo_initialize_classifier()
+#     demo_train_classifier()
+#     demo_evaluate_classifier()
+# # demo_create_dicomo_dataset()
+
+#ds = demo_get_dataset()
+
+# For this example, we take resnet18
+resnet18 = models.resnet18(pretrained=True)
+
+dataset = gem.DicomoDataset.get_dicomo_dataset('misc/demo.gemset', ['bpe'])
+
+# All a classifier needs is a base model, and a list of classes you want to classify
+net = gem.Classifier(resnet18, dataset.classes('bpe'))
+
+net.train(dataset, epochs=1, verbosity=1)
+net.evaluate(dataset, verbosity=1)

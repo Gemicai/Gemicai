@@ -33,6 +33,9 @@ class DicomObject(DataObject):
         DataObject.__init__(self, tensor, label_values)
         self.label_types = labels
 
+    def __str__(self):
+        return str(list(zip(self.label_types, self.labels)))
+
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
         plt.title(
@@ -45,6 +48,12 @@ class DicomObject(DataObject):
             return self.labels[self.label_types.index(item)]
         except:
             return None
+
+    def meets_constraints(self, constraints: dict):
+        for k in constraints.keys():
+            if self.get_value_of(k) != constraints[k]:
+                return False
+        return True
 
     @staticmethod
     def from_file(filename, labels):

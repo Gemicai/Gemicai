@@ -1,7 +1,12 @@
 import os
+import pickle
+import shutil
+
 import torch
 import gemicai as gem
-from train_classifier import get_data_set
+import gzip
+import tempfile
+from itertools import count
 
 
 def find_data():
@@ -27,23 +32,38 @@ def find_data():
     print(data_destination)
 
 
-def construct_demo_dataset():
-    data_origin = '../examples/gzip/dx/train/'
-    dataset = gem.DicomoDataset(data_origin)
-    batch_size = 4
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False)
-    demo_data = {
-        'SKULL': [],
-        'CHEST': [],
-        'PELVIS': [],
-        'HAND': [],
-        'FOOT': []
-    }
-    for tensors, bpes in dataset:
-        for i in range(batch_size):
-            if bpes[i] in demo_data.keys():
-                if len(demo_data[bpes[i]]) < 20:
-                    demo_data[bpes[i]].append(tensors[i])
+def construct_demo_data():
+    # because of windows we have to manage temp file ourselves
+    temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+
+    try:
+        # counts distinct field values
+        cnt = gem.LabelCounter()
+        # holds names for the gziped files
+        filename_iterator = ("%06i.gemset" % i for i in count(1))
+        objects_inside = 0
+        with open('demo_data.pkl', 'rb') as inp:
+            dataset = pickle.load(inp)
+            for data in dataset.values():
+                for d in data:
+                    d = gem.DicomObject(tensor=d['tensor'], labels=['modality', 'bpe', 'studydes', 'seriesdes'],
+                                        label_values=[d['modality'], d['bpe'], d['studydes'], d['seriesdes']])
+
+                    pickle.dump(d, temp)
 
 
-construct_demo_dataset()
+        temp.flush()
+        zip_to_file(temp, next(filename_iterator))
+    finally:
+        temp.close()
+        os.remove(temp.name)
+    return cnt
+
+
+def zip_to_file(file, zip_path):
+    None
+    with gzip.open(zip_path, 'wb') as zipped:
+        shutil.copyfileobj(open(file.name, 'rb'), zipped)
+
+
+construct_demo_data()

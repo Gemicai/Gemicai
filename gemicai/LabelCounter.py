@@ -1,17 +1,19 @@
 import pydicom
 
+
 class LabelCounter:
     def __init__(self):
         self.dic = {}
 
     # I know this looks hideous but it prints a wonderfull table :)
     def __str__(self):
-        s = 'label                          | frequency\n---------------------------------\n'
+        s = 'label                          | frequency\n-------------------------------------------\n'
         t = 0
         for k, v in self.dic.items():
             t += v
             s += ('{:<30s} | {:>8d}\n'.format(k, v))
-        return s + '\nTotal number of training images: {} \nTotal number of labels: {}'.format(t, len(self.dic.keys()))
+        return s + '\nTotal number of training images: {} \nTotal number of labels: {}\n\n'.format(t,
+                                                                                                   len(self.dic.keys()))
 
     def update(self, s):
         if not isinstance(s, list) and not isinstance(s, str):
@@ -38,3 +40,22 @@ class LabelCounter:
         else:
             for elem in s:
                 recurse(elem)
+
+
+# I'll drop this in gemicai.utils later
+from string import Template
+
+
+class DeltaTemplate(Template):
+    delimiter = "%"
+
+
+def strfdelta(tdelta, fmt):
+    d = {"D": tdelta.days}
+    hours, rem = divmod(tdelta.seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    d["H"] = '{:02d}'.format(hours)
+    d["M"] = '{:02d}'.format(minutes)
+    d["S"] = '{:02d}'.format(seconds)
+    t = DeltaTemplate(fmt)
+    return t.substitute(**d)

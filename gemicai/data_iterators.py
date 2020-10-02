@@ -6,7 +6,7 @@ import gemicai.data_objects
 import gemicai as gem
 import math
 import os
-
+import matplotlib.pyplot as plt
 
 # This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
@@ -57,7 +57,7 @@ class DicomoDataset(GemicaiDataset):
     def from_file(file_path, labels=[], transform=None, constraints={}):
         if not os.path.isfile(file_path):
             raise FileNotFoundError
-        return PickledDicomoDataSet(GemicaiDataset, labels, transform, constraints)
+        return PickledDicomoDataSet(file_path, labels, transform, constraints)
 
     @staticmethod
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
@@ -66,7 +66,7 @@ class DicomoDataset(GemicaiDataset):
         return ConcurrentPickledDicomoTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
-    def get_dicomo_data_set(data_set_path, labels=[], constraints={}):
+    def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
         transform = gem.torchvision.transforms.Compose([
             gem.torchvision.transforms.ToPILImage(),
             gem.torchvision.transforms.Grayscale(3),
@@ -217,7 +217,7 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 
 class PickledDicomoDataSet(DicomoDataset):
-    def __init__(self, pickle_path, labels, transform=None, constraints={}):
+    def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
         assert isinstance(labels, list), 'dicomo_fields is not a list'
         assert isinstance(pickle_path, str), 'pickle_path is not a string'
         self.labels = labels
@@ -238,6 +238,9 @@ class PickledDicomoDataSet(DicomoDataset):
             if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
                 raise Exception("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
                                 + type(dicomo_class))
+
+            if len(self.labels) == 0:
+                return dicomo_class
 
             # constraints is a dictionary.
             for k in self.constraints.keys():
@@ -284,3 +287,47 @@ class PickledDicomoDataSet(DicomoDataset):
 
     def can_be_parallelized(self):
         return False
+
+    def subset(self, constraints):
+        return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
+
+    # All functions below here are a bit hacky
+    def classes(self, label):
+        return list(self.summarize(label, print_summary=False).dic.keys())
+
+    def summarize(self, label, constraints={}, print_summary=True):
+        temp = self.labels
+        self.labels = []
+        cnt = gem.LabelCounter()
+        constraints = {**self.constraints, **constraints}
+        for dicomo in self:
+            if dicomo.meets_constraints(constraints):
+                cnt.update(dicomo.get_value_of(label))
+        self.labels = temp
+        if print_summary:
+            print(cnt)
+        else:
+            return cnt
+
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        classes = self.classes(label)
+        ooe = []
+        temp = self.labels
+        self.labels = []
+        for dicomo in self:
+            v = dicomo.get_value_of(label)
+            if v in classes:
+                ooe.append(dicomo)
+                classes.remove(v)
+            if len(classes) == 0:
+                break
+        self.labels = temp
+
+        for d in ooe:
+            s = ''
+            for label, value in zip(d.label_types, d.labels):
+                s += '{:15s} : {}\n'.format(label, value)
+            print(s)
+            plt.imshow(d.tensor, cmap)
+            plt.show()
+

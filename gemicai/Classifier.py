@@ -5,16 +5,21 @@ from datetime import datetime
 import torch.nn as nn
 import pickle
 import torch
+from gemicai.LabelCounter import strfdelta
 
 
 class Classifier:
-    def __init__(self, module=nn.Module, layer_config=None, loss_function=None, optimizer=None, verbosity_level=0,
-                 enable_cuda=False, cuda_device=None):
+    def __init__(self, module=nn.Module, classes=None, layer_config=None, loss_function=None, optimizer=None,
+                 verbosity_level=0, enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise Exception("module_wrapper should extend a nn.Modules class")
         self.module = module
         self.device = None
+
+        if not isinstance(classes, list):
+            raise Exception('Provide a valid list with classes')
+        self.classes = classes
 
         # Sets a functor that allows us to configure the layers for training/evaluating
         if layer_config is None:
@@ -23,6 +28,7 @@ class Classifier:
             raise Exception("layer_config should extend a gemicai.classifier_functors.GEMICAIABCFunctor")
         else:
             self.layer_config = layer_config
+        self.layer_config(self.module, self.classes)
 
         self.enable_cuda = enable_cuda
         self.set_device(enable_cuda, cuda_device)
@@ -48,26 +54,14 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
-        # Classes will default to None, but will be set for the first time by either calling train or determine_classes
-        self.classes = None
-        self.dataset_config = None
-
-    def determine_classes(self, dataset):
-        if not isinstance(dataset, iterators.GemicaiDataset):
-            raise Exception('determine_classes expects an dataset of type GemicaiDataset')
-        self._determine_classes(torch.utils.data.DataLoader(dataset))
-
-    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, redetermine_classes=False):
+    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
-        if not dataset.can_be_parallelized():
-            raise Exception("Specified data set cannot be parallelized")
+        # why do we need an exception here?
+        # if not dataset.can_be_parallelized():
+        #     raise Exception("Specified data set cannot be parallelized")
         data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
-
-        # Determine tensor classes and configure layers
-        if self.classes is None or redetermine_classes:
-            self._determine_classes(data_loader)
 
         # Puts module in training mode.
         self.module.train()
@@ -75,6 +69,8 @@ class Classifier:
         self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
         start = datetime.now()
+        if verbosity >= 1:
+            print('| Epoch | Avg. loss | Elapsed  |   ETA    |\n-------------------------------------------')
         for epoch in range(epochs):
             running_loss = 0.0
             total = 0
@@ -98,36 +94,34 @@ class Classifier:
 
                 # print statistics
                 running_loss += loss.item()
-                if self.verbosity_level >= 2 and i % 2000 == 1999:  # print every 2000 batches
+                if verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
                 total += len(data[0])
-            if self.verbosity_level >= 1:
+            if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
-                print('Epoch {} finished in {}. ETA: {} -- Avg loss: {}'
-                      .format(epoch + 1, epoch_time, eta, running_loss / total))
+                print('| {:5d} | {:.7f} | {:8s} | {} |'
+                      .format(epoch + 1, running_loss / total, strfdelta(epoch_time, '%H:%M:%S'), eta))
                 start = datetime.now()
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
-    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False):
+    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
         Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
-        if not dataset.can_be_parallelized():
-            raise Exception("Specified data set cannot be parallelized")
+        # if not dataset.can_be_parallelized():
+        #     raise Exception("Specified data set cannot be parallelized")
         data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
-
-        # Determine tensor classes and configure layers
-        if self.classes is None:
-            self._determine_classes(data_loader)
 
         # puts module in evaluation mode.
         self.module.eval()
         self.module = self.module.to(self.device, non_blocking=pin_memory)
 
         correct, total = 0, 0
+        class_correct = list(0. for _ in range(len(self.classes)))
+        class_total = list(0. for _ in range(len(self.classes)))
         with torch.no_grad():
             for data in data_loader:
                 images, labels = data
@@ -138,7 +132,18 @@ class Classifier:
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-            print('Total: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
+
+                if verbosity >= 1:
+                    c = (predicted == labels).squeeze()
+                    for i in range(batch_size):
+                        label = labels[i]
+                        class_correct[label] += c[i].item()
+                        class_total[label] += 1
+            print('\nTotal: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
+            if verbosity >= 1:
+                for i in range(len(self.classes)):
+                    print('Accuracy of {:<15s} : {:>.1f}%'
+                          .format(self.classes[i], 100 * class_correct[i] / class_total[i]))
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
@@ -168,19 +173,6 @@ class Classifier:
         else:
             self.device = torch.device("cpu")
 
-    def _determine_classes(self, data_loader):
-        if not isinstance(data_loader, torch.utils.data.DataLoader):
-            raise Exception("data_loader parameter should be an instance of torch.utils.data.DataLoader")
-        # TODO THIS HAS TO BE IMPROVED SINCE LABELS CAN BE A LIST NOW
-        cnt = LabelCounter()
-        for data in data_loader:
-            for label in data[1]:
-                cnt.update(label)
-        if self.verbosity_level >= 1:
-            print(cnt)
-        self.classes = list(cnt.dic.keys())
-        self.layer_config(self.module, self.classes)
-
     def set_trainable_layers(self, layers):
         if not isinstance(layers, list) and len(list) == 0:
             raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
@@ -196,7 +188,7 @@ class Classifier:
 
     # Loads classifier object from .pkl file
     @staticmethod
-    def from_pickle(pkl_file_path=None):
+    def load(pkl_file_path=None):
         if not isinstance(pkl_file_path, str):
             raise Exception("load_from_pickle method expects a pkl_file_path to be an instance of string")
 
@@ -222,3 +214,5 @@ class Classifier:
 
         if not isinstance(data_set, iterators.GemicaiDataset):
             raise Exception("data_set parameter should have a base class of data_iterators.GemicaiDataset")
+
+
