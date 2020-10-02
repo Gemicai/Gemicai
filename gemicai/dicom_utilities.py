@@ -169,7 +169,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
         cnt = LabelCounter()
 
         # holds names for the gziped files
-        filename_iterator = ("%06i.dicomos.gz" % i for i in count(1))
+        filename_iterator = ("%06i.gemset" % i for i in count(1))
         objects_inside = 0
 
         for root, dirs, files in os.walk(input):
