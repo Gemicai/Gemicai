@@ -7,3 +7,4 @@ from .data_objects import *
 from .data_iterators import *
 from .classifier_functors import *
 from .LabelCounter import *
+from .Gemicai import *
