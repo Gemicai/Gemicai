@@ -7,7 +7,7 @@ import time
 
 
 class ClassifierTree:
-    def __init__(self, root, classify, constraints={}, verbosity=0):
+    def __init__(self, root, base_dataset, classify, verbosity=0):
         if not isinstance(root, gem.Classifier):
             raise Exception('Root of ClassifierTree should be a gem.Classifier')
         if not isinstance(classify, list):
@@ -15,29 +15,28 @@ class ClassifierTree:
         assert len(classify) >= 2, 'Classify should contain at least 2 classes.'
 
         self.root = root
-        self.constraints = constraints
+        # self.constraints = constraints
         self.verbosity = verbosity
         self.classify = classify
         self.classifies = classify[0]
 
         # Children can either be a gemicai.Classifier or gemicai.ClassifierTree
-        # Sidenote: I think for now we don't need to keep track of parents but I might be wrong.
         self.children = {}
 
         # Recursively sets up the ClassifierTree
         for c in self.root.classes:
-            cons = copy.deepcopy(self.constraints)
-            cons[self.classifies] = c
-            dataset = gem.PickledDicomoDataFolder(base_path=self.root.dataset_config['path'],
-                                                  labels=['tensor', classify[1]],
-                                                  transform=self.root.dataset_config['transform'], constraints=cons)
+            # Child inherits parent's dataset constraints, and gets extra contraint from its parent
+            cons = {**self.root.dataset_constraints, self.classifies: c}
             child = gem.Classifier(module=copy.deepcopy(self.root.module),
+                                   classes=base_dataset.subset(cons).classes(self.classify[1]),
                                    layer_config=copy.deepcopy(self.root.layer_config),
-                                   loss_function=copy.deepcopy(self.root.loss_function), verbosity_level=verbosity,
-                                   optimizer=copy.deepcopy(self.root.optimizer), enable_cuda=self.root.enable_cuda)
-
-            # This automatically configures the Classifiers' classes and final layer.
-            child.set_base_dataset(dataset)
+                                   loss_function=copy.deepcopy(self.root.loss_function),
+                                   optimizer=copy.deepcopy(self.root.optimizer),
+                                   verbosity_level=verbosity,
+                                   enable_cuda=self.root.enable_cuda,
+                                   # TODO cuda config when making a Tree
+                                   # cuda_device= some device?
+                                   dataset_constraints=cons)
 
             # If at the end of the tree, all  are leafs and therefore instances of gemicai.Classifier.
             # Else not the end of the tree, which means this child must be an instance of gemicai.ClassifierTree.
@@ -63,7 +62,8 @@ class ClassifierTree:
                 if c.dataset_config['object_fields'][1] == cl:
                     tot_classifiers += 1
                     tot_classes += len(c.classes)
-            s += '{:<6d}|{:<12s}|{:>13d}|{:>14f}\n'.format(i, cl, tot_classifiers, round(tot_classes/tot_classifiers, 1))
+            s += '{:<6d}|{:<12s}|{:>13d}|{:>14f}\n'.format(i, cl, tot_classifiers,
+                                                           round(tot_classes / tot_classifiers, 1))
             tot_classifiers, tot_classes = 0, 0
         return s
 

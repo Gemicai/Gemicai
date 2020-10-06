@@ -119,6 +119,28 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
     def can_be_parallelized(self):
         return True
 
+    def subset(self, constraints):
+        return ConcurrentPickledDicomoTaskSplitter(self.base_path, self.labels, self.transform,
+                                                   {**self.constraints, **constraints})
+
+    def classes(self, label):
+        return list(self.summarize(label, print_summary=False).dic.keys())
+
+    def summarize(self, label, constraints={}, print_summary=True):
+        temp = self.labels
+        self.labels = []
+        cnt = gem.LabelCounter()
+        constraints = {**self.constraints, **constraints}
+        for dicomo in self:
+            if dicomo.meets_constraints(constraints):
+                cnt.update(dicomo.get_value_of(label))
+        self.labels = temp
+        if print_summary:
+            print(cnt)
+        else:
+            return cnt
+
+
 
 class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, labels, transform=None, constraints={}):

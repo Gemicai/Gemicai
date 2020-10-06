@@ -10,7 +10,7 @@ from gemicai.LabelCounter import strfdelta
 
 class Classifier:
     def __init__(self, module=nn.Module, classes=None, layer_config=None, loss_function=None, optimizer=None,
-                 verbosity_level=0, enable_cuda=False, cuda_device=None):
+                 verbosity_level=0, enable_cuda=False, cuda_device=None, dataset_constraints={}):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise Exception("module_wrapper should extend a nn.Modules class")
@@ -54,8 +54,16 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
+        if not isinstance(dataset_constraints, dict):
+            raise Exception("dataset_constraints should a dictionary")
+        self.dataset_constraints = dataset_constraints
+
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
+
+        # Makes sure contraints apply on dataset, neccesary for ClassifierTree
+        if self.dataset_constraints != {}:
+            dataset = dataset.subset(self.dataset_constraints)
 
         # why do we need an exception here?
         # if not dataset.can_be_parallelized():
