@@ -1,4 +1,4 @@
-from .. import gemicai as gem
+import gemicai as gem
 from datetime import datetime
 
 start = datetime.now()
