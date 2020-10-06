@@ -1,0 +1,5 @@
+pydicom
+torch>=1.6.0,<1.7
+torchvision>=0.7.0,<0.8
+matplotlib
+pandas

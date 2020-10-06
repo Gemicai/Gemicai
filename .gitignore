@@ -47,3 +47,10 @@ fabric.properties
 # *.ipr
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij
+
+
+
+build/
+dist/
+gemicai.egg-info/
+
