@@ -76,9 +76,9 @@ class DicomoDataset(GemicaiDataset):
         if os.path.isfile(data_set_path):
             # while creating PickleDataSet we pass a path to a pickle that hold the data
             # and a list of the fields that we want to extract from the dicomo object
-            return DicomoDataset.from_file(data_set_path, labels, transform)
+            return DicomoDataset.from_file(data_set_path, labels, transform, constraints)
         else:
-            return DicomoDataset.from_directory(data_set_path, labels, transform)
+            return DicomoDataset.from_directory(data_set_path, labels, transform, constraints)
 
 
 class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
