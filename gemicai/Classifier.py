@@ -78,7 +78,6 @@ class Classifier:
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
                 tensors = tensors.to(self.device)
-
                 # labels returned by the data loader are strings, we need to convert this to an int
                 labels = torch.tensor([self.classes.index(label) for label in labels]) \
                     .to(self.device, non_blocking=pin_memory)

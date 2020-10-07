@@ -17,6 +17,9 @@ train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 test_dataset = '/mnt/SharedStor/datasets/dx/test/'
 classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
 
+train_dataset = 'examples/test/'
+classifier_path = 'classifiers/dx_bpe.pkl'
+
 
 def demo_prepare_data_set():
     gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
@@ -30,16 +33,16 @@ def demo_get_dataset(path):
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    dataset = gem.DicomoDataset.from_directory(test_dataset, labels=['BodyPartExamined'])
+    dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     dataset.summarize('BodyPartExamined')
-    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), verbosity_level=1, enable_cuda=True)
+    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), verbosity_level=1, enable_cuda=False)
     net.save(classifier_path)
 
 
 def demo_train_classifier():
     # Load a classifier from a file
     net = gem.Classifier.load(classifier_path)
-    dataset = gem.DicomoDataset.from_directory(train_dataset, labels=['BodyPartExamined'])
+    dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
