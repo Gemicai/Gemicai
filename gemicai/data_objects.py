@@ -10,9 +10,9 @@ import os
 class DataObject(ABC):
     def __init__(self, tensor, label_values):
         if not isinstance(tensor, torch.Tensor):
-            raise Exception("DataObject  expects tensor to be a torch.Tensor")
+            raise TypeError("DataObject  expects tensor to be a torch.Tensor")
         if not isinstance(label_values, list):
-            raise Exception("DataObject expects labels parameter to be a list")
+            raise TypeError("DataObject expects labels parameter to be a list")
         self.tensor = tensor
         self.labels = label_values
 
@@ -29,7 +29,7 @@ class DataObject(ABC):
 class DicomObject(DataObject):
     def __init__(self, tensor, labels, label_values):
         if not isinstance(labels, list):
-            raise Exception("DataObject expects label_values parameter to be a list")
+            raise TypeError("DataObject expects label_values parameter to be a list")
         DataObject.__init__(self, tensor, label_values)
         self.label_types = labels
 
@@ -60,7 +60,7 @@ class DicomObject(DataObject):
         if not os.path.isfile(filename):
             raise FileNotFoundError
         if not isinstance(labels, list):
-            raise Exception("Dicomo.from_file: fields parameter should be a list of strings but is " +
+            raise TypeError("from_file: fields parameter should be a list of strings but is " +
                             str(type(labels)))
 
         # try to load a dicom file
