@@ -54,7 +54,7 @@ class Classifier:
             raise Exception("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
-    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
+    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
         # why do we need an exception here?
@@ -70,7 +70,8 @@ class Classifier:
 
         start = datetime.now()
         if verbosity >= 1:
-            print('| Epoch | Avg. loss | Elapsed  |   ETA    |\n-------------------------------------------')
+            print('| Epoch | Avg. loss | Train Acc. | Test Acc.  | Elapsed  |   ETA    |\n'
+                  '|-------------------------------------------------------------------|')
         for epoch in range(epochs):
             running_loss = 0.0
             total = 0
@@ -100,8 +101,14 @@ class Classifier:
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
-                print('| {:5d} | {:.7f} | {:8s} | {} |'
-                      .format(epoch + 1, running_loss / total, strfdelta(epoch_time, '%H:%M:%S'), eta))
+                train_acc = str(self.evaluate(dataset)) + '%'
+                if test_dataset is not None:
+                    test_acc = str(self.evaluate(test_dataset)) + '%'
+                else:
+                    test_acc = ''
+                elapsed = strfdelta(epoch_time, '%H:%M:%S')
+                print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
+                      .format(epoch + 1, running_loss / total, test_acc, train_acc, elapsed, eta))
                 start = datetime.now()
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
@@ -138,11 +145,14 @@ class Classifier:
                         label = labels[i]
                         class_correct[label] += c[i].item()
                         class_total[label] += 1
-            print('\nTotal: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, round(100 * correct / total, 2)))
+            acc = round(100 * correct / total, 2)
             if verbosity >= 1:
+                print('\nTotal: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, acc))
+            if verbosity >= 2:
                 for i in range(len(self.classes)):
                     print('Accuracy of {:<15s} : {:>.1f}%'
                           .format(self.classes[i], 100 * class_correct[i] / class_total[i]))
+            return acc
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
