@@ -67,7 +67,7 @@ class TestCreateDicomObjectDatasetFromFolder(unittest.TestCase):
                                                         test_output_directory, ['Modality'], objects_per_file=None)
         os.rmdir(test_output_directory)
 
-    def test_correct_input_data(self):
+    def test_correct_usage(self):
         None
         # TODO code bellow raises: ResourceWarning: unclosed file <_io.BufferedReader name='...'> figure out why
         #

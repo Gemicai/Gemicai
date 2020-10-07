@@ -17,7 +17,7 @@ class LabelCounter:
 
     def update(self, s):
         if not isinstance(s, list) and not isinstance(s, str):
-            raise Exception("LabelCounter update method expects a list or a string but " + str(type(s)) + " is given")
+            raise TypeError("LabelCounter update method expects a list or a string but " + str(type(s)) + " is given")
 
         # check whenever given label is already in our mapping
         def check(elem):

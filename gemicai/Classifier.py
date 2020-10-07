@@ -13,19 +13,19 @@ class Classifier:
                  verbosity_level=0, enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
-            raise Exception("module_wrapper should extend a nn.Modules class")
+            raise TypeError("module_wrapper should extend a nn.Modules class")
         self.module = module
         self.device = None
 
         if not isinstance(classes, list):
-            raise Exception('Provide a valid list with classes')
+            raise TypeError('Provide a valid list with classes')
         self.classes = classes
 
         # Sets a functor that allows us to configure the layers for training/evaluating
         if layer_config is None:
             self.layer_config = functr.DefaultLastLayerConfig()
         elif not isinstance(layer_config, functr.GEMICAIABCFunctor):
-            raise Exception("layer_config should extend a gemicai.classifier_functors.GEMICAIABCFunctor")
+            raise TypeError("layer_config should extend a gemicai.classifier_functors.GEMICAIABCFunctor")
         else:
             self.layer_config = layer_config
         self.layer_config(self.module, self.classes)
@@ -46,12 +46,12 @@ class Classifier:
         if optimizer is None:
             self.optimizer = torch.optim.SGD(self.module.parameters(), lr=0.001, momentum=0.9)
         elif not isinstance(optimizer, torch.optim.Optimizer):
-            raise Exception("Custom optimizer should have a base class of torch.optim.Optimizer")
+            raise TypeError("Custom optimizer should have a base class of torch.optim.Optimizer")
         else:
             self.optimizer = optimizer
 
         if not isinstance(verbosity_level, int):
-            raise Exception("verbosity_level parameter should be of an integer type")
+            raise TypeError("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
@@ -157,13 +157,13 @@ class Classifier:
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
         if not isinstance(file_path, str):
-            raise Exception("save method expects a file_path to be an instance of string")
+            raise TypeError("save method expects a file_path to be an instance of string")
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
     def set_verbosity_level(self, verbosity_level=0):
         if not isinstance(verbosity_level, int):
-            raise Exception("verbosity_level parameter should be of an integer type")
+            raise TypeError("verbosity_level parameter should be of an integer type")
         self.verbosity_level = verbosity_level
 
     def set_device(self, enable_cuda=False, cuda_device=None):
@@ -175,7 +175,7 @@ class Classifier:
             device_name = "cuda"
             if cuda_device is not None:
                 if not isinstance(cuda_device, int) or cuda_device < 0:
-                    raise Exception("cuda_device parameter should be eiter set to None or be a non-negative integer")
+                    raise TypeError("cuda_device parameter should be eiter set to None or be a non-negative integer")
                 device_name += ":" + str(cuda_device)
 
             self.device = torch.device(device_name)
@@ -184,7 +184,7 @@ class Classifier:
 
     def set_trainable_layers(self, layers):
         if not isinstance(layers, list) and len(list) == 0:
-            raise Exception("set_trainable_layers method expects parameter layers to be a nonempty list "
+            raise TypeError("set_trainable_layers method expects parameter layers to be a nonempty list "
                             "of tuples (layer_name: string, status: bool)")
         valid_layers = []
 
@@ -199,29 +199,27 @@ class Classifier:
     @staticmethod
     def load(pkl_file_path=None):
         if not isinstance(pkl_file_path, str):
-            raise Exception("load_from_pickle method expects a pkl_file_path to be an instance of string")
+            raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
 
         with open(pkl_file_path, 'rb') as input:
             cf = pickle.load(input)
             if not isinstance(cf, Classifier):
-                raise Exception(pkl_file_path + ' does not contain a valid Classifier class object')
+                raise TypeError(pkl_file_path + ' does not contain a valid Classifier class object')
             return cf
 
     @staticmethod
     def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
         if not isinstance(epochs, int) or epochs < 0:
-            raise Exception("epochs parameter should be a non-negative integer")
+            raise TypeError("epochs parameter should be a non-negative integer")
 
         if not isinstance(batch_size, int) or batch_size < 0:
-            raise Exception("batch_size parameter should be a non-negative integer")
+            raise TypeError("batch_size parameter should be a non-negative integer")
 
         if not isinstance(num_workers, int) or num_workers < 0:
-            raise Exception("num_workers parameter should be a non-negative integer")
+            raise TypeError("num_workers parameter should be a non-negative integer")
 
         if not isinstance(pin_memory, bool) or num_workers < 0:
-            raise Exception("pin_memory parameter should be a boolean")
+            raise TypeError("pin_memory parameter should be a boolean")
 
         if not isinstance(data_set, iterators.GemicaiDataset):
-            raise Exception("data_set parameter should have a base class of data_iterators.GemicaiDataset")
-
-
+            raise TypeError("data_set parameter should have a base class of data_iterators.GemicaiDataset")
