@@ -100,6 +100,7 @@ class Classifier:
                 total += len(data[0])
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
+                start = datetime.now()
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
                 train_acc = str(self.evaluate(dataset)) + '%'
                 if test_dataset is not None:
@@ -108,8 +109,7 @@ class Classifier:
                     test_acc = ''
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
                 print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
-                      .format(epoch + 1, running_loss / total, test_acc, train_acc, elapsed, eta))
-                start = datetime.now()
+                      .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
         if self.verbosity_level >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
