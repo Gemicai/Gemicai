@@ -8,6 +8,7 @@ import math
 import os
 import matplotlib.pyplot as plt
 
+
 # This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
@@ -83,8 +84,13 @@ class DicomoDataset(GemicaiDataset):
 
 class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(base_path, str), 'base_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(base_path, str):
+            raise TypeError('base_path is not a string')
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.constraints = constraints
         self.base_path = base_path
@@ -143,8 +149,13 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
 
 class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(file_pool, list), 'file_pool is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('dicomo_fields is not a list')
+        if not isinstance(file_pool, list):
+            raise TypeError('file_pool is not a list')
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.constraints = constraints
         self.file_pool = file_pool
@@ -186,8 +197,15 @@ class PickledDicomoFilePool(DicomoDataset):
 
 class PickledDicomoDataFolder(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(base_path, str), 'base_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(base_path, str):
+            raise TypeError('base_path is not a string')
+        if not os.path.isdir(base_path):
+            raise NotADirectoryError("base_path does not point to any existing directory")
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.base_path = base_path
         self.transform = transform
@@ -239,8 +257,15 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 class PickledDicomoDataSet(DicomoDataset):
     def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(pickle_path, str), 'pickle_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(pickle_path, str):
+            raise TypeError('pickle_path is not a string')
+        if not os.path.isfile(pickle_path):
+            raise FileNotFoundError("pickle_path does not point to any existing file")
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.pickle_path = pickle_path
         self.transform = transform
@@ -257,7 +282,7 @@ class PickledDicomoDataSet(DicomoDataset):
             # get next dicomo class from the stream
             dicomo_class = next(self.pickle_stream)
             if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
-                raise Exception("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
                                 + type(dicomo_class))
 
             if len(self.labels) == 0:
