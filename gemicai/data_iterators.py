@@ -197,6 +197,9 @@ class PickledDicomoFilePool(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
+    def summarize(self):
+        None
+
     def pool_walker(self):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
