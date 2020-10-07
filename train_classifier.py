@@ -30,18 +30,21 @@ def demo_get_dataset(path):
 def demo_initialize_classifier():
     # Use resnet 18 as the base model for our new classifier
     resnet18 = models.resnet18(pretrained=True)
-    net = gem.Classifier(resnet18, ['CT'], verbosity_level=1, enable_cuda=True)
+    dataset = gem.DicomoDataset.from_directory(train_dataset, labels=['BodyPartExamined'])
+    dataset.summarize('BodyPartExamined')
+    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), verbosity_level=1, enable_cuda=True)
     net.save(classifier_path)
 
 
 def demo_train_classifier():
     # Load a classifier from a file
     net = gem.Classifier.load(classifier_path)
-
+    dataset = gem.DicomoDataset.from_directory(train_dataset, labels=['BodyPartExamined'])
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
-    net.train(demo_get_dataset(train_data_set_path), num_workers=0, epochs=1, pin_memory=True)
+    #net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
+    net.train(dataset, epochs=20)
     net.save(trained_classifier_path)
 
 
@@ -60,22 +63,12 @@ def demo_create_dicomo_dataset():
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
-#if __name__ == '__main__':
-#    demo_prepare_data_set()
-#    demo_initialize_classifier()
-#    demo_train_classifier()
-#    demo_evaluate_classifier()
-# # demo_create_dicomo_dataset()
+if __name__ == '__main__':
+
+    # demo_prepare_data_set()
+    # demo_initialize_classifier()
+    # demo_train_classifier()
+    # demo_evaluate_classifier()
+    # demo_create_dicomo_dataset()
 
 #ds = demo_get_dataset()
-
-# For this example, we take resnet18
-resnet18 = models.resnet18(pretrained=True)
-
-dataset = gem.DicomoDataset.get_dicomo_dataset('misc/demo.gemset', ['bpe'])
-
-# All a classifier needs is a base model, and a list of classes you want to classify
-net = gem.Classifier(resnet18, dataset.classes('bpe'))
-
-net.train(dataset, epochs=1, verbosity=1)
-net.evaluate(dataset, verbosity=1)

@@ -78,6 +78,9 @@ class ClassifierTree:
         return s
 
 
+class ClassifierNode:
+    pass
+
 classify = ['bpe', 'studydes']
 resnet18 = models.resnet18(pretrained=True)
 ds = gem.PickledDicomoDataFolder(base_path='../examples/gzip/dx/train/', labels=['tensor', classify[0]])
