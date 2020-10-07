@@ -17,9 +17,6 @@ train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 test_dataset = '/mnt/SharedStor/datasets/dx/test/'
 classifier_path = '/mnt/SharedStor/classifiers/dx_bpe.pkl'
 
-train_dataset = 'examples/test/'
-classifier_path = 'classifiers/dx_bpe.pkl'
-
 
 def demo_prepare_data_set():
     gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
@@ -47,14 +44,17 @@ def demo_train_classifier():
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
     #net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
-    net.train(dataset, epochs=20)
-    net.save(trained_classifier_path)
+
+    # Train with evaluation dataset
+    testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
+    net.train(dataset, epochs=20, test_dataset=testset, verbosity=1)
+    net.save(classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.load(trained_classifier_path)
     dataset = gem.DicomoDataset.from_directory(test_dataset, labels=['BodyPartExamined'])
-    net.evaluate(dataset)
+    net.evaluate(dataset, verbosity=2)
     # net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
 
 
