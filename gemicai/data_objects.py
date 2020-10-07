@@ -38,18 +38,24 @@ class DicomObject(DataObject):
 
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
+        if not isinstance(cmap, str):
+            raise TypeError("cmap parameter should be a string")
         plt.title(
             '{}\n{}'.format(self.label_types, self.labels))
         plt.imshow(self.tensor, cmap)
         plt.show()
 
     def get_value_of(self, item):
+        if not isinstance(item, str):
+            raise TypeError("item parameter should be a string")
         try:
             return self.labels[self.label_types.index(item)]
         except:
             return None
 
     def meets_constraints(self, constraints: dict):
+        if not isinstance(constraints, dict):
+            raise TypeError("constraints parameter should be a dict")
         for k in constraints.keys():
             if self.get_value_of(k) != constraints[k]:
                 return False

@@ -28,6 +28,10 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
     @abstractmethod
+    def summarize(self):
+        pass
+
+    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -51,6 +55,10 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     @abstractmethod
+    def summarize(self):
+        pass
+
+    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -64,7 +72,7 @@ class DicomoDataset(GemicaiDataset):
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
-        return ConcurrentPickledDicomoTaskSplitter(folder_path, labels, transform, constraints)
+        return ConcurrentPickledDicomObjectTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
     def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
@@ -82,7 +90,7 @@ class DicomoDataset(GemicaiDataset):
             return DicomoDataset.from_directory(data_set_path, labels, transform, constraints)
 
 
-class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
+class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
         if not isinstance(labels, list):
             raise TypeError('labels is not a list')
@@ -126,8 +134,8 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
         return True
 
     def subset(self, constraints):
-        return ConcurrentPickledDicomoTaskSplitter(self.base_path, self.labels, self.transform,
-                                                   {**self.constraints, **constraints})
+        return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
+                                                        {**self.constraints, **constraints})
 
     def classes(self, label):
         return list(self.summarize(label, print_summary=False).dic.keys())
@@ -236,7 +244,7 @@ class PickledDicomoDataFolder(DicomoDataset):
     def __str__(self):
         return str(self.summaray(count_field=self.labels[1]))
 
-    def summaray(self, count_field=None):
+    def summarize(self, count_field=None):
         assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.labels)
         cnt = gem.LabelCounter()
         for data in DataLoader(self, 4, shuffle=False):
@@ -335,6 +343,8 @@ class PickledDicomoDataSet(DicomoDataset):
         return False
 
     def subset(self, constraints):
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
 
     # All functions below here are a bit hacky

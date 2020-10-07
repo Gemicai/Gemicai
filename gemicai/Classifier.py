@@ -10,7 +10,7 @@ from gemicai.LabelCounter import strfdelta
 
 class Classifier:
     def __init__(self, module=nn.Module, classes=None, layer_config=None, loss_function=None, optimizer=None,
-                 verbosity_level=0, enable_cuda=False, cuda_device=None):
+                 verbosity=0, enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise TypeError("module_wrapper should extend a nn.Modules class")
@@ -50,16 +50,16 @@ class Classifier:
         else:
             self.optimizer = optimizer
 
-        if not isinstance(verbosity_level, int):
+        if not isinstance(verbosity, int):
             raise TypeError("verbosity_level parameter should be of an integer type")
-        self.verbosity_level = verbosity_level
+        self.verbosity = verbosity
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
+        self.set_verbosity(verbosity)
 
-        # why do we need an exception here?
-        # if not dataset.can_be_parallelized():
-        #     raise Exception("Specified data set cannot be parallelized")
+        if not dataset.can_be_parallelized():
+            num_workers = 0
         data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
@@ -69,7 +69,7 @@ class Classifier:
         self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
         start = datetime.now()
-        if verbosity >= 1:
+        if self.verbosity >= 1:
             print('| Epoch | Avg. loss | Train Acc. | Test Acc.  | Elapsed  |   ETA    |\n'
                   '|-------------------------------------------------------------------|')
         for epoch in range(epochs):
@@ -94,11 +94,11 @@ class Classifier:
 
                 # print statistics
                 running_loss += loss.item()
-                if verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
+                if self.verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
                     print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
                     running_loss = 0.0
                 total += len(data[0])
-            if verbosity >= 1:
+            if self.verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
@@ -110,14 +110,16 @@ class Classifier:
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
                 print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
                       .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
-        if self.verbosity_level >= 1:
+        if self.verbosity >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
         Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
                                                 num_workers=num_workers, pin_memory=pin_memory)
-        # if not dataset.can_be_parallelized():
-        #     raise Exception("Specified data set cannot be parallelized")
+        self.set_verbosity(verbosity)
+
+        if not dataset.can_be_parallelized():
+            num_workers = 0
         data_loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=False,
                                                   num_workers=num_workers, pin_memory=pin_memory)
 
@@ -139,16 +141,16 @@ class Classifier:
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-                if verbosity >= 1:
+                if self.verbosity >= 1:
                     c = (predicted == labels).squeeze()
                     for i in range(batch_size):
                         label = labels[i]
                         class_correct[label] += c[i].item()
                         class_total[label] += 1
             acc = round(100 * correct / total, 2)
-            if verbosity >= 1:
+            if self.verbosity >= 1:
                 print('\nTotal: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, acc))
-            if verbosity >= 2:
+            if self.verbosity >= 2:
                 for i in range(len(self.classes)):
                     print('Accuracy of {:<15s} : {:>.1f}%'
                           .format(self.classes[i], 100 * class_correct[i] / class_total[i]))
@@ -161,10 +163,10 @@ class Classifier:
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    def set_verbosity_level(self, verbosity_level=0):
+    def set_verbosity(self, verbosity_level=0):
         if not isinstance(verbosity_level, int):
             raise TypeError("verbosity_level parameter should be of an integer type")
-        self.verbosity_level = verbosity_level
+        self.verbosity = verbosity_level
 
     def set_device(self, enable_cuda=False, cuda_device=None):
         # select a correct cuda device
@@ -197,7 +199,7 @@ class Classifier:
 
     # Loads classifier object from .pkl file
     @staticmethod
-    def load(pkl_file_path=None):
+    def from_file(pkl_file_path=None):
         if not isinstance(pkl_file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
 
