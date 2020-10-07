@@ -57,9 +57,6 @@ class Classifier:
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
 
-        # Makes sure contraints apply on dataset, neccesary for ClassifierTree
-        dataset = dataset.subset(self.dataset_constraints)
-
         # why do we need an exception here?
         # if not dataset.can_be_parallelized():
         #     raise Exception("Specified data set cannot be parallelized")
