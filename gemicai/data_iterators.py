@@ -141,7 +141,6 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
             return cnt
 
 
-
 class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, labels, transform=None, constraints={}):
         assert isinstance(labels, list), 'dicomo_fields is not a list'
