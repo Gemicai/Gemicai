@@ -32,7 +32,7 @@ class ClassifierTree:
                                    layer_config=copy.deepcopy(self.root.layer_config),
                                    loss_function=copy.deepcopy(self.root.loss_function),
                                    optimizer=copy.deepcopy(self.root.optimizer),
-                                   verbosity_level=verbosity,
+                                   verbosity=verbosity,
                                    enable_cuda=self.root.enable_cuda,
                                    # TODO cuda config when making a Tree
                                    # cuda_device= some device?
@@ -84,7 +84,7 @@ class ClassifierNode:
 classify = ['bpe', 'studydes']
 resnet18 = models.resnet18(pretrained=True)
 ds = gem.PickledDicomoDataFolder(base_path='../examples/gzip/dx/train/', labels=['tensor', classify[0]])
-net = gem.Classifier(resnet18, verbosity_level=1)
+net = gem.Classifier(resnet18, verbosity=1)
 net.set_base_dataset(ds)
 start = time.time()
 tree = ClassifierTree(net, classify)

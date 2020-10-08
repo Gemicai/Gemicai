@@ -14,100 +14,17 @@ import numpy
 import gzip
 import os
 
-fields_of_interest = ['Rows', 'StudyDate', 'SeriesTime', 'ContentTime', 'StudyInstanceUID', 'SeriesInstanceUID',
-                      'SOPInstanceUID', 'Modality', 'SeriesDate', 'AccessionNumber', 'BodyPartExamined',
-                      'StudyDescription', 'SeriesDescription', 'InstanceNumber', 'PatientOrientation',
-                      'ImageLaterality', 'ImageComments', 'SeriesNumber', 'PatientName']
 
 def load_dicom(filename):
     if filename.endswith('.dcm'):
         ds = dicom.dcmread(filename)
-    else:
+    elif filename.endswith('.gz'):
         with gzip.open(filename) as fd:
             ds = dicom.dcmread(fd, force=True)
+    else:
+        raise TypeError
     ds.file_meta.TransferSyntaxUID = dicom.uid.ImplicitVRLittleEndian
     return ds
-
-
-def get_os_directory_path(path):
-    normalized_path = str(pathlib.Path(path))
-    index = normalized_path.rfind('/')
-    return os.path.normpath(normalized_path[0:index])
-
-
-def create_dir_if_does_not_exist(path):
-    dir_name = get_os_directory_path(path)
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-
-
-def open_directory(path):
-    try:
-        return pathlib.Path(path)
-    except:
-        print('Could not open directory: ' + str(path))
-        raise
-
-
-def get_file_name(path):
-    try:
-        return str(pathlib.Path(path)).split('.')[0].split('/')[-1]
-    except:
-        print('Cannot parse a file path: ' + str(path))
-        raise
-
-
-def dicom_to_png_pkl(input, output, pickle):
-    ds = load_dicom(os.path.normpath(input))
-    # try to fetch the relevant data (so maybe we can process it later)
-    dcm_data = []
-    for field in fields_of_interest:
-        try:
-            dcm_data.append(getattr(ds, field))
-        except:
-            dcm_data.append('NULL')
-
-    # a colormap and a normalization instance
-    cmap = plt.cm.gray
-    norm = plt.Normalize(vmin=ds.pixel_array.min(), vmax=ds.pixel_array.max())
-
-    # map the normalized data to colors
-    image = cmap(norm(ds.pixel_array))
-
-    # check if the image/pickle output directory exists
-    # if not create them
-    create_dir_if_does_not_exist(output)
-    create_dir_if_does_not_exist(pickle)
-
-    # save the image
-    try:
-        plt.imsave(os.path.normpath(output), image, cmap='gray')
-    except:
-        print('Invalid image path')
-        raise
-
-    # create data frame to keep records of the images
-    df = pd.DataFrame(dcm_data, fields_of_interest)
-
-    # save dataframe for later usage
-    try:
-        df.to_pickle(os.path.normpath(pickle))
-    except:
-        print('Invalid pickle location')
-        raise
-
-
-# Process dicom files in the input_folder and stores result in the output_folder
-def process_dicom_from_to_folder(input_folder, output_folder):
-    # Open specified input directory
-    in_dir = open_directory(input_folder);
-    # Process files in the input directory
-    for path in in_dir.iterdir():
-        if path.is_file():
-            file_name = get_file_name(path)
-            image_output = output_folder + '/images/' + file_name + '.png'
-            pickle_output = output_folder + '/pickle/' + file_name + '.pkl'
-            dicom_to_png_pkl(path, image_output, pickle_output)
 
 
 # Returns ({imgage as tensor}, {label})
@@ -153,13 +70,13 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
     if not os.path.isdir(output):
         raise NotADirectoryError
     if not isinstance(field_list, list):
-        raise Exception("field_list parameter should be a list of strings with a name of a relevant fields to fetch "
+        raise TypeError("field_list parameter should be a list of strings with a name of a relevant fields to fetch "
                         "and put in the DicomoObject")
     if not isinstance(field_values, list):
-        raise Exception("field_values parameter should be a list of tuples (field_name, field_values). This parameter "
+        raise TypeError("field_values parameter should be a list of tuples (field_name, field_values). This parameter "
                         "allows for filtering which DicomoObjects should be put in a dataset")
     if not isinstance(objects_per_file, int):
-        raise Exception("objects_per_file parameter should be an integer")
+        raise TypeError("objects_per_file parameter should be an integer")
 
     # because of windows we have to manage temp file ourselves
     temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
@@ -221,7 +138,6 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
 
 
 def zip_to_file(file, zip_path):
-    None
     with gzip.open(zip_path, 'wb') as zipped:
         shutil.copyfileobj(open(file.name, 'rb'), zipped)
 
