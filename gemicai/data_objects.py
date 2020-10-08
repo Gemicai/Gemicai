@@ -10,9 +10,9 @@ import os
 class DataObject(ABC):
     def __init__(self, tensor, label_values):
         if not isinstance(tensor, torch.Tensor):
-            raise Exception("DataObject  expects tensor to be a torch.Tensor")
+            raise TypeError("DataObject  expects tensor to be a torch.Tensor")
         if not isinstance(label_values, list):
-            raise Exception("DataObject expects labels parameter to be a list")
+            raise TypeError("DataObject expects labels parameter to be a list")
         self.tensor = tensor
         self.labels = label_values
 
@@ -29,7 +29,7 @@ class DataObject(ABC):
 class DicomObject(DataObject):
     def __init__(self, tensor, labels, label_values):
         if not isinstance(labels, list):
-            raise Exception("DataObject expects label_values parameter to be a list")
+            raise TypeError("DataObject expects label_values parameter to be a list")
         DataObject.__init__(self, tensor, label_values)
         self.label_types = labels
 
@@ -38,18 +38,24 @@ class DicomObject(DataObject):
 
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
+        if not isinstance(cmap, str):
+            raise TypeError("cmap parameter should be a string")
         plt.title(
             '{}\n{}'.format(self.label_types, self.labels))
         plt.imshow(self.tensor, cmap)
         plt.show()
 
     def get_value_of(self, item):
+        if not isinstance(item, str):
+            raise TypeError("item parameter should be a string")
         try:
             return self.labels[self.label_types.index(item)]
         except:
             return None
 
     def meets_constraints(self, constraints: dict):
+        if not isinstance(constraints, dict):
+            raise TypeError("constraints parameter should be a dict")
         for k in constraints.keys():
             if self.get_value_of(k) != constraints[k]:
                 return False
@@ -60,7 +66,7 @@ class DicomObject(DataObject):
         if not os.path.isfile(filename):
             raise FileNotFoundError
         if not isinstance(labels, list):
-            raise Exception("Dicomo.from_file: fields parameter should be a list of strings but is " +
+            raise TypeError("from_file: fields parameter should be a list of strings but is " +
                             str(type(labels)))
 
         # try to load a dicom file

@@ -8,6 +8,7 @@ import math
 import os
 import matplotlib.pyplot as plt
 
+
 # This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
@@ -24,6 +25,10 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def __len__(self):
+        pass
+
+    @abstractmethod
+    def summarize(self):
         pass
 
     @abstractmethod
@@ -50,6 +55,10 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     @abstractmethod
+    def summarize(self):
+        pass
+
+    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -63,7 +72,7 @@ class DicomoDataset(GemicaiDataset):
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
-        return ConcurrentPickledDicomoTaskSplitter(folder_path, labels, transform, constraints)
+        return ConcurrentPickledDicomObjectTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
     def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
@@ -81,10 +90,15 @@ class DicomoDataset(GemicaiDataset):
             return DicomoDataset.from_directory(data_set_path, labels, transform, constraints)
 
 
-class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
+class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(base_path, str), 'base_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(base_path, str):
+            raise TypeError('base_path is not a string')
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.constraints = constraints
         self.base_path = base_path
@@ -120,8 +134,8 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
         return True
 
     def subset(self, constraints):
-        return ConcurrentPickledDicomoTaskSplitter(self.base_path, self.labels, self.transform,
-                                                   {**self.constraints, **constraints})
+        return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
+                                                        {**self.constraints, **constraints})
 
     def classes(self, label):
         return list(self.summarize(label, print_summary=False).dic.keys())
@@ -141,11 +155,15 @@ class ConcurrentPickledDicomoTaskSplitter(DicomoDataset):
             return cnt
 
 
-
 class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(file_pool, list), 'file_pool is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('dicomo_fields is not a list')
+        if not isinstance(file_pool, list):
+            raise TypeError('file_pool is not a list')
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.constraints = constraints
         self.file_pool = file_pool
@@ -179,6 +197,9 @@ class PickledDicomoFilePool(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
+    def summarize(self):
+        None
+
     def pool_walker(self):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
@@ -187,8 +208,15 @@ class PickledDicomoFilePool(DicomoDataset):
 
 class PickledDicomoDataFolder(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(base_path, str), 'base_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(base_path, str):
+            raise TypeError('base_path is not a string')
+        if not os.path.isdir(base_path):
+            raise NotADirectoryError("base_path does not point to any existing directory")
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.base_path = base_path
         self.transform = transform
@@ -219,7 +247,7 @@ class PickledDicomoDataFolder(DicomoDataset):
     def __str__(self):
         return str(self.summaray(count_field=self.labels[1]))
 
-    def summaray(self, count_field=None):
+    def summarize(self, count_field=None):
         assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.labels)
         cnt = gem.LabelCounter()
         for data in DataLoader(self, 4, shuffle=False):
@@ -240,8 +268,15 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 class PickledDicomoDataSet(DicomoDataset):
     def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
-        assert isinstance(labels, list), 'dicomo_fields is not a list'
-        assert isinstance(pickle_path, str), 'pickle_path is not a string'
+        if not isinstance(labels, list):
+            raise TypeError('labels is not a list')
+        if not isinstance(pickle_path, str):
+            raise TypeError('pickle_path is not a string')
+        if not os.path.isfile(pickle_path):
+            raise FileNotFoundError("pickle_path does not point to any existing file")
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+
         self.labels = labels
         self.pickle_path = pickle_path
         self.transform = transform
@@ -258,7 +293,7 @@ class PickledDicomoDataSet(DicomoDataset):
             # get next dicomo class from the stream
             dicomo_class = next(self.pickle_stream)
             if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
-                raise Exception("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
                                 + type(dicomo_class))
 
             if len(self.labels) == 0:
@@ -311,6 +346,8 @@ class PickledDicomoDataSet(DicomoDataset):
         return False
 
     def subset(self, constraints):
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
 
     # All functions below here are a bit hacky
