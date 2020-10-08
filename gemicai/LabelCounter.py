@@ -1,19 +1,19 @@
 import pydicom
+from tabulate import tabulate
 
 
 class LabelCounter:
     def __init__(self):
         self.dic = {}
 
-    # I know this looks hideous but it prints a wonderfull table :)
     def __str__(self):
-        s = 'label                          | frequency\n-------------------------------------------\n'
-        t = 0
+        table = []
         for k, v in self.dic.items():
-            t += v
-            s += ('{:<30s} | {:>8d}\n'.format(k, v))
-        return s + '\nTotal number of training images: {} \nTotal number of labels: {}\n\n'.format(t,
-                                                                                                   len(self.dic.keys()))
+            table.append([k, v])
+        s = str(tabulate(table, headers=['Class', 'Frequency'], tablefmt='orgtbl')) +\
+            '\nTotal number of training images: {} \nTotal number of classes: {}\n'\
+            .format(sum(self.dic.values()), len(self.dic.keys()))
+        return s
 
     def update(self, s):
         if not isinstance(s, list) and not isinstance(s, str):
