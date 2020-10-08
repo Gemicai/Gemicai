@@ -6,6 +6,7 @@ import torch.nn as nn
 import pickle
 import torch
 from gemicai.LabelCounter import strfdelta
+from tabulate import tabulate
 
 
 class Classifier:
@@ -71,7 +72,7 @@ class Classifier:
         start = datetime.now()
         if verbosity >= 1:
             print('| Epoch | Avg. loss | Train Acc. | Test Acc.  | Elapsed  |   ETA    |\n'
-                  '|-------------------------------------------------------------------|')
+                  '|-------+-----------+------------+------------+----------+----------|')
         for epoch in range(epochs):
             running_loss = 0.0
             total = 0
@@ -139,19 +140,23 @@ class Classifier:
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 
-                if verbosity >= 1:
-                    c = (predicted == labels).squeeze()
-                    for i in range(batch_size):
-                        label = labels[i]
-                        class_correct[label] += c[i].item()
-                        class_total[label] += 1
+                if verbosity >= 2:
+                    for true_label, predicted_label in zip(labels, predicted):
+                        if true_label == predicted_label:
+                            class_correct[true_label] += 1
+                        class_total[true_label] += 1
             acc = round(100 * correct / total, 2)
-            if verbosity >= 1:
-                print('\nTotal: {} -- Correct: {} -- Accuracy: {}%'.format(total, correct, acc))
+            if verbosity == 1:
+                print('Total: {} -- Correct: {} -- Accuracy: {}%\n'.format(total, correct, acc))
             if verbosity >= 2:
-                for i in range(len(self.classes)):
-                    print('Accuracy of {:<15s} : {:>.1f}%'
-                          .format(self.classes[i], 100 * class_correct[i] / class_total[i]))
+                table = []
+                for i, c in enumerate(self.classes):
+                    if class_total[i] != 0:
+                        class_acc = '{:.1f}%'.format(100 * class_correct[i] / class_total[i])
+                    else:
+                        class_acc = '-'
+                    table.append([c, class_total[i], class_correct[i], class_acc])
+                print(tabulate(table, headers=['Class', 'Total', 'Correct', 'Acc'], tablefmt='orgtbl'), '\n')
             return acc
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
