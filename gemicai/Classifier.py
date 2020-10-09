@@ -1,17 +1,16 @@
 import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
-from gemicai.LabelCounter import LabelCounter
 from datetime import datetime
 import torch.nn as nn
 import pickle
 import torch
-from gemicai.LabelCounter import strfdelta
+from gemicai.utils import strfdelta
 from tabulate import tabulate
 
 
 class Classifier:
-    def __init__(self, module=nn.Module, classes=None, layer_config=None, loss_function=None, optimizer=None,
-                 verbosity=0, enable_cuda=False, cuda_device=None):
+    def __init__(self, module, classes=None, layer_config=None, loss_function=None, optimizer=None,
+                 enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise TypeError("module_wrapper should extend a nn.Modules class")
@@ -51,13 +50,8 @@ class Classifier:
         else:
             self.optimizer = optimizer
 
-        if not isinstance(verbosity, int):
-            raise TypeError("verbosity_level parameter should be of an integer type")
-        self.verbosity = verbosity
-
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
-        self.set_verbosity(verbosity)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -92,22 +86,16 @@ class Classifier:
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
-
-                # print statistics
-                running_loss += loss.item()
-                if verbosity >= 2 and i % 2000 == 1999:  # print every 2000 batches
-                    print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
-                    running_loss = 0.0
-                total += len(data[0])
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
                 eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
-                train_acc = str(self.evaluate(dataset)) + '%'
-                if test_dataset is not None:
-                    test_acc = str(self.evaluate(test_dataset)) + '%'
-                else:
-                    test_acc = ''
+                train_acc, test_acc = '-', '-'
+                # Evaluating models increases epoch time significantly
+                if verbosity >= 2:
+                    train_acc = str(self.evaluate(dataset)) + '%'
+                    if test_dataset is not None:
+                        test_acc = str(self.evaluate(test_dataset)) + '%'
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
                 print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
                       .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
@@ -167,11 +155,6 @@ class Classifier:
         with open(file_path, 'wb') as output:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
-    def set_verbosity(self, verbosity_level=0):
-        if not isinstance(verbosity_level, int):
-            raise TypeError("verbosity_level parameter should be of an integer type")
-        self.verbosity = verbosity_level
-
     def set_device(self, enable_cuda=False, cuda_device=None):
         # select a correct cuda device
         if enable_cuda:
@@ -207,8 +190,8 @@ class Classifier:
         if not isinstance(pkl_file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
 
-        with open(pkl_file_path, 'rb') as input:
-            cf = pickle.load(input)
+        with open(pkl_file_path, 'rb') as inp:
+            cf = pickle.load(inp)
             if not isinstance(cf, Classifier):
                 raise TypeError(pkl_file_path + ' does not contain a valid Classifier class object')
             return cf

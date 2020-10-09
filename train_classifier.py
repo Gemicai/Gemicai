@@ -3,6 +3,7 @@ import torchvision.models as models
 import gemicai as gem
 import torch
 import os
+from datetime import datetime
 
 dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'SeriesDescription', 'BodyPartExamined']
 path_input = os.path.join("examples", "dicom", "CT")
@@ -16,6 +17,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 test_dataset = '/mnt/SharedStor/datasets/dx/test/'
 classifier_path = '/mnt/SharedStor/classifiers/dx_bpe_trained.pkl'
+tree_path = '/mnt/SharedStor/classifiers/big_tree.pkl'
 
 
 def demo_prepare_data_set():
@@ -43,7 +45,7 @@ def demo_train_classifier():
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
     # net.set_device(enable_cuda=False)
-    #net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
+    # net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
 
     # Train with evaluation dataset
     testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
@@ -65,15 +67,34 @@ def demo_create_dicomo_dataset():
                                                field_values=[('Modality', ['DX'])])
 
 
+def demo_initialize_tree():
+    # Select the fields the tree should sequencially. The first item in the list will what the root of the tree
+    # classifies. Initializing the Tree takes quite long, as it has to calculate the classes for every node.
+    relevant_labels = ['Modality', 'BodyPartExamined', 'StudyDescription', 'SeriesDescription']
+    resnet18 = models.resnet18(pretrained=True)
+    ds = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=relevant_labels)
+    net = gem.Classifier(resnet18, [], enable_cuda=True)
+
+    start = datetime.now()
+    tree = gem.ClassifierTree(default_classifier=net, labels=relevant_labels, base_dataset=ds)
+    print('Initializing tree took : {}'.format(gem.utils.strfdelta(datetime.now() - start, '%H:%M:%S')))
+    tree.save(tree_path)
+
+
+def demo_train_tree():
+    tree = gem.ClassifierTree.from_file(tree_path)
+    print(tree)
+
+
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-
     # demo_prepare_data_set()
-    demo_initialize_classifier()
+    # demo_initialize_classifier()
     # demo_train_classifier()
     # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
-
-#ds = demo_get_dataset()
+    demo_initialize_tree()
+    demo_train_tree()
+    # ds = demo_get_dataset()

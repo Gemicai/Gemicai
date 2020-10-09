@@ -1,6 +1,6 @@
 import pydicom
 from tabulate import tabulate
-
+from string import Template
 
 class LabelCounter:
     def __init__(self):
@@ -43,9 +43,6 @@ class LabelCounter:
 
 
 # I'll drop this in gemicai.utils later
-from string import Template
-
-
 class DeltaTemplate(Template):
     delimiter = "%"
 
