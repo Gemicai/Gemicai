@@ -32,6 +32,14 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
     @abstractmethod
+    def subset(self):
+        pass
+
+    @abstractmethod
+    def plot_one_of_every(self):
+        pass
+
+    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -60,6 +68,14 @@ class DicomoDataset(GemicaiDataset):
 
     @abstractmethod
     def can_be_parallelized(self):
+        pass
+
+    @abstractmethod
+    def subset(self):
+        pass
+
+    @abstractmethod
+    def plot_one_of_every(self):
         pass
 
     @staticmethod
@@ -154,6 +170,9 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         else:
             return cnt
 
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        None  # TODO implement
+
 
 class PickledDicomoFilePool(DicomoDataset):
     def __init__(self, file_pool, labels, transform=None, constraints={}):
@@ -204,6 +223,12 @@ class PickledDicomoFilePool(DicomoDataset):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
         raise StopIteration
+
+    def subset(self, constraints):
+        None  # TODO implement
+
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        None  # TODO implement
 
 
 class PickledDicomoDataFolder(DicomoDataset):
@@ -265,9 +290,17 @@ class PickledDicomoDataFolder(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
+    def subset(self, constraints):
+        None  # TODO implement
+
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        None  # TODO implement
+
 
 class PickledDicomoDataSet(DicomoDataset):
     def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
+        self.tmp = None
+
         if not isinstance(labels, list):
             raise TypeError('labels is not a list')
         if not isinstance(pickle_path, str):
@@ -285,62 +318,72 @@ class PickledDicomoDataSet(DicomoDataset):
 
     def __iter__(self):
         self.len = 0
-        self.pickle_stream = self.stream_pickled_dicomos()
+        self.pickle_stream = self._stream_pickled_dicomos()
         return self
 
     def __next__(self):
         try:
-            # get next dicomo class from the stream
-            dicomo_class = next(self.pickle_stream)
-            if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
-                raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
-                                + type(dicomo_class))
+            try:
+                # get next dicomo class from the stream
+                dicomo_class = next(self.pickle_stream)
+                if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
+                    raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                                    + type(dicomo_class))
 
-            if len(self.labels) == 0:
-                return dicomo_class
+                if len(self.labels) == 0:
+                    return dicomo_class
 
-            # constraints is a dictionary.
-            for k in self.constraints.keys():
-                if self.constraints[k] != dicomo_class.get_value_of(k):
-                    return self.__next__()
+                # constraints is a dictionary.
+                for k in self.constraints.keys():
+                    if self.constraints[k] != dicomo_class.get_value_of(k):
+                        return self.__next__()
 
-            # fetch a tensor
-            tensor = dicomo_class.tensor
+                # fetch a tensor
+                tensor = dicomo_class.tensor
 
-            # check if transform is specified if yes apply it
-            if self.transform is not None:
-                try:
-                    tensor = self.transform(tensor)
-                except:
-                    raise Exception('Could not apply specified transformation to the dicom image')
+                # check if transform is specified if yes apply it
+                if self.transform is not None:
+                    try:
+                        tensor = self.transform(tensor)
+                    except:
+                        raise Exception('Could not apply specified transformation to the dicom image')
 
-            labels = []
-            # fetch values of the labels we are interested in
-            for label in self.labels:
-                labels.append(dicomo_class.get_value_of(label))
+                labels = []
+                # fetch values of the labels we are interested in
+                for label in self.labels:
+                    labels.append(dicomo_class.get_value_of(label))
 
-            self.len += 1
+                self.len += 1
 
-            # All hail to python for not returning reference to the temp object after calling .append
-            # which forces me to do this
-            return [tensor] + labels
-        except:
+                # All hail to python for not returning reference to the temp object after calling .append
+                # which forces me to do this
+                return [tensor] + labels
+            except:
+                self._file_cleanup()
+                raise
+        except EOFError:
             raise StopIteration
 
     def __len__(self):
         return self.len
 
-    def stream_pickled_dicomos(self):
-        tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+    def __del__(self):
+        self._file_cleanup()
+
+    def _file_cleanup(self):
+        if self.tmp is not None:
+            self.tmp.close()
+            os.remove(self.tmp.name)
+            self.tmp = None
+
+    def _stream_pickled_dicomos(self):
+        self.tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
         try:
-            gem.unzip_to_file(tmp, self.pickle_path)
+            gem.unzip_to_file(self.tmp, self.pickle_path)
             while True:
-                yield gem.pickle.load(tmp)
-        except EOFError:
-            pass
+                yield gem.pickle.load(self.tmp)
         finally:
-            tmp.close()
-            os.remove(tmp.name)
+            pass
 
     def can_be_parallelized(self):
         return False
