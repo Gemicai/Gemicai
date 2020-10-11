@@ -225,7 +225,9 @@ class PickledDicomoFilePool(DicomoDataset):
         raise StopIteration
 
     def subset(self, constraints):
-        None  # TODO implement
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+        return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         None  # TODO implement
@@ -291,7 +293,9 @@ class PickledDicomoDataFolder(DicomoDataset):
         return False
 
     def subset(self, constraints):
-        None  # TODO implement
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
+        return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         None  # TODO implement

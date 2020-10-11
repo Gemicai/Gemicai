@@ -78,9 +78,36 @@ class TestPickledDicomoDataSet(unittest.TestCase):
 
     def test_subset_wrong_constraint_type(self):
         data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
-        subset = data.subset(("Modality", 1))
         with self.assertRaises(TypeError):
-            next(iter(subset))
+            subset = data.subset(("Modality", 1))
+
+
+class TestPickledDicomoDataFolder(unittest.TestCase):
+
+    def test_init_correct_usage(self):
+        dataset = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(dataset, test.PickledDicomoDataFolder)
+
+    def test_init_invalid_directory_path(self):
+        None
+
+    def test_init_file_has_wrong_type(self):
+        None
+
+    def test_init_wrong_labels_type(self):
+        None
+
+    def test_init_wrong_constraints_type(self):
+        None
+
+    def test_iter(self):
+        None
+
+    def test_next(self):
+        None
+
+    def test_len(self):
+        None
 
 
 class TestDicomoDataset(unittest.TestCase):
@@ -164,33 +191,6 @@ class TestPickledDicomoFilePool(unittest.TestCase):
         None
 
     def test_init_invalid_file_pool_path(self):
-        None
-
-    def test_init_file_has_wrong_type(self):
-        None
-
-    def test_init_wrong_labels_type(self):
-        None
-
-    def test_init_wrong_constraints_type(self):
-        None
-
-    def test_iter(self):
-        None
-
-    def test_next(self):
-        None
-
-    def test_len(self):
-        None
-
-
-class TestPickledDicomoDataFolder(unittest.TestCase):
-
-    def test_init_correct_usage(self):
-        None
-
-    def test_init_invalid_directory_path(self):
         None
 
     def test_init_file_has_wrong_type(self):
