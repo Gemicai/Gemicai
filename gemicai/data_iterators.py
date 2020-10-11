@@ -82,7 +82,7 @@ class DicomoDataset(GemicaiDataset):
             raise TypeError("label should be a string")
         if not isinstance(constraints, dict):
             raise TypeError("constraints should be a dict")
-        if type(print_summary) is not bool:
+        if not isinstance(print_summary, bool):
             raise TypeError("print_summary should be a boolean")
 
         temp = self.labels
