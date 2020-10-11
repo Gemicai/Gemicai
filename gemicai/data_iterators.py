@@ -36,6 +36,10 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
     @abstractmethod
+    def classes(self, label):
+        pass
+
+    @abstractmethod
     def plot_one_of_every(self):
         pass
 
@@ -63,10 +67,6 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     @abstractmethod
-    def summarize(self):
-        pass
-
-    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -74,9 +74,54 @@ class DicomoDataset(GemicaiDataset):
     def subset(self):
         pass
 
-    @abstractmethod
-    def plot_one_of_every(self):
-        pass
+    def classes(self, label):
+        return list(self.summarize(label, print_summary=False).dic.keys())
+
+    def summarize(self, label, constraints={}, print_summary=True):
+        if not isinstance(label, str):
+            TypeError("label should be a string")
+        if not isinstance(constraints, dict):
+            TypeError("constraints should be a dict")
+        if not isinstance(print_summary, bool):
+            TypeError("print_summary should be a boolean")
+
+        temp = self.labels
+        self.labels = []
+        cnt = gem.LabelCounter()
+        constraints = {**self.constraints, **constraints}
+        for dicomo in self:
+            if dicomo.meets_constraints(constraints):
+                cnt.update(dicomo.get_value_of(label))
+        self.labels = temp
+        if print_summary:
+            print(cnt)
+        else:
+            return cnt
+
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        if not isinstance(label, str):
+            TypeError("label should be a string")
+
+        classes = self.classes(label)
+        ooe = []
+        temp = self.labels
+        self.labels = []
+        for dicomo in self:
+            v = dicomo.get_value_of(label)
+            if v in classes:
+                ooe.append(dicomo)
+                classes.remove(v)
+            if len(classes) == 0:
+                break
+        self.labels = temp
+
+        for d in ooe:
+            s = ''
+            for label, value in zip(d.label_types, d.labels):
+                s += '{:15s} : {}\n'.format(label, value)
+            print(s)
+            plt.imshow(d.tensor, cmap)
+            plt.show()
 
     @staticmethod
     def from_file(file_path, labels=[], transform=None, constraints={}):
@@ -153,25 +198,15 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
                                                         {**self.constraints, **constraints})
 
-    def classes(self, label):
-        return list(self.summarize(label, print_summary=False).dic.keys())
-
     def summarize(self, label, constraints={}, print_summary=True):
-        temp = self.labels
-        self.labels = []
-        cnt = gem.LabelCounter()
-        constraints = {**self.constraints, **constraints}
-        for dicomo in self:
-            if dicomo.meets_constraints(constraints):
-                cnt.update(dicomo.get_value_of(label))
-        self.labels = temp
-        if print_summary:
-            print(cnt)
-        else:
-            return cnt
+        dataset = self.__iter__()
+
+        if not print_summary:
+            return dataset.summarize(label, constraints, print_summary)
+        dataset.summarize(label, constraints, print_summary)
 
     def plot_one_of_every(self, label, cmap='gray_r'):
-        None  # TODO implement
+        return self.__iter__().plot_one_of_every(label, cmap)
 
 
 class PickledDicomoFilePool(DicomoDataset):
@@ -223,12 +258,6 @@ class PickledDicomoFilePool(DicomoDataset):
             raise TypeError('constraints is not a dict')
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
-    def summarize(self):
-        None # TODO implement
-
-    def plot_one_of_every(self, label, cmap='gray_r'):
-        None  # TODO implement
-
 
 class PickledDicomoDataFolder(DicomoDataset):
     def __init__(self, base_path, labels, transform=None, constraints={}):
@@ -268,14 +297,6 @@ class PickledDicomoDataFolder(DicomoDataset):
     def __str__(self):
         return str(self.summaray(count_field=self.labels[1]))
 
-    def summarize(self, count_field=None):
-        assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.labels)
-        cnt = gem.LabelCounter()
-        for data in DataLoader(self, 4, shuffle=False):
-            for label in data[self.labels.index(count_field)]:
-                cnt.update(label)
-        return cnt
-
     def _get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
@@ -289,9 +310,6 @@ class PickledDicomoDataFolder(DicomoDataset):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
-
-    def plot_one_of_every(self, label, cmap='gray_r'):
-        None  # TODO implement
 
 
 class PickledDicomoDataSet(DicomoDataset):
@@ -389,44 +407,3 @@ class PickledDicomoDataSet(DicomoDataset):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
-
-    # All functions below here are a bit hacky
-    def classes(self, label):
-        return list(self.summarize(label, print_summary=False).dic.keys())
-
-    def summarize(self, label, constraints={}, print_summary=True):
-        temp = self.labels
-        self.labels = []
-        cnt = gem.LabelCounter()
-        constraints = {**self.constraints, **constraints}
-        for dicomo in self:
-            if dicomo.meets_constraints(constraints):
-                cnt.update(dicomo.get_value_of(label))
-        self.labels = temp
-        if print_summary:
-            print(cnt)
-        else:
-            return cnt
-
-    def plot_one_of_every(self, label, cmap='gray_r'):
-        classes = self.classes(label)
-        ooe = []
-        temp = self.labels
-        self.labels = []
-        for dicomo in self:
-            v = dicomo.get_value_of(label)
-            if v in classes:
-                ooe.append(dicomo)
-                classes.remove(v)
-            if len(classes) == 0:
-                break
-        self.labels = temp
-
-        for d in ooe:
-            s = ''
-            for label, value in zip(d.label_types, d.labels):
-                s += '{:15s} : {}\n'.format(label, value)
-            print(s)
-            plt.imshow(d.tensor, cmap)
-            plt.show()
-
