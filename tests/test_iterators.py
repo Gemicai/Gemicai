@@ -85,6 +85,40 @@ class TestPickledDicomoDataSet(unittest.TestCase):
         data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
         self.assertEqual(data.can_be_parallelized(), False)
 
+    def test_classes_correct_usage(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        self.assertIsInstance(data.classes("Modality"), list)
+
+    def test_classes_wrong_label_type(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.classes(["Modality"])
+
+    def test_summarize_correct_usage(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        self.assertIsInstance(data.summarize("Modality", print_summary=False), test.gem.LabelCounter)
+
+    def test_summarize_wrong_label_type(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize(["Modality"], print_summary=False)
+
+    def test_summarize_wrong_constraints_type(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", [], print_summary=False)
+
+    def test_summarize_test_CT_constraint(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        summary_1 = data.summarize("Modality", print_summary=False)
+        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        self.assertNotEqual(str(summary_1), str(summary_2))
+
+    def test_summarize_wrong_summary_type(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", print_summary=None)
+
 
 class TestPickledDicomoDataFolder(unittest.TestCase):
 
@@ -150,6 +184,40 @@ class TestPickledDicomoDataFolder(unittest.TestCase):
         data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
         self.assertEqual(data.can_be_parallelized(), False)
 
+    def test_classes_correct_usage(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(data.classes("Modality"), list)
+
+    def test_classes_wrong_label_type(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.classes(["Modality"])
+
+    def test_summarize_correct_usage(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(data.summarize("Modality", print_summary=False), test.gem.LabelCounter)
+
+    def test_summarize_wrong_label_type(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize(["Modality"], print_summary=False)
+
+    def test_summarize_wrong_constraints_type(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", [], print_summary=False)
+
+    def test_summarize_test_CT_constraint(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        summary_1 = data.summarize("Modality", print_summary=False)
+        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        self.assertNotEqual(str(summary_1), str(summary_2))
+
+    def test_summarize_wrong_summary_type(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", print_summary=None)
+
 
 class TestPickledDicomoFilePool(unittest.TestCase):
 
@@ -214,6 +282,40 @@ class TestPickledDicomoFilePool(unittest.TestCase):
         data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
         self.assertEqual(data.can_be_parallelized(), False)
 
+    def test_classes_correct_usage(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        self.assertIsInstance(data.classes("Modality"), list)
+
+    def test_classes_wrong_label_type(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.classes(["Modality"])
+
+    def test_summarize_correct_usage(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        self.assertIsInstance(data.summarize("Modality", print_summary=False), test.gem.LabelCounter)
+
+    def test_summarize_wrong_label_type(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize(["Modality"], print_summary=False)
+
+    def test_summarize_wrong_constraints_type(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", [], print_summary=False)
+
+    def test_summarize_test_CT_constraint(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        summary_1 = data.summarize("Modality", print_summary=False)
+        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        self.assertNotEqual(str(summary_1), str(summary_2))
+
+    def test_summarize_wrong_summary_type(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", print_summary=None)
+
 
 class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
 
@@ -272,6 +374,40 @@ class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
     def test_can_be_parallelized(self):
         data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
         self.assertEqual(data.can_be_parallelized(), True)
+
+    def test_classes_correct_usage(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(data.classes("Modality"), list)
+
+    def test_classes_wrong_label_type(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.classes(["Modality"])
+
+    def test_summarize_correct_usage(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(data.summarize("Modality", print_summary=False), test.gem.LabelCounter)
+
+    def test_summarize_wrong_label_type(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize(["Modality"], print_summary=False)
+
+    def test_summarize_wrong_constraints_type(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", [], print_summary=False)
+
+    def test_summarize_test_CT_constraint(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        summary_1 = data.summarize("Modality", print_summary=False)
+        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        self.assertNotEqual(str(summary_1), str(summary_2))
+
+    def test_summarize_wrong_summary_type(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            data.summarize("Modality", print_summary=None)
 
 
 class TestDicomoDataset(unittest.TestCase):

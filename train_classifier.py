@@ -34,13 +34,13 @@ def demo_initialize_classifier():
     resnet18 = models.resnet18(pretrained=True)
     dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     dataset.summarize('BodyPartExamined')
-    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), verbosity_level=1, enable_cuda=True)
+    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), enable_cuda=True)
     net.save(classifier_path)
 
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = gem.Classifier.load(classifier_path)
+    net = gem.Classifier.from_file(classifier_path)
     dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
@@ -49,12 +49,12 @@ def demo_train_classifier():
 
     # Train with evaluation dataset
     testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
-    net.train(dataset, epochs=150, test_dataset=testset, verbosity=1)
+    net.train(dataset, epochs=1, test_dataset=testset, verbosity=1)
     net.save(classifier_path)
 
 
 def demo_evaluate_classifier():
-    net = gem.Classifier.load(classifier_path)
+    net = gem.Classifier.from_file(classifier_path)
     dataset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
     net.evaluate(dataset, verbosity=2)
     # net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
