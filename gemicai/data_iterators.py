@@ -180,6 +180,9 @@ class PickledDicomoFilePool(DicomoDataset):
             raise TypeError('dicomo_fields is not a list')
         if not isinstance(file_pool, list):
             raise TypeError('file_pool is not a list')
+        for path in file_pool:
+            if not os.path.isfile(path):
+                raise FileNotFoundError(path + " does not point to any existing file")
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
 
@@ -192,23 +195,18 @@ class PickledDicomoFilePool(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
-        self.set_generator = None
-        self.data_set = None
+        self.set_generator = self.pool_walker()
+        self.data_set = next(self.set_generator)
         return self
 
     def __next__(self):
-        try:
-            while True:
-                try:
-                    temp = next(self.data_set)
-                    self.len += 1
-                    return temp
-                except:
-                    if self.set_generator is None:
-                        self.set_generator = self.pool_walker()
-                    self.data_set = next(self.set_generator)
-        except:
-            raise StopIteration
+        while True:
+            try:
+                temp = next(self.data_set)
+                self.len += 1
+                return temp
+            except StopIteration:
+                self.data_set = next(self.set_generator)
 
     def __len__(self):
         return self.len
@@ -216,18 +214,17 @@ class PickledDicomoFilePool(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
-    def summarize(self):
-        None
-
     def pool_walker(self):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
-        raise StopIteration
 
     def subset(self, constraints):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
+
+    def summarize(self):
+        None # TODO implement
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         None  # TODO implement
@@ -251,22 +248,19 @@ class PickledDicomoDataFolder(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
-        self.data_set_gen = self.get_next_data_set()
+        self.data_set_gen = self._get_next_data_set()
         self.data_set = next(self.data_set_gen)
         self.len = 0
         return self
 
     def __next__(self):
-        try:
-            while True:
-                try:
-                    temp = next(self.data_set)
-                    self.len += 1
-                    return temp
-                except:
-                    self.data_set = next(self.data_set_gen)
-        except:
-            raise StopIteration
+        while True:
+            try:
+                temp = next(self.data_set)
+                self.len += 1
+                return temp
+            except StopIteration:
+                self.data_set = next(self.data_set_gen)
 
     def __len__(self):
         return self.len
@@ -282,12 +276,11 @@ class PickledDicomoDataFolder(DicomoDataset):
                 cnt.update(label)
         return cnt
 
-    def get_next_data_set(self):
+    def _get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.labels, self.transform,
                                                 self.constraints))
-        raise StopIteration
 
     def can_be_parallelized(self):
         return False
