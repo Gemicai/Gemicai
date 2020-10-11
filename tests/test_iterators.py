@@ -81,6 +81,10 @@ class TestPickledDicomoDataSet(unittest.TestCase):
         with self.assertRaises(TypeError):
             subset = data.subset(("Modality", 1))
 
+    def test_can_be_parallelized(self):
+        data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
+        self.assertEqual(data.can_be_parallelized(), False)
+
 
 class TestPickledDicomoDataFolder(unittest.TestCase):
 
@@ -89,25 +93,185 @@ class TestPickledDicomoDataFolder(unittest.TestCase):
         self.assertIsInstance(dataset, test.PickledDicomoDataFolder)
 
     def test_init_invalid_directory_path(self):
-        None
+        with self.assertRaises(NotADirectoryError):
+            test.PickledDicomoDataFolder(os.path.join(dicom_directory, "asd"), ["CT"], constraints={})
 
     def test_init_file_has_wrong_type(self):
-        None
+        dataset = test.PickledDicomoDataFolder(raw_dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(test.gem.pickle.UnpicklingError):
+            next(iter(dataset))
 
     def test_init_wrong_labels_type(self):
-        None
+        with self.assertRaises(TypeError):
+            dataset = test.PickledDicomoDataFolder(dicom_directory, {"CT"}, constraints={})
 
     def test_init_wrong_constraints_type(self):
-        None
+        with self.assertRaises(TypeError):
+            dataset = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints=[])
 
     def test_iter(self):
-        None
+        dataset = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        dataset = iter(dataset)
+        self.assertIsInstance(dataset, test.PickledDicomoDataFolder)
 
     def test_next(self):
-        None
+        dataset = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        data = next(iter(dataset))
+        self.assertIsInstance(data, list)
 
     def test_len(self):
-        None
+        dataset = iter(test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={}))
+        self.assertEqual(len(dataset), 0)
+        next(dataset)
+        self.assertEqual(len(dataset), 1)
+        next(dataset)
+        next(dataset)
+        self.assertEqual(len(dataset), 3)
+
+    def test_subset_correct_usage(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        subset = data.subset({"Modality": "asd"})
+        with self.assertRaises(StopIteration):
+            next(iter(subset))
+
+    def test_subset_wrong_constraint_type(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            subset = data.subset(("Modality", 1))
+
+    def test_iterate_over_all(self):
+        data = iter(test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={}))
+        with self.assertRaises(StopIteration):
+            while True:
+                next(data)
+        self.assertEqual(len(data), 149)
+
+    def test_can_be_parallelized(self):
+        data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
+        self.assertEqual(data.can_be_parallelized(), False)
+
+
+class TestPickledDicomoFilePool(unittest.TestCase):
+
+    def test_init_correct_usage(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        self.assertIsInstance(data, test.PickledDicomoFilePool)
+
+    def test_init_invalid_file_pool_path(self):
+        with self.assertRaises(FileNotFoundError):
+            test.PickledDicomoFilePool([os.path.join(dicom_directory, "asd", "000001.gemset")], ["CT"], constraints={})
+
+    def test_init_file_has_wrong_type(self):
+        with self.assertRaises(test.gem.pickle.UnpicklingError):
+            next(iter(test.PickledDicomoFilePool([raw_dicom_file_path], ["CT"], constraints={})))
+
+    def test_init_wrong_labels_type(self):
+        with self.assertRaises(TypeError):
+            dataset = test.PickledDicomoFilePool([dicom_data_set], {"CT"}, constraints={})
+
+    def test_init_wrong_constraints_type(self):
+        with self.assertRaises(TypeError):
+            dataset = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints=[])
+
+    def test_iter(self):
+        dataset = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        dataset = iter(dataset)
+        self.assertIsInstance(dataset, test.PickledDicomoFilePool)
+
+    def test_next(self):
+        dataset = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        data = next(iter(dataset))
+        self.assertIsInstance(data, list)
+
+    def test_len(self):
+        dataset = iter(test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={}))
+        self.assertEqual(len(dataset), 0)
+        next(dataset)
+        self.assertEqual(len(dataset), 1)
+        next(dataset)
+        next(dataset)
+        self.assertEqual(len(dataset), 3)
+
+    def test_subset_correct_usage(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        subset = data.subset({"Modality": "asd"})
+        with self.assertRaises(StopIteration):
+            next(iter(subset))
+
+    def test_subset_wrong_constraint_type(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            subset = data.subset(("Modality", 1))
+
+    def test_iterate_over_all(self):
+        data = iter(test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={}))
+        with self.assertRaises(StopIteration):
+            while True:
+                next(data)
+        self.assertNotEqual(len(data), 0)
+
+    def test_can_be_parallelized(self):
+        data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
+        self.assertEqual(data.can_be_parallelized(), False)
+
+
+class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
+
+    def test_init_correct_usage(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        self.assertIsInstance(data, test.ConcurrentPickledDicomObjectTaskSplitter)
+
+    def test_init_invalid_directory_path(self):
+        test.ConcurrentPickledDicomObjectTaskSplitter(os.path.join(dicom_directory, "asd"), ["CT"], constraints={})
+
+    def test_init_wrong_labels_type(self):
+        with self.assertRaises(TypeError):
+            dataset = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, {"CT"}, constraints={})
+
+    def test_init_wrong_constraints_type(self):
+        with self.assertRaises(TypeError):
+            dataset = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints=[])
+
+    def test_iter(self):
+        dataset = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        dataset = iter(dataset)
+        self.assertIsInstance(dataset, test.PickledDicomoFilePool)
+
+    def test_next(self):
+        dataset = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        data = next(iter(dataset))
+        self.assertIsInstance(data, list)
+
+    def test_len(self):
+        dataset = iter(test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={}))
+        self.assertEqual(len(dataset), 0)
+        next(dataset)
+        self.assertEqual(len(dataset), 1)
+        next(dataset)
+        next(dataset)
+        self.assertEqual(len(dataset), 3)
+
+    def test_subset_correct_usage(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        subset = data.subset({"Modality": "asd"})
+        with self.assertRaises(StopIteration):
+            next(iter(subset))
+
+    def test_subset_wrong_constraint_type(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        with self.assertRaises(TypeError):
+            subset = data.subset(("Modality", 1))
+
+    def test_iterate_over_all(self):
+        data = iter(test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={}))
+        with self.assertRaises(StopIteration):
+            while True:
+                next(data)
+        self.assertNotEqual(len(data), 0)
+
+    def test_can_be_parallelized(self):
+        data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
+        self.assertEqual(data.can_be_parallelized(), True)
 
 
 class TestDicomoDataset(unittest.TestCase):
@@ -179,63 +343,6 @@ class TestDicomoDataset(unittest.TestCase):
         None
 
     def test_get_dicomo_dataset_correct_usage_directory(self):
-        None
-
-
-class TestPickledDicomoFilePool(unittest.TestCase):
-
-    def test_init_correct_usage(self):
-        None
-
-    def test_init_invalid_file_pool_type(self):
-        None
-
-    def test_init_invalid_file_pool_path(self):
-        None
-
-    def test_init_file_has_wrong_type(self):
-        None
-
-    def test_init_wrong_labels_type(self):
-        None
-
-    def test_init_wrong_constraints_type(self):
-        None
-
-    def test_iter(self):
-        None
-
-    def test_next(self):
-        None
-
-    def test_len(self):
-        None
-
-
-class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
-
-    def test_init_correct_usage(self):
-        None
-
-    def test_init_invalid_directory_path(self):
-        None
-
-    def test_init_wrong_labels_type(self):
-        None
-
-    def test_init_wrong_constraints_type(self):
-        None
-
-    def test_iter(self):
-        None
-
-    def test_next(self):
-        None
-
-    def test_len(self):
-        None
-
-    def test_an_be_parallelized(self):
         None
 
 
