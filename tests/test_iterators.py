@@ -277,73 +277,32 @@ class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
 class TestDicomoDataset(unittest.TestCase):
 
     def test_from_file_correct_usage(self):
-        None
+        dataset = test.DicomoDataset.from_file(dicom_data_set, ["CT"])
+        self.assertIsInstance(dataset, test.PickledDicomoDataSet)
 
     def test_from_file_wrong_file_path(self):
-        None
+        with self.assertRaises(FileNotFoundError):
+            test.DicomoDataset.from_file(wrong_dicom_file_path, ["CT"])
 
-    def test_from_file_wrong_file_type(self):
-        None
-
-    def test_from_file_wrong_label_type(self):
-        None
-
-    def test_from_file_no_labels(self):
-        None
-
-    def test_from_file_test_label_existence(self):
-        None
-
-    def test_from_file_constraints_wrong_type(self):
-        None
-
-    def test_from_file_constraints_empty(self):
-        None
-
-    def test_from_file_check_contraint(self):
-        None
-
-    def test_from_file_apply_invalid_transformation(self):
-        None
-
-    def test_from_file_apply_valid_transformation(self):
-        None
-
-    def test_from_file_correct_usage(self):
-        None
+    def test_from_directory_correct_usage(self):
+        dataset = test.DicomoDataset.from_directory(dicom_directory, ["CT"])
+        self.assertIsInstance(dataset, test.ConcurrentPickledDicomObjectTaskSplitter)
 
     def test_from_directory_file_wrong_directory_path(self):
-        None
-
-    def test_from_directory_file_wrong_label_type(self):
-        None
-
-    def test_from_directory_file_no_labels(self):
-        None
-
-    def test_from_directory_file_test_label_existence(self):
-        None
-
-    def test_from_directory_file_constraints_wrong_type(self):
-        None
-
-    def test_from_directory_file_constraints_empty(self):
-        None
-
-    def test_from_directory_file_check_contraint(self):
-        None
-
-    def test_from_directory_file_apply_invalid_transformation(self):
-        None
-
-    def test_from_directory_file_apply_valid_transformation(self):
-        None
+        with self.assertRaises(NotADirectoryError):
+            test.DicomoDataset.from_directory(os.path.join(dicom_directory, "asd"), ["CT"])
 
     def test_get_dicomo_dataset_correct_usage_file(self):
-        None
+        dataset = test.DicomoDataset.get_dicomo_dataset(dicom_data_set)
+        self.assertIsInstance(dataset, test.PickledDicomoDataSet)
 
     def test_get_dicomo_dataset_correct_usage_directory(self):
-        None
+        dataset = test.DicomoDataset.get_dicomo_dataset(dicom_directory)
+        self.assertIsInstance(dataset, test.ConcurrentPickledDicomObjectTaskSplitter)
+
+    def test_get_dicomo_dataset_wrong_directory_path(self):
+        with self.assertRaises(NotADirectoryError):
+            test.DicomoDataset.get_dicomo_dataset(wrong_dicom_file_path)
 
 
 if __name__ == '__main__':
