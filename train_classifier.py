@@ -49,7 +49,7 @@ def demo_train_classifier():
 
     # Train with evaluation dataset
     testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
-    net.train(dataset, epochs=1, test_dataset=testset, verbosity=1)
+    net.train(dataset, epochs=150, test_dataset=testset, verbosity=1)
     net.save(classifier_path)
 
 
