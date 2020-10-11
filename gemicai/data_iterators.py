@@ -79,11 +79,11 @@ class DicomoDataset(GemicaiDataset):
 
     def summarize(self, label, constraints={}, print_summary=True):
         if not isinstance(label, str):
-            TypeError("label should be a string")
+            raise TypeError("label should be a string")
         if not isinstance(constraints, dict):
-            TypeError("constraints should be a dict")
-        if not isinstance(print_summary, bool):
-            TypeError("print_summary should be a boolean")
+            raise TypeError("constraints should be a dict")
+        if type(print_summary) is not bool:
+            raise TypeError("print_summary should be a boolean")
 
         temp = self.labels
         self.labels = []
@@ -100,7 +100,7 @@ class DicomoDataset(GemicaiDataset):
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         if not isinstance(label, str):
-            TypeError("label should be a string")
+            raise TypeError("label should be a string")
 
         classes = self.classes(label)
         ooe = []
@@ -230,7 +230,7 @@ class PickledDicomoFilePool(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
-        self.set_generator = self.pool_walker()
+        self.set_generator = self._pool_walker()
         self.data_set = next(self.set_generator)
         return self
 
@@ -249,7 +249,7 @@ class PickledDicomoFilePool(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
-    def pool_walker(self):
+    def _pool_walker(self):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
 
