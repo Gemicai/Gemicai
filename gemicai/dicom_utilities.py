@@ -137,9 +137,13 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
 
 def zip_to_file(file, zip_path):
     with gzip.open(zip_path, 'wb') as zipped:
-        shutil.copyfileobj(open(file.name, 'rb'), zipped)
+        file = open(file.name, 'rb')
+        shutil.copyfileobj(file, zipped)
+        file.close()
 
 
 def unzip_to_file(file, zip_path):
     with gzip.open(zip_path, 'rb') as zipped:
-        shutil.copyfileobj(zipped, open(file.name, 'ab+'))
+        file = open(file.name, 'ab+')
+        shutil.copyfileobj(zipped, file)
+        file.close()
