@@ -218,7 +218,7 @@ class Classifier:
             raise TypeError("pin_memory parameter should be a boolean")
 
         if not isinstance(dataset, iterators.GemicaiDataset):
-            raise TypeError("data_set parameter should have a base class of data_iterators.GemicaiDataset")
+            raise TypeError("dataset parameter should have a base class of data_iterators.GemicaiDataset")
 
         if not isinstance(test_dataset, iterators.GemicaiDataset) and test_dataset is not None:
             raise TypeError("test_dataset parameter should have a base class of data_iterators.GemicaiDataset "
