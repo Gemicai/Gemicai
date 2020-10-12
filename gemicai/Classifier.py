@@ -6,7 +6,7 @@ import torch.nn as nn
 import pickle
 import torch
 from gemicai.utils import strfdelta
-from tabulate import tabulate
+
 
 
 class Classifier:
@@ -67,8 +67,8 @@ class Classifier:
 
         start = datetime.now()
         if verbosity >= 1:
-            print('| Epoch | Avg. loss | Train Acc. | Test Acc.  | Elapsed  |   ETA    |\n'
-                  '|-------+-----------+------------+------------+----------+----------|')
+            output_policy.training_header()
+
         for epoch in range(epochs):
             running_loss = 0.0
             total = 0
@@ -101,10 +101,9 @@ class Classifier:
                     if test_dataset is not None:
                         test_acc = str(self.evaluate(test_dataset)) + '%'
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
-                print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
-                      .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
+                output_policy.training_epoch_stats(epoch + 1, running_loss, total, train_acc, test_acc, elapsed, eta)
         if verbosity >= 1:
-            print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
+            output_policy.training_finished(start, datetime.now())
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
                  output_policy=policy.OutputToConsole()):
@@ -142,16 +141,10 @@ class Classifier:
                         class_total[true_label] += 1
             acc = round(100 * correct / total, 2)
             if verbosity == 1:
-                print('Total: {} -- Correct: {} -- Accuracy: {}%\n'.format(total, correct, acc))
+                output_policy.accuracy_summary_basic(total, correct, acc)
             if verbosity >= 2:
-                table = []
-                for i, c in enumerate(self.classes):
-                    if class_total[i] != 0:
-                        class_acc = '{:.1f}%'.format(100 * class_correct[i] / class_total[i])
-                    else:
-                        class_acc = '-'
-                    table.append([c, class_total[i], class_correct[i], class_acc])
-                print(tabulate(table, headers=['Class', 'Total', 'Correct', 'Acc'], tablefmt='orgtbl'), '\n')
+                output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
+
             return acc
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
