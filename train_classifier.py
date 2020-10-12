@@ -49,7 +49,8 @@ def demo_train_classifier():
 
     # Train with evaluation dataset
     testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
-    net.train(dataset, epochs=150, test_dataset=testset, verbosity=1)
+    net.train(dataset, epochs=10, test_dataset=testset, verbosity=2)
+    # net.train(dataset, epochs=10, test_dataset=testset, verbosity=2, output_policy=gem.OutputToExcelFile("test.xlsx"))
     net.save(classifier_path)
 
 
@@ -57,7 +58,7 @@ def demo_evaluate_classifier():
     net = gem.Classifier.from_file(classifier_path)
     dataset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
     net.evaluate(dataset, verbosity=2)
-    # net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
+    # net.evaluate(dataset, verbosity=2, output_policy=gem.OutputToExcelFile("test.xlsx"))
 
 
 def demo_create_dicomo_dataset():
@@ -98,3 +99,5 @@ if __name__ == '__main__':
     demo_initialize_tree()
     demo_train_tree()
     # ds = demo_get_dataset()
+
+

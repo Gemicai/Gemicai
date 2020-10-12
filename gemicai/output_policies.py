@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from tabulate import tabulate
+import openpyxl
+import os
 
 
 class OutputPolicy(ABC):
@@ -25,7 +27,7 @@ class OutputPolicy(ABC):
         pass
 
     @abstractmethod
-    def accuracy_summary_extended(self):
+    def accuracy_summary_extended(self, classes, class_total, class_correct):
         pass
 
 
@@ -40,7 +42,7 @@ class OutputToConsole(OutputPolicy):
 
     def training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta):
         print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
-              .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
+              .format(epoch, running_loss / total, train_acc, test_acc, elapsed, eta))
 
     def training_finished(self, start, now):
         print('Training finished, total time elapsed: {}'.format(now - start))
@@ -61,20 +63,84 @@ class OutputToConsole(OutputPolicy):
 
 class OutputToExcelFile(OutputPolicy):
 
-    def __init__(self):
-        None
+    def __init__(self, file_path, override_content=False):
+        if not isinstance(file_path, str):
+            raise TypeError("file_path parameter should be a string")
+        if not isinstance(override_content, bool):
+            raise TypeError("override_content parameter should be a bool")
+
+        self.file_path = file_path
+        self.row = 1
+
+        if os.path.isfile(self.file_path):
+            self.workbook = openpyxl.load_workbook(self.file_path)
+        else:
+            self.workbook = openpyxl.Workbook()
+            self.workbook.save(self.file_path)
+        self.sheet = self.workbook.active
+
+        # check whenever A1 has been written to if yes go down until we find a Ax that is free
+        if not override_content:
+            while self.sheet["A" + str(self.row)].value is not None:
+                self.row += 1
+
+    def __del__(self):
+        cells = ["A", "B", "C", "D", "E", "F"]
+        data_list = ["-----", "-----", "-----", "-----", "-----", "-----"]
+
+        self._print_row(data_list, cells)
+        self.row += 1
+
+        self.workbook.save(self.file_path)
 
     def training_header(self):
-        None
+        headers = ["Epoch", "Avg. loss", "Train Acc.", "Test Acc.", "Elapsed", "ETA"]
+        cells = ["A", "B", "C", "D", "E", "F"]
+
+        self._print_row(headers, cells)
+        self.row += 1
 
     def training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta):
-        None
+        cells = ["A", "B", "C", "D", "E", "F"]
+        data_list = '{:5d} {:.7f} {:10s} {:10s} {:8s} {}'\
+            .format(epoch, running_loss / total, train_acc, test_acc, elapsed, eta).split()
+
+        self._print_row(data_list, cells)
+        self.row += 1
 
     def training_finished(self, start, now):
-        None
+        cells = ["A", "B"]
+        data_list = ["Training finished in", "{}".format(now - start)]
+
+        self._print_row(data_list, cells)
+        self.row += 1
 
     def accuracy_summary_basic(self, total, correct, acc):
-        None
+        cells = ["A", "B", "C"]
+        header_list = ["Total", "Correct", "Accuracy"]
+        data_list = '{} {} {}%'.format(total, correct, acc).split()
 
-    def accuracy_summary_extended(self):
-        None
+        self._print_row(header_list, cells)
+        self.row += 1
+        self._print_row(data_list, cells)
+        self.row += 1
+
+    def accuracy_summary_extended(self, classes, class_total, class_correct):
+        cells = ["A", "B", "C", "D"]
+        header_list = ["Class", "Total", "Correct", "Accuracy"]
+
+        self._print_row(header_list, cells)
+        self.row += 1
+
+        for i, c in enumerate(classes):
+            if class_total[i] != 0:
+                class_acc = '{:.1f}%'.format(100 * class_correct[i] / class_total[i])
+            else:
+                class_acc = '-'
+            data_list = [c, class_total[i], class_correct[i], class_acc]
+            self._print_row(data_list, cells)
+            self.row += 1
+
+    def _print_row(self, data_list, cells):
+        for index, data in enumerate(data_list):
+            self.sheet[cells[index] + str(self.row)] = data
