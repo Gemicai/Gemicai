@@ -1,4 +1,4 @@
-from gemicai.utils.LabelCounter import LabelCounter
+from gemicai.label_counters import LabelCounter
 from matplotlib import pyplot as plt
 from itertools import count
 import gemicai.data_objects

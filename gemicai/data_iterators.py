@@ -50,9 +50,11 @@ class GemicaiDataset(ABC, IterableDataset):
 
 # This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
-    @abstractmethod
-    def __init__(self):
-        pass
+
+    def __init__(self, label_counter_type=gem.label_counters.LabelCounter):
+        if not issubclass(label_counter_type, gem.label_counters.GemicaiLabelCounter):
+            raise TypeError('label_counter_type should have a base class of gem.label_counters.GemicaiLabelCounter')
+        self.lbl_ctr_tpe = label_counter_type
 
     @abstractmethod
     def __iter__(self):
@@ -87,7 +89,7 @@ class DicomoDataset(GemicaiDataset):
 
         temp = self.labels
         self.labels = []
-        cnt = gem.LabelCounter()
+        cnt = self.lbl_ctr_tpe()
         constraints = {**self.constraints, **constraints}
         for dicomo in self:
             if dicomo.meets_constraints(constraints):
@@ -152,13 +154,15 @@ class DicomoDataset(GemicaiDataset):
 
 
 class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
-    def __init__(self, base_path, labels, transform=None, constraints={}):
+    def __init__(self, base_path, labels, transform=None, constraints={},
+                 label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
             raise TypeError('labels is not a list')
         if not isinstance(base_path, str):
             raise TypeError('base_path is not a string')
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
+        super(ConcurrentPickledDicomObjectTaskSplitter, self).__init__(label_counter_type)
 
         self.labels = labels
         self.constraints = constraints
@@ -210,7 +214,8 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
 
 
 class PickledDicomoFilePool(DicomoDataset):
-    def __init__(self, file_pool, labels, transform=None, constraints={}):
+    def __init__(self, file_pool, labels, transform=None, constraints={},
+                 label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
             raise TypeError('dicomo_fields is not a list')
         if not isinstance(file_pool, list):
@@ -220,6 +225,7 @@ class PickledDicomoFilePool(DicomoDataset):
                 raise FileNotFoundError(path + " does not point to any existing file")
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
+        super(PickledDicomoFilePool, self).__init__(label_counter_type)
 
         self.labels = labels
         self.constraints = constraints
@@ -260,7 +266,8 @@ class PickledDicomoFilePool(DicomoDataset):
 
 
 class PickledDicomoDataFolder(DicomoDataset):
-    def __init__(self, base_path, labels, transform=None, constraints={}):
+    def __init__(self, base_path, labels, transform=None, constraints={},
+                 label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
             raise TypeError('labels is not a list')
         if not isinstance(base_path, str):
@@ -269,6 +276,7 @@ class PickledDicomoDataFolder(DicomoDataset):
             raise NotADirectoryError("base_path does not point to any existing directory")
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
+        super(PickledDicomoDataFolder, self).__init__(label_counter_type)
 
         self.labels = labels
         self.base_path = base_path
@@ -313,7 +321,8 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 
 class PickledDicomoDataSet(DicomoDataset):
-    def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
+    def __init__(self, pickle_path, labels=[], transform=None, constraints={},
+                 label_counter_type=gem.label_counters.LabelCounter):
         self.tmp = None
 
         if not isinstance(labels, list):
@@ -324,6 +333,7 @@ class PickledDicomoDataSet(DicomoDataset):
             raise FileNotFoundError("pickle_path does not point to any existing file")
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
+        super(PickledDicomoDataSet, self).__init__(label_counter_type)
 
         self.labels = labels
         self.pickle_path = pickle_path
