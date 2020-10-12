@@ -9,7 +9,7 @@ from tabulate import tabulate
 
 
 class Classifier:
-    def __init__(self, module, classes=None, layer_config=None, loss_function=None, optimizer=None,
+    def __init__(self, module, classes, layer_config=None, loss_function=None, optimizer=None,
                  enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
@@ -36,9 +36,8 @@ class Classifier:
         # set a proper loss function
         if loss_function is None:
             self.loss_function = nn.CrossEntropyLoss()
-        # AttributeError: module 'torch.nn' has no attribute 'CrossEntropyLossImpl'
-        # elif not isinstance(loss_function, nn.CrossEntropyLossImpl):
-        #     raise Exception("Custom loss_function should have a base class of nn.CrossEntropyLossImpl")
+        elif not isinstance(loss_function, nn.Module):
+             raise TypeError("Custom loss_function should have a base class of nn.Module")
         else:
             self.loss_function = loss_function
 
@@ -51,7 +50,8 @@ class Classifier:
             self.optimizer = optimizer
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
-        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
+        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
+                                                test_dataset, verbosity)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -105,8 +105,8 @@ class Classifier:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
-        Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
-                                                num_workers=num_workers, pin_memory=pin_memory)
+        Classifier.validate_data_set_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
+                                                pin_memory=pin_memory, test_dataset=None, verbosity=verbosity)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -158,10 +158,13 @@ class Classifier:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
+        if not isinstance(enable_cuda, bool):
+            raise TypeError("enable_cuda parameter should be a bool")
+
         # select a correct cuda device
         if enable_cuda:
             if not torch.cuda.is_available():
-                raise Exception("cuda is not available on this machine")
+                raise RuntimeError("cuda is not available on this machine")
 
             device_name = "cuda"
             if cuda_device is not None:
@@ -174,7 +177,7 @@ class Classifier:
             self.device = torch.device("cpu")
 
     def set_trainable_layers(self, layers):
-        if not isinstance(layers, list) and len(list) == 0:
+        if not isinstance(layers, list):
             raise TypeError("set_trainable_layers method expects parameter layers to be a nonempty list "
                             "of tuples (layer_name: string, status: bool)")
         valid_layers = []
@@ -199,7 +202,9 @@ class Classifier:
             return cf
 
     @staticmethod
-    def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
+    def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
+                                     test_dataset=None, verbosity=0):
+
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
 
@@ -212,5 +217,12 @@ class Classifier:
         if not isinstance(pin_memory, bool) or num_workers < 0:
             raise TypeError("pin_memory parameter should be a boolean")
 
-        if not isinstance(data_set, iterators.GemicaiDataset):
+        if not isinstance(dataset, iterators.GemicaiDataset):
             raise TypeError("data_set parameter should have a base class of data_iterators.GemicaiDataset")
+
+        if not isinstance(test_dataset, iterators.GemicaiDataset) and test_dataset is not None:
+            raise TypeError("test_dataset parameter should have a base class of data_iterators.GemicaiDataset "
+                            "or be set to None")
+
+        if not isinstance(verbosity, int) or verbosity < 0:
+            raise TypeError("verbosity parameter should be a non-negative integer")
