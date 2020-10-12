@@ -20,5 +20,3 @@ class DefaultLastLayerConfig(GEMICAIABCFunctor):
         if not isinstance(classes, list):
             raise TypeError("classes parameter should be a list")
         module.fc = nn.Linear(module.fc.in_features, len(classes))
-        # You don't have to return the object, just calling it is sufficient
-        # return module
