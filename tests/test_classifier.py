@@ -87,6 +87,11 @@ class TestClassifier(unittest.TestCase):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
         classifier.train(train_dataset, epochs=1, pin_memory=True, test_dataset=eval_dataset)
 
+    def test_train_wrong_output_policy_type(self):
+        classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
+        with self.assertRaises(TypeError):
+            classifier.train(train_dataset, epochs=1, pin_memory=True, output_policy=[])
+
     def test_train_wrong_dataset_type(self):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
         with self.assertRaises(TypeError):
@@ -140,6 +145,11 @@ class TestClassifier(unittest.TestCase):
     def test_evaluate_correct_usage(self):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
         classifier.evaluate(eval_dataset)
+
+    def test_evaluate_wrong_output_policy_type(self):
+        classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
+        with self.assertRaises(TypeError):
+            classifier.evaluate(train_dataset, output_policy=[])
 
     def test_evaluate_wrong_dataset_type(self):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
