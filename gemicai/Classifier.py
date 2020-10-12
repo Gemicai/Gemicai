@@ -1,5 +1,6 @@
 import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
+import gemicai.output_policies as policy
 from datetime import datetime
 import torch.nn as nn
 import pickle
@@ -49,9 +50,10 @@ class Classifier:
         else:
             self.optimizer = optimizer
 
-    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
+    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
+              verbosity=0, test_dataset=None, output_policy=policy.OutputToConsole()):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
-                                                test_dataset, verbosity)
+                                                test_dataset, verbosity, output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -104,9 +106,11 @@ class Classifier:
         if verbosity >= 1:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
-    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
+    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
+                 output_policy=policy.OutputToConsole()):
         Classifier.validate_data_set_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
-                                                pin_memory=pin_memory, test_dataset=None, verbosity=verbosity)
+                                                pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
+                                                output_policy=output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -203,7 +207,7 @@ class Classifier:
 
     @staticmethod
     def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
-                                     test_dataset=None, verbosity=0):
+                                     test_dataset=None, verbosity=0, output_policy=policy.OutputToConsole()):
 
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
@@ -226,3 +230,6 @@ class Classifier:
 
         if not isinstance(verbosity, int) or verbosity < 0:
             raise TypeError("verbosity parameter should be a non-negative integer")
+
+        if not isinstance(output_policy, policy.OutputPolicy):
+            raise TypeError("output_policy parameter should have a base class of output_policies.OutputPolicy")
