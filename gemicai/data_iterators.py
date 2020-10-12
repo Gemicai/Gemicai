@@ -32,18 +32,6 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
     @abstractmethod
-    def subset(self):
-        pass
-
-    @abstractmethod
-    def classes(self, label):
-        pass
-
-    @abstractmethod
-    def plot_one_of_every(self):
-        pass
-
-    @abstractmethod
     def can_be_parallelized(self):
         pass
 
@@ -67,61 +55,12 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     @abstractmethod
-    def can_be_parallelized(self):
+    def summarize(self):
         pass
 
     @abstractmethod
-    def subset(self):
+    def can_be_parallelized(self):
         pass
-
-    def classes(self, label):
-        return list(self.summarize(label, print_summary=False).dic.keys())
-
-    def summarize(self, label, constraints={}, print_summary=True):
-        if not isinstance(label, str):
-            raise TypeError("label should be a string")
-        if not isinstance(constraints, dict):
-            raise TypeError("constraints should be a dict")
-        if not isinstance(print_summary, bool):
-            raise TypeError("print_summary should be a boolean")
-
-        temp = self.labels
-        self.labels = []
-        cnt = gem.LabelCounter()
-        constraints = {**self.constraints, **constraints}
-        for dicomo in self:
-            if dicomo.meets_constraints(constraints):
-                cnt.update(dicomo.get_value_of(label))
-        self.labels = temp
-        if print_summary:
-            print(cnt)
-        else:
-            return cnt
-
-    def plot_one_of_every(self, label, cmap='gray_r'):
-        if not isinstance(label, str):
-            raise TypeError("label should be a string")
-
-        classes = self.classes(label)
-        ooe = []
-        temp = self.labels
-        self.labels = []
-        for dicomo in self:
-            v = dicomo.get_value_of(label)
-            if v in classes:
-                ooe.append(dicomo)
-                classes.remove(v)
-            if len(classes) == 0:
-                break
-        self.labels = temp
-
-        for d in ooe:
-            s = ''
-            for label, value in zip(d.label_types, d.labels):
-                s += '{:15s} : {}\n'.format(label, value)
-            print(s)
-            plt.imshow(d.tensor, cmap)
-            plt.show()
 
     @staticmethod
     def from_file(file_path, labels=[], transform=None, constraints={}):
@@ -198,15 +137,22 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
                                                         {**self.constraints, **constraints})
 
+    def classes(self, label):
+        return list(self.summarize(label, print_summary=False).dic.keys())
+
     def summarize(self, label, constraints={}, print_summary=True):
-        dataset = self.__iter__()
-
-        if not print_summary:
-            return dataset.summarize(label, constraints, print_summary)
-        dataset.summarize(label, constraints, print_summary)
-
-    def plot_one_of_every(self, label, cmap='gray_r'):
-        return self.__iter__().plot_one_of_every(label, cmap)
+        temp = self.labels
+        self.labels = []
+        cnt = gem.LabelCounter()
+        constraints = {**self.constraints, **constraints}
+        for dicomo in self:
+            if dicomo.meets_constraints(constraints):
+                cnt.update(dicomo.get_value_of(label))
+        self.labels = temp
+        if print_summary:
+            print(cnt)
+        else:
+            return cnt
 
 
 class PickledDicomoFilePool(DicomoDataset):
@@ -215,9 +161,6 @@ class PickledDicomoFilePool(DicomoDataset):
             raise TypeError('dicomo_fields is not a list')
         if not isinstance(file_pool, list):
             raise TypeError('file_pool is not a list')
-        for path in file_pool:
-            if not os.path.isfile(path):
-                raise FileNotFoundError(path + " does not point to any existing file")
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
 
@@ -230,18 +173,23 @@ class PickledDicomoFilePool(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
-        self.set_generator = self._pool_walker()
-        self.data_set = next(self.set_generator)
+        self.set_generator = None
+        self.data_set = None
         return self
 
     def __next__(self):
-        while True:
-            try:
-                temp = next(self.data_set)
-                self.len += 1
-                return temp
-            except StopIteration:
-                self.data_set = next(self.set_generator)
+        try:
+            while True:
+                try:
+                    temp = next(self.data_set)
+                    self.len += 1
+                    return temp
+                except:
+                    if self.set_generator is None:
+                        self.set_generator = self.pool_walker()
+                    self.data_set = next(self.set_generator)
+        except:
+            raise StopIteration
 
     def __len__(self):
         return self.len
@@ -249,14 +197,13 @@ class PickledDicomoFilePool(DicomoDataset):
     def can_be_parallelized(self):
         return False
 
-    def _pool_walker(self):
+    def summarize(self):
+        None
+
+    def pool_walker(self):
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
-
-    def subset(self, constraints):
-        if not isinstance(constraints, dict):
-            raise TypeError('constraints is not a dict')
-        return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
+        raise StopIteration
 
 
 class PickledDicomoDataFolder(DicomoDataset):
@@ -277,19 +224,22 @@ class PickledDicomoDataFolder(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
-        self.data_set_gen = self._get_next_data_set()
+        self.data_set_gen = self.get_next_data_set()
         self.data_set = next(self.data_set_gen)
         self.len = 0
         return self
 
     def __next__(self):
-        while True:
-            try:
-                temp = next(self.data_set)
-                self.len += 1
-                return temp
-            except StopIteration:
-                self.data_set = next(self.data_set_gen)
+        try:
+            while True:
+                try:
+                    temp = next(self.data_set)
+                    self.len += 1
+                    return temp
+                except:
+                    self.data_set = next(self.data_set_gen)
+        except:
+            raise StopIteration
 
     def __len__(self):
         return self.len
@@ -297,25 +247,27 @@ class PickledDicomoDataFolder(DicomoDataset):
     def __str__(self):
         return str(self.summaray(count_field=self.labels[1]))
 
-    def _get_next_data_set(self):
+    def summarize(self, count_field=None):
+        assert count_field is not None, 'Specify which field you want to summarize: {}'.format(self.labels)
+        cnt = gem.LabelCounter()
+        for data in DataLoader(self, 4, shuffle=False):
+            for label in data[self.labels.index(count_field)]:
+                cnt.update(label)
+        return cnt
+
+    def get_next_data_set(self):
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.labels, self.transform,
                                                 self.constraints))
+        raise StopIteration
 
     def can_be_parallelized(self):
         return False
 
-    def subset(self, constraints):
-        if not isinstance(constraints, dict):
-            raise TypeError('constraints is not a dict')
-        return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
-
 
 class PickledDicomoDataSet(DicomoDataset):
     def __init__(self, pickle_path, labels=[], transform=None, constraints={}):
-        self.tmp = None
-
         if not isinstance(labels, list):
             raise TypeError('labels is not a list')
         if not isinstance(pickle_path, str):
@@ -333,72 +285,62 @@ class PickledDicomoDataSet(DicomoDataset):
 
     def __iter__(self):
         self.len = 0
-        self.pickle_stream = self._stream_pickled_dicomos()
+        self.pickle_stream = self.stream_pickled_dicomos()
         return self
 
     def __next__(self):
         try:
-            try:
-                # get next dicomo class from the stream
-                dicomo_class = next(self.pickle_stream)
-                if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
-                    raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
-                                    + type(dicomo_class))
+            # get next dicomo class from the stream
+            dicomo_class = next(self.pickle_stream)
+            if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
+                raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                                + type(dicomo_class))
 
-                if len(self.labels) == 0:
-                    return dicomo_class
+            if len(self.labels) == 0:
+                return dicomo_class
 
-                # constraints is a dictionary.
-                for k in self.constraints.keys():
-                    if self.constraints[k] != dicomo_class.get_value_of(k):
-                        return self.__next__()
+            # constraints is a dictionary.
+            for k in self.constraints.keys():
+                if self.constraints[k] != dicomo_class.get_value_of(k):
+                    return self.__next__()
 
-                # fetch a tensor
-                tensor = dicomo_class.tensor
+            # fetch a tensor
+            tensor = dicomo_class.tensor
 
-                # check if transform is specified if yes apply it
-                if self.transform is not None:
-                    try:
-                        tensor = self.transform(tensor)
-                    except:
-                        raise Exception('Could not apply specified transformation to the dicom image')
+            # check if transform is specified if yes apply it
+            if self.transform is not None:
+                try:
+                    tensor = self.transform(tensor)
+                except:
+                    raise Exception('Could not apply specified transformation to the dicom image')
 
-                labels = []
-                # fetch values of the labels we are interested in
-                for label in self.labels:
-                    labels.append(dicomo_class.get_value_of(label))
+            labels = []
+            # fetch values of the labels we are interested in
+            for label in self.labels:
+                labels.append(dicomo_class.get_value_of(label))
 
-                self.len += 1
+            self.len += 1
 
-                # All hail to python for not returning reference to the temp object after calling .append
-                # which forces me to do this
-                return [tensor] + labels
-            except:
-                self._file_cleanup()
-                raise
-        except EOFError:
+            # All hail to python for not returning reference to the temp object after calling .append
+            # which forces me to do this
+            return [tensor] + labels
+        except:
             raise StopIteration
 
     def __len__(self):
         return self.len
 
-    def __del__(self):
-        self._file_cleanup()
-
-    def _file_cleanup(self):
-        if self.tmp is not None:
-            self.tmp.close()
-            os.remove(self.tmp.name)
-            self.tmp = None
-
-    def _stream_pickled_dicomos(self):
-        self.tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+    def stream_pickled_dicomos(self):
+        tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
         try:
-            gem.unzip_to_file(self.tmp, self.pickle_path)
+            gem.unzip_to_file(tmp, self.pickle_path)
             while True:
-                yield gem.pickle.load(self.tmp)
-        finally:
+                yield gem.pickle.load(tmp)
+        except EOFError:
             pass
+        finally:
+            tmp.close()
+            os.remove(tmp.name)
 
     def can_be_parallelized(self):
         return False
@@ -407,3 +349,44 @@ class PickledDicomoDataSet(DicomoDataset):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
+
+    # All functions below here are a bit hacky
+    def classes(self, label):
+        return list(self.summarize(label, print_summary=False).dic.keys())
+
+    def summarize(self, label, constraints={}, print_summary=True):
+        temp = self.labels
+        self.labels = []
+        cnt = gem.LabelCounter()
+        constraints = {**self.constraints, **constraints}
+        for dicomo in self:
+            if dicomo.meets_constraints(constraints):
+                cnt.update(dicomo.get_value_of(label))
+        self.labels = temp
+        if print_summary:
+            print(cnt)
+        else:
+            return cnt
+
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        classes = self.classes(label)
+        ooe = []
+        temp = self.labels
+        self.labels = []
+        for dicomo in self:
+            v = dicomo.get_value_of(label)
+            if v in classes:
+                ooe.append(dicomo)
+                classes.remove(v)
+            if len(classes) == 0:
+                break
+        self.labels = temp
+
+        for d in ooe:
+            s = ''
+            for label, value in zip(d.label_types, d.labels):
+                s += '{:15s} : {}\n'.format(label, value)
+            print(s)
+            plt.imshow(d.tensor, cmap)
+            plt.show()
+
