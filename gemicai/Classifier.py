@@ -148,6 +148,11 @@ class Classifier:
                 print(tabulate(table, headers=['Class', 'Total', 'Correct', 'Acc'], tablefmt='orgtbl'), '\n')
             return acc
 
+    def classify(self, tensor):
+        m = torch.nn.Softmax(dim=1)
+
+        print(m(self.module(tensor).data))
+
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
         if not isinstance(file_path, str):
