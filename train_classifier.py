@@ -9,15 +9,15 @@ dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'Se
 path_input = os.path.join("examples", "dicom", "CT")
 path_output = os.path.join("examples", "gzip", "CT")
 
-train_data_set_path = os.path.join("examples", "gzip", "CT")
-eval_data_set_path = os.path.join("examples", "gzip", "CT")
+train_dataset = os.path.join("examples", "gzip", "CT")
+eval_dataset = os.path.join("examples", "gzip", "CT")
 classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
 trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
-train_dataset = '/mnt/SharedStor/datasets/dx/train/'
-test_dataset = '/mnt/SharedStor/datasets/dx/test/'
-classifier_path = '/mnt/SharedStor/classifiers/dx_bpe_trained.pkl'
-tree_path = '/mnt/SharedStor/classifiers/big_tree.pkl'
+# train_dataset = '/mnt/SharedStor/datasets/dx/train/'
+# test_dataset = '/mnt/SharedStor/datasets/dx/test/'
+# classifier_path = '/mnt/SharedStor/classifiers/dx_bpe_trained.pkl'
+# tree_path = '/mnt/SharedStor/classifiers/big_tree.pkl'
 
 
 def demo_prepare_data_set():
@@ -40,7 +40,7 @@ def demo_initialize_classifier():
 
 def demo_train_classifier():
     # Load a classifier from a file
-    net = gem.Classifier.load(classifier_path)
+    net = gem.Classifier.from_file(classifier_path)
     dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     # Train the classifier
     # net.set_trainable_layers([("all", True)]) # by default all layers are trainable
@@ -48,8 +48,8 @@ def demo_train_classifier():
     # net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
 
     # Train with evaluation dataset
-    testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
-    net.train(dataset, epochs=150, test_dataset=testset, verbosity=1)
+    testset = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=['BodyPartExamined'])
+    net.train(dataset, epochs=1, test_dataset=testset, verbosity=1)
     net.save(classifier_path)
 
 
@@ -92,9 +92,9 @@ def demo_train_tree():
 if __name__ == '__main__':
     # demo_prepare_data_set()
     # demo_initialize_classifier()
-    # demo_train_classifier()
+    demo_train_classifier()
     # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
-    demo_initialize_tree()
-    demo_train_tree()
+    # demo_initialize_tree()
+    # demo_train_tree()
     # ds = demo_get_dataset()

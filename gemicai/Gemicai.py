@@ -2,6 +2,7 @@
 # For now it just returns the actual fields in the Dicom header, this way Kevin can already set up the server.
 
 import pydicom
+import gemicai as gem
 
 
 class Gemicai:
@@ -11,6 +12,7 @@ class Gemicai:
 
     def classify(self, dcm):
         assert isinstance(dcm, pydicom.Dataset), 'classify parameter should be of type pydicom.Dataset'
+        tensor = gem.extract_tensor(dcm)
         modality = getattr(dcm, 'Modality')
         bpe = getattr(dcm, 'BodyPartExamined')
         studydes = getattr(dcm, 'StudyDescription')
