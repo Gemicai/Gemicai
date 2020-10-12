@@ -44,7 +44,7 @@ class LabelCounter(GemicaiLabelCounter):
 
         # recurse on a pydicom.multival.MultiValue or a list until we reach a value
         def recurse(elem):
-            if not isinstance(elem, pydicom.multival.MultiValue):
+            if isinstance(elem, str):
                 check(elem)
                 return
             for entry in elem:
