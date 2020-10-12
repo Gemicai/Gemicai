@@ -1,8 +1,23 @@
-import pydicom
+from abc import ABC, abstractmethod
 from tabulate import tabulate
+import pydicom
 
 
-class LabelCounter:
+class GemicaiLabelCounter(ABC):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
+    @abstractmethod
+    def update(self, s):
+        pass
+
+
+class LabelCounter(GemicaiLabelCounter):
     def __init__(self):
         self.dic = {}
 
