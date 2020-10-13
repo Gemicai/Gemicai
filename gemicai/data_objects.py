@@ -62,12 +62,15 @@ class DicomObject(DataObject):
         return True
 
     @staticmethod
-    def from_file(filename, labels):
+    def from_file(filename, labels, tensor_size=None):
         if not os.path.isfile(filename):
             raise FileNotFoundError
         if not isinstance(labels, list):
             raise TypeError("from_file: fields parameter should be a list of strings but is " +
                             str(type(labels)))
+        if not isinstance(tensor_size, tuple) and tensor_size is not None:
+            raise TypeError("rom_file: tensor_size parameter should be a tuple of two ints or be set to None but is" +
+                            str(type(tensor_size)))
 
         # try to load a dicom file
         ds = du.load_dicom(filename)
@@ -76,19 +79,22 @@ class DicomObject(DataObject):
         norm = plt.Normalize(vmin=ds.pixel_array.min(), vmax=ds.pixel_array.max())
         data = torch.from_numpy(norm(ds.pixel_array).astype(numpy.float32))
 
-        # if we want to print the resulting image remove the last transform and call tensor.show() after create_tensor
-        create_tensor = torchvision.transforms.Compose([
-            torchvision.transforms.ToPILImage(),
-            torchvision.transforms.Resize((244, 244)),
-            torchvision.transforms.ToTensor()
-        ])
-
         # Because getattr() throws an AttributeError if the field is left empty in the dicom header
         def get_attr(obj, attr):
             try:
                 return getattr(obj, attr)
             except AttributeError:
                 return None
+
+        if tensor_size is None:
+            tensor_size = (get_attr(ds, "Rows"), get_attr(ds, "Columns"))
+
+        # if we want to print the resulting image remove the last transform and call tensor.show() after create_tensor
+        create_tensor = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.Resize(tensor_size),
+            torchvision.transforms.ToTensor()
+        ])
 
         label_values = []
         # fetch specified labels and return a Dicomo object
