@@ -87,7 +87,12 @@ class DicomObject(DataObject):
                 return None
 
         if tensor_size is None:
-            tensor_size = (get_attr(ds, "Rows"), get_attr(ds, "Columns"))
+            rows = get_attr(ds, "Rows")
+            cols = get_attr(ds, "Columns")
+            if rows is None or cols is None:
+                raise RuntimeError("Cannot fetch a default tensor sizes, "
+                                   "please provide a custom one by passing tensor_size parameter")
+            tensor_size = (rows, cols)
 
         # if we want to print the resulting image remove the last transform and call tensor.show() after create_tensor
         create_tensor = torchvision.transforms.Compose([

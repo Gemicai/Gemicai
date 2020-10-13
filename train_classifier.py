@@ -9,15 +9,15 @@ dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'Se
 path_input = os.path.join("examples", "dicom", "CT")
 path_output = os.path.join("examples", "gzip", "CT")
 
-train_data_set_path = os.path.join("examples", "gzip", "CT")
-eval_data_set_path = os.path.join("examples", "gzip", "CT")
+train_dataset = os.path.join("examples", "gzip", "CT")
+eval_dataset = os.path.join("examples", "gzip", "CT")
 classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
 trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
-train_dataset = '/mnt/SharedStor/datasets/dx/train/'
-test_dataset = '/mnt/SharedStor/datasets/dx/test/'
-classifier_path = '/mnt/SharedStor/classifiers/dx_bpe_trained.pkl'
-tree_path = '/mnt/SharedStor/classifiers/big_tree.pkl'
+# train_dataset = '/mnt/SharedStor/datasets/dx/train/'
+# test_dataset = '/mnt/SharedStor/datasets/dx/test/'
+# classifier_path = '/mnt/SharedStor/classifiers/dx_bpe_trained.pkl'
+# tree_path = '/mnt/SharedStor/classifiers/big_tree.pkl'
 
 
 def demo_prepare_data_set():
@@ -93,12 +93,12 @@ def demo_train_tree():
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
     # demo_prepare_data_set()
-    # demo_initialize_classifier()
-    # demo_train_classifier()
-    # demo_evaluate_classifier()
+    demo_initialize_classifier()
+    demo_train_classifier()
+    demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
-    demo_initialize_tree()
-    demo_train_tree()
+    # demo_initialize_tree()
+    # demo_train_tree()
     # ds = demo_get_dataset()
 
 
