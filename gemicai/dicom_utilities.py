@@ -134,6 +134,9 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     pickle.dump(d, temp)
                     objects_inside += 1
 
+                    if pick_middle:
+                        break
+
                 except Exception as ex:
                     template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                     message = template.format(type(ex).__name__, ex.args)
