@@ -90,7 +90,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
         for root, dirs, files in os.walk(input):
             for file in files:
                 try:
-                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list)
+                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list, tensor_size=(244, 244))
                     pickle_object = True
 
                     # check whenever we filter fields of DicomoObject
