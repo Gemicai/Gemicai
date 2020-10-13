@@ -11,6 +11,10 @@ class OutputPolicy(ABC):
         pass
 
     @abstractmethod
+    def __del__(self):
+        pass
+
+    @abstractmethod
     def training_header(self):
         pass
 
@@ -31,9 +35,12 @@ class OutputPolicy(ABC):
         pass
 
 
-class OutputToConsole(OutputPolicy):
+class ToConsole(OutputPolicy):
 
     def __init__(self):
+        None
+
+    def __del__(self):
         None
 
     def training_header(self):
@@ -61,7 +68,7 @@ class OutputToConsole(OutputPolicy):
         print(tabulate(table, headers=['Class', 'Total', 'Correct', 'Acc'], tablefmt='orgtbl'), '\n')
 
 
-class OutputToExcelFile(OutputPolicy):
+class ToExcelFile(OutputPolicy):
 
     def __init__(self, file_path, override_content=False):
         if not isinstance(file_path, str):
@@ -144,3 +151,33 @@ class OutputToExcelFile(OutputPolicy):
     def _print_row(self, data_list, cells):
         for index, data in enumerate(data_list):
             self.sheet[cells[index] + str(self.row)] = data
+
+
+class ToConsoleAndExcelFile(ToConsole, ToExcelFile):
+
+    def __init__(self, file_path, override_content=False):
+        ToConsole.__init__(self)
+        ToExcelFile.__init__(self, file_path, override_content)
+
+    def __del__(self):
+        ToExcelFile.__del__(self)
+
+    def training_header(self):
+        ToConsole.training_header(self)
+        ToExcelFile.training_header(self)
+
+    def training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta):
+        ToConsole.training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta)
+        ToExcelFile.training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta)
+
+    def training_finished(self, start, now):
+        ToConsole.training_finished(self, start, now)
+        ToExcelFile.training_finished(self, start, now)
+
+    def accuracy_summary_basic(self, total, correct, acc):
+        ToConsole.accuracy_summary_basic(self, total, correct, acc)
+        ToExcelFile.accuracy_summary_basic(self, total, correct, acc)
+
+    def accuracy_summary_extended(self, classes, class_total, class_correct):
+        ToConsole.accuracy_summary_extended(self, classes, class_total, class_correct)
+        ToExcelFile.accuracy_summary_extended(self, classes, class_total, class_correct)

@@ -51,7 +51,7 @@ class Classifier:
             self.optimizer = optimizer
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
-              verbosity=0, test_dataset=None, output_policy=policy.OutputToConsole()):
+              verbosity=0, test_dataset=None, output_policy=policy.ToConsole()):
         Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
                                                 test_dataset, verbosity, output_policy)
 
@@ -106,7 +106,7 @@ class Classifier:
             output_policy.training_finished(start, datetime.now())
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
-                 output_policy=policy.OutputToConsole()):
+                 output_policy=policy.ToConsole()):
         Classifier.validate_data_set_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                                                 pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
                                                 output_policy=output_policy)
@@ -200,7 +200,7 @@ class Classifier:
 
     @staticmethod
     def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
-                                     test_dataset=None, verbosity=0, output_policy=policy.OutputToConsole()):
+                                     test_dataset=None, verbosity=0, output_policy=policy.ToConsole()):
 
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
