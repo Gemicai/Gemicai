@@ -31,6 +31,7 @@ class LabelCounter(GemicaiLabelCounter):
         return s
 
     def update(self, s):
+        print(s)
         if not isinstance(s, list) and not isinstance(s, str) and not isinstance(s, pydicom.valuerep.IS):
             raise TypeError("LabelCounter update method expects a list or a string but " + str(type(s)) + " is given")
 
@@ -44,7 +45,7 @@ class LabelCounter(GemicaiLabelCounter):
 
         # recurse on a pydicom.multival.MultiValue or a list until we reach a value
         def recurse(elem):
-            if isinstance(elem, str) or isinstance(elem, pydicom.valuerep.IS):
+            if isinstance(elem, str) or isinstance(elem, pydicom.valuerep.IS) or elem is None:
                 check(str(elem))
             else:
                 for entry in elem:
