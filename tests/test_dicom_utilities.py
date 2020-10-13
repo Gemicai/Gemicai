@@ -81,6 +81,21 @@ class TestCreateDicomObjectDatasetFromFolder(unittest.TestCase):
         finally:
             os.rmdir(test_output_directory)
 
+    def test_correct_usage_pick_middle_true(self):
+        os.mkdir(test_output_directory)
+        try:
+            test.create_dicomobject_dataset_from_folder(
+                correct_dicom_directory, test_output_directory, ['Modality'], objects_per_file=50, pick_middle=True)
+            size = 0
+            
+            for root, dirs, files in os.walk(test_output_directory):
+                for file in files:
+                    os.remove(os.path.join(root, file))
+                    size += 1
+            self.assertEqual(size, 1)
+        finally:
+            os.rmdir(test_output_directory)
+
 
 if __name__ == '__main__':
     unittest.main()

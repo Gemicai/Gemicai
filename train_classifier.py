@@ -22,7 +22,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
 def demo_prepare_data_set():
     gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
-                                               field_values=[('Modality', ['CT'])])
+                                               field_values=[('Modality', ['CT'])], pick_middle=False)
 
 
 def demo_get_dataset(path):
@@ -92,10 +92,10 @@ def demo_train_tree():
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    # demo_prepare_data_set()
-    demo_initialize_classifier()
-    demo_train_classifier()
-    demo_evaluate_classifier()
+    demo_prepare_data_set()
+    # demo_initialize_classifier()
+    # demo_train_classifier()
+    # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()
