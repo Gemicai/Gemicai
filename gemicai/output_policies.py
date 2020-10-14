@@ -94,50 +94,37 @@ class ToExcelFile(OutputPolicy):
     def __del__(self):
         cells = ["A", "B", "C", "D", "E", "F"]
         data_list = ["-----", "-----", "-----", "-----", "-----", "-----"]
-
-        self._print_row(data_list, cells)
-        self.row += 1
-
+        self.print_row(data_list, cells)
         self.workbook.save(self.file_path)
 
     def training_header(self):
         headers = ["Epoch", "Avg. loss", "Train Acc.", "Test Acc.", "Elapsed", "ETA"]
         cells = ["A", "B", "C", "D", "E", "F"]
 
-        self._print_row(headers, cells)
-        self.row += 1
+        self.print_row(headers, cells)
 
     def training_epoch_stats(self, epoch, running_loss, total, train_acc, test_acc, elapsed, eta):
         cells = ["A", "B", "C", "D", "E", "F"]
         data_list = '{:5d} {:.7f} {:10s} {:10s} {:8s} {}'\
             .format(epoch, running_loss / total, train_acc, test_acc, elapsed, eta).split()
-
-        self._print_row(data_list, cells)
-        self.row += 1
+        self.print_row(data_list, cells)
 
     def training_finished(self, start, now):
         cells = ["A", "B"]
         data_list = ["Training finished in", "{}".format(now - start)]
-
-        self._print_row(data_list, cells)
-        self.row += 1
+        self.print_row(data_list, cells)
 
     def accuracy_summary_basic(self, total, correct, acc):
         cells = ["A", "B", "C"]
         header_list = ["Total", "Correct", "Accuracy"]
         data_list = '{} {} {}%'.format(total, correct, acc).split()
-
-        self._print_row(header_list, cells)
-        self.row += 1
-        self._print_row(data_list, cells)
-        self.row += 1
+        self.print_row(header_list, cells)
+        self.print_row(data_list, cells)
 
     def accuracy_summary_extended(self, classes, class_total, class_correct):
         cells = ["A", "B", "C", "D"]
         header_list = ["Class", "Total", "Correct", "Accuracy"]
-
-        self._print_row(header_list, cells)
-        self.row += 1
+        self.print_row(header_list, cells)
 
         for i, c in enumerate(classes):
             if class_total[i] != 0:
@@ -145,12 +132,12 @@ class ToExcelFile(OutputPolicy):
             else:
                 class_acc = '-'
             data_list = [c, class_total[i], class_correct[i], class_acc]
-            self._print_row(data_list, cells)
-            self.row += 1
+            self.print_row(data_list, cells)
 
-    def _print_row(self, data_list, cells):
+    def print_row(self, data_list, cells):
         for index, data in enumerate(data_list):
             self.sheet[cells[index] + str(self.row)] = data
+        self.row += 1
 
 
 class ToConsoleAndExcelFile(ToConsole, ToExcelFile):
