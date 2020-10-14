@@ -1,5 +1,6 @@
 import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
+import gemicai.output_policies as policy
 from datetime import datetime
 import torch.nn as nn
 import pickle
@@ -9,7 +10,7 @@ from tabulate import tabulate
 from operator import itemgetter
 
 class Classifier:
-    def __init__(self, module, classes=None, layer_config=None, loss_function=None, optimizer=None,
+    def __init__(self, module, classes, layer_config=None, loss_function=None, optimizer=None,
                  enable_cuda=False, cuda_device=None):
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
@@ -36,9 +37,8 @@ class Classifier:
         # set a proper loss function
         if loss_function is None:
             self.loss_function = nn.CrossEntropyLoss()
-        # AttributeError: module 'torch.nn' has no attribute 'CrossEntropyLossImpl'
-        # elif not isinstance(loss_function, nn.CrossEntropyLossImpl):
-        #     raise Exception("Custom loss_function should have a base class of nn.CrossEntropyLossImpl")
+        elif not isinstance(loss_function, nn.Module):
+             raise TypeError("Custom loss_function should have a base class of nn.Module")
         else:
             self.loss_function = loss_function
 
@@ -50,8 +50,10 @@ class Classifier:
         else:
             self.optimizer = optimizer
 
-    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0, test_dataset=None):
-        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory)
+    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
+              verbosity=0, test_dataset=None, output_policy=policy.ToConsole()):
+        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
+                                                test_dataset, verbosity, output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -65,8 +67,8 @@ class Classifier:
 
         start = datetime.now()
         if verbosity >= 1:
-            print('| Epoch | Avg. loss | Train Acc. | Test Acc.  | Elapsed  |   ETA    |\n'
-                  '|-------+-----------+------------+------------+----------+----------|')
+            output_policy.training_header()
+
         for epoch in range(epochs):
             running_loss = 0.0
             total = 0
@@ -88,8 +90,6 @@ class Classifier:
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
-                total += len(data[0])
-                running_loss += loss.item()
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
@@ -101,14 +101,15 @@ class Classifier:
                     if test_dataset is not None:
                         test_acc = str(self.evaluate(test_dataset)) + '%'
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
-                print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
-                      .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
-        if verbosity >= 2:
-            print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
+                output_policy.training_epoch_stats(epoch + 1, running_loss, total, train_acc, test_acc, elapsed, eta)
+        if verbosity >= 1:
+            output_policy.training_finished(start, datetime.now())
 
-    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
-        Classifier.validate_data_set_parameters(data_set=dataset, batch_size=batch_size,
-                                                num_workers=num_workers, pin_memory=pin_memory)
+    def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
+                 output_policy=policy.ToConsole()):
+        Classifier.validate_data_set_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
+                                                pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
+                                                output_policy=output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -139,17 +140,11 @@ class Classifier:
                             class_correct[true_label] += 1
                         class_total[true_label] += 1
             acc = round(100 * correct / total, 2)
-            if verbosity >= 1:
-                print('Total: {} -- Correct: {} -- Accuracy: {}%\n'.format(total, correct, acc))
+            if verbosity == 1:
+                output_policy.accuracy_summary_basic(total, correct, acc)
             if verbosity >= 2:
-                table = []
-                for i, c in enumerate(self.classes):
-                    if class_total[i] != 0:
-                        class_acc = '{:.1f}%'.format(100 * class_correct[i] / class_total[i])
-                    else:
-                        class_acc = '-'
-                    table.append([c, class_total[i], class_correct[i], class_acc])
-                print(tabulate(table, headers=['Class', 'Total', 'Correct', 'Acc'], tablefmt='orgtbl'), '\n')
+                output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
+
             return acc
 
     def classify(self, tensor):
@@ -168,10 +163,13 @@ class Classifier:
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
+        if not isinstance(enable_cuda, bool):
+            raise TypeError("enable_cuda parameter should be a bool")
+
         # select a correct cuda device
         if enable_cuda:
             if not torch.cuda.is_available():
-                raise Exception("cuda is not available on this machine")
+                raise RuntimeError("cuda is not available on this machine")
 
             device_name = "cuda"
             if cuda_device is not None:
@@ -184,7 +182,7 @@ class Classifier:
             self.device = torch.device("cpu")
 
     def set_trainable_layers(self, layers):
-        if not isinstance(layers, list) and len(list) == 0:
+        if not isinstance(layers, list):
             raise TypeError("set_trainable_layers method expects parameter layers to be a nonempty list "
                             "of tuples (layer_name: string, status: bool)")
         valid_layers = []
@@ -209,7 +207,9 @@ class Classifier:
             return cf
 
     @staticmethod
-    def validate_data_set_parameters(data_set=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False):
+    def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
+                                     test_dataset=None, verbosity=0, output_policy=policy.ToConsole()):
+
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
 
@@ -222,5 +222,15 @@ class Classifier:
         if not isinstance(pin_memory, bool) or num_workers < 0:
             raise TypeError("pin_memory parameter should be a boolean")
 
-        if not isinstance(data_set, iterators.GemicaiDataset):
-            raise TypeError("data_set parameter should have a base class of data_iterators.GemicaiDataset")
+        if not isinstance(dataset, iterators.GemicaiDataset):
+            raise TypeError("dataset parameter should have a base class of data_iterators.GemicaiDataset")
+
+        if not isinstance(test_dataset, iterators.GemicaiDataset) and test_dataset is not None:
+            raise TypeError("test_dataset parameter should have a base class of data_iterators.GemicaiDataset "
+                            "or be set to None")
+
+        if not isinstance(verbosity, int) or verbosity < 0:
+            raise TypeError("verbosity parameter should be a non-negative integer")
+
+        if not isinstance(output_policy, policy.OutputPolicy):
+            raise TypeError("output_policy parameter should have a base class of output_policies.OutputPolicy")
