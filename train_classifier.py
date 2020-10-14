@@ -51,7 +51,7 @@ def demo_train_classifier():
     testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
     # net.train(dataset, epochs=10, test_dataset=testset, verbosity=2)
     net.train(dataset, epochs=10, test_dataset=testset, verbosity=2,
-              output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
+               output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
     net.save(classifier_path)
 
 
