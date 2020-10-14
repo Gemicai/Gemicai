@@ -74,6 +74,7 @@ class ClassifierTree:
             node.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
 
     def evaluate(self):
+        # TODO
         pass
 
     def classify(self, tensor):
