@@ -52,7 +52,6 @@ class ClassifierTree:
 
     def __str__(self):
         data, dic = [], {}
-
         for root, dirs, files in os.walk(self.path):
             for file in files:
                 if file.endswith('.gemnode'):
@@ -64,18 +63,26 @@ class ClassifierTree:
                         dic[node.label] = 1, len(node.classifier.classes)
 
         labels = list(dic.keys())
-        print(labels)
         for label, (cnt_classifiers, cnt_classes) in dic.items():
             data.append([labels.index(label), label, cnt_classifiers, '{:.1f}'.format(cnt_classes / cnt_classifiers)])
         return str(tabulate(data, headers=['Depth', 'Label', 'Classifiers', 'Avg. classes'], tablefmt='orgtbl'))
 
-    def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
+    def train(self, dataset, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         self.root.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
-        for c in self.children:
-            c.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+        for child in self.root.children():
+            node = ClassifierNode.from_file(child)
+            node.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
 
     def evaluate(self):
         pass
+
+    def classify(self, tensor):
+        predicted = self.root.classify(tensor)
+        if self.root.is_leaf():
+            return {self.root.label: predicted}
+        else:
+            child = gem.ClassifierTree.from_dir(os.path.join(self.path, predicted[0][0]))
+            return {self.root.label: predicted, **child.classify(tensor)}
 
     # Instantiates ClassifierTree object from ClassifierNode, or ClassifierNode filepath
     @staticmethod
@@ -103,7 +110,6 @@ class ClassifierNode:
                                          loss_function=copy.deepcopy(default_classifier.loss_function),
                                          optimizer=copy.deepcopy(default_classifier.optimizer),
                                          enable_cuda=default_classifier.enable_cuda)
-        # TODO cuda config for node and tree?
         self.label = label
         self.file_path = file_path
         self.dataset_constraints = dataset_constraints
@@ -114,20 +120,29 @@ class ClassifierNode:
 
     def train(self, dataset, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         dataset = dataset.subset(self.dataset_constraints)
-        return self.classifier.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory,
-                                     verbosity=verbosity)
+        self.classifier.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory,
+                              verbosity=verbosity)
 
     def evaluate(self, dataset, num_workers=0, pin_memory=False, verbosity=0):
         dataset = dataset.subset(self.dataset_constraints)
-        return self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+        self.accuracy = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory,
+                                                 verbosity=verbosity)
 
-    # Return list off all children should in theory be the same as self.classifier.classes()
+    # ClassifierNode can only classify 1 tensor at a time.
+    def classify(self, tensor):
+        return self.classifier.classify(tensor)[0]
+
+    # Return list off all immediate children
     def children(self):
-        children = []
-        for d in os.listdir(os.path.dirname(self.file_path)):
-            if os.path.isdir(d):
-                children.append(d)
+        children, dirname = [], os.path.dirname(self.file_path)
+        for d in os.listdir(dirname):
+            if os.path.isdir(os.path.join(dirname, d)):
+                children.append(os.path.join(dirname, d))
         return children
+
+    # If the node has no children its a leaf node.
+    def is_leaf(self):
+        return len(self.children()) == 0
 
     # save ClassifierNode object to .gemnode file, can be retrieved with from_file()
     def save(self, file_path=None):

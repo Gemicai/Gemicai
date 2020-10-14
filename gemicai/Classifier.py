@@ -6,7 +6,7 @@ import pickle
 import torch
 from gemicai.utils import strfdelta
 from tabulate import tabulate
-
+from operator import itemgetter
 
 class Classifier:
     def __init__(self, module, classes=None, layer_config=None, loss_function=None, optimizer=None,
@@ -88,6 +88,8 @@ class Classifier:
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
+                total += len(data[0])
+                running_loss += loss.item()
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
@@ -101,7 +103,7 @@ class Classifier:
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
                 print('| {:5d} | {:.7f} | {:10s} | {:10s} | {:8s} | {} |'
                       .format(epoch + 1, running_loss / total, train_acc, test_acc, elapsed, eta))
-        if verbosity >= 1:
+        if verbosity >= 2:
             print('Training finished, total time elapsed: {}'.format(datetime.now() - start))
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0):
@@ -137,7 +139,7 @@ class Classifier:
                             class_correct[true_label] += 1
                         class_total[true_label] += 1
             acc = round(100 * correct / total, 2)
-            if verbosity == 1:
+            if verbosity >= 1:
                 print('Total: {} -- Correct: {} -- Accuracy: {}%\n'.format(total, correct, acc))
             if verbosity >= 2:
                 table = []
@@ -151,9 +153,12 @@ class Classifier:
             return acc
 
     def classify(self, tensor):
-        m = torch.nn.Softmax(dim=1)
-
-        print(m(self.module(tensor).data))
+        if len(tensor.size()) == 3:
+            tensor = torch.unsqueeze(tensor, 0)
+        res, m = [], torch.nn.Softmax(dim=1)
+        for classification in m(self.module(tensor).data):
+            res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
+        return res
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
