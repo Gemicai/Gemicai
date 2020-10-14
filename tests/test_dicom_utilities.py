@@ -87,7 +87,7 @@ class TestCreateDicomObjectDatasetFromFolder(unittest.TestCase):
             test.create_dicomobject_dataset_from_folder(
                 correct_dicom_directory, test_output_directory, ['Modality'], objects_per_file=50, pick_middle=True)
             size = 0
-            
+
             for root, dirs, files in os.walk(test_output_directory):
                 for file in files:
                     os.remove(os.path.join(root, file))
