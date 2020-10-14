@@ -23,5 +23,5 @@ class DefaultLastLayerConfig(GEMICAIABCFunctor):
         # or you can acces it using .classifier[-1].
         try:
             module.fc = nn.Linear(module.fc.in_features, len(classes))
-        except nn.module.ModuleAttributeError:
+        except nn.modules.module.ModuleAttributeError:
             module.classifier[-1] = nn.Linear(module.classifier[-1].in_features, len(classes))

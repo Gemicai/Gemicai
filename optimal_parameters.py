@@ -47,7 +47,7 @@ def _train(model, field_list, value_list, file):
         log_train_options(["default"], file)
 
     # train and log the results
-    net.train(train_set, epochs=1, test_dataset=eval_set, verbosity=2, num_workers=4, batch_size=4,
+    net.train(train_set, epochs=150, test_dataset=eval_set, verbosity=2, num_workers=4, batch_size=4,
               output_policy=gem.ToConsoleAndExcelFile(file))
 
 
@@ -117,20 +117,22 @@ excel_mnasnet = "excel_outputs/mnasnet.xlsx"
 summarize_sets()
 
 # TODO: Those models work
-train(models.resnet18(pretrained=True), excel_resnet18)
-train(models.googlenet(pretrained=True), excel_googlenet)
-train(models.shufflenet_v2_x1_0(pretrained=True), excel_shufflenet)
-train(models.resnext50_32x4d(pretrained=True), excel_resnext50_32x4d)
-train(models.wide_resnet50_2(pretrained=True), excel_wide_resnet50_2)
-
-# TODO: Those have no fc layer
-# train_with(models.alexnet(pretrained=True), excel_alexnet)
-# train_with(models.squeezenet1_0(pretrained=True), excel_squeezenet)
-# train_with(models.vgg16(pretrained=True), excel_vgg16)
-# train_with(models.densenet161(pretrained=True), excel_densenet)
-# train_with(models.mobilenet_v2(pretrained=True), excel_mobilenet)
-# train_with(models.mnasnet1_0(pretrained=True), excel_mnasnet)
+# train(models.resnet18(pretrained=True), excel_resnet18)
+# train(models.googlenet(pretrained=True), excel_googlenet)
+# train(models.shufflenet_v2_x1_0(pretrained=True), excel_shufflenet)
+# train(models.resnext50_32x4d(pretrained=True), excel_resnext50_32x4d)
+# train(models.wide_resnet50_2(pretrained=True), excel_wide_resnet50_2)
+# train(models.alexnet(pretrained=True), excel_alexnet)
+# train(models.vgg16(pretrained=True), excel_vgg16)
+# train(models.mobilenet_v2(pretrained=True), excel_mobilenet)
+# train(models.mnasnet1_0(pretrained=True), excel_mnasnet)
 
 # TODO: Calculated padded input size per channel: (3 x 3). Kernel size: (5 x 5).
 # TODO: Kernel size can't be greater than actual input size
-# train_with(models.inception_v3(pretrained=True), excel_inception)
+# train(models.inception_v3(pretrained=True), excel_inception)
+
+# TODO: TypeError: 'Linear' object is not subscriptable
+# train(models.densenet161(pretrained=True), excel_densenet)
+
+# TODO: no in_features
+# train(models.squeezenet1_0(pretrained=True), excel_squeezenet)
