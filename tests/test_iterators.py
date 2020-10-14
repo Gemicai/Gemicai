@@ -20,6 +20,11 @@ class TestPickledDicomoDataSet(unittest.TestCase):
         dataset = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
         self.assertIsInstance(dataset, test.PickledDicomoDataSet)
 
+    def test_init_wrong_label_counter_type(self):
+        with self.assertRaises(TypeError):
+            test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={},
+                                      label_counter_type=TestPickledDicomoDataSet)
+
     def test_init_invalid_file_path(self):
         with self.assertRaises(FileNotFoundError):
             test.PickledDicomoDataSet(wrong_dicom_file_path, ["CT"], constraints={})
@@ -126,6 +131,11 @@ class TestPickledDicomoDataFolder(unittest.TestCase):
         dataset = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
         self.assertIsInstance(dataset, test.PickledDicomoDataFolder)
 
+    def test_init_wrong_label_counter_type(self):
+        with self.assertRaises(TypeError):
+            test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={},
+                                         label_counter_type=TestPickledDicomoDataSet)
+
     def test_init_invalid_directory_path(self):
         with self.assertRaises(NotADirectoryError):
             test.PickledDicomoDataFolder(os.path.join(dicom_directory, "asd"), ["CT"], constraints={})
@@ -225,6 +235,11 @@ class TestPickledDicomoFilePool(unittest.TestCase):
         data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
         self.assertIsInstance(data, test.PickledDicomoFilePool)
 
+    def test_init_wrong_label_counter_type(self):
+        with self.assertRaises(TypeError):
+            test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={},
+                                       label_counter_type=TestPickledDicomoDataSet)
+
     def test_init_invalid_file_pool_path(self):
         with self.assertRaises(FileNotFoundError):
             test.PickledDicomoFilePool([os.path.join(dicom_directory, "asd", "000001.gemset")], ["CT"], constraints={})
@@ -322,6 +337,11 @@ class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
     def test_init_correct_usage(self):
         data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
         self.assertIsInstance(data, test.ConcurrentPickledDicomObjectTaskSplitter)
+
+    def test_init_wrong_label_counter_type(self):
+        with self.assertRaises(TypeError):
+            test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={},
+                                                          label_counter_type=TestPickledDicomoDataSet)
 
     def test_init_invalid_directory_path(self):
         test.ConcurrentPickledDicomObjectTaskSplitter(os.path.join(dicom_directory, "asd"), ["CT"], constraints={})

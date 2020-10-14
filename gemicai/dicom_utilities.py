@@ -1,4 +1,4 @@
-from gemicai.utils.LabelCounter import LabelCounter
+from gemicai.label_counters import LabelCounter
 from matplotlib import pyplot as plt
 from itertools import count
 import gemicai.data_objects
@@ -10,6 +10,7 @@ import pickle
 import torch
 import numpy
 import gzip
+import math
 import os
 
 
@@ -43,7 +44,8 @@ def extract_tensor(ds: dicom.Dataset):
     return tensor
 
 
-def create_dicomobject_dataset_from_folder(input, output, field_list, field_values=[], objects_per_file=1000):
+def create_dicomobject_dataset_from_folder(input, output, field_list, field_values=[],
+                                           objects_per_file=1000, pick_middle=False):
     if not os.path.isdir(input):
         raise NotADirectoryError
     if not os.path.isdir(output):
@@ -56,6 +58,8 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                         "allows for filtering which DicomoObjects should be put in a dataset")
     if not isinstance(objects_per_file, int):
         raise TypeError("objects_per_file parameter should be an integer")
+    if not isinstance(pick_middle, bool):
+        raise TypeError("pick_middle parameter should be a boolean")
 
     # because of windows we have to manage temp file ourselves
     temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
@@ -68,11 +72,19 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
         filename_iterator = ("%06i.gemset" % i for i in count(1))
         objects_inside = 0
 
+        if pick_middle:
+            field_list += ["InstanceNumber"]
+
         for root, dirs, files in os.walk(input):
+            middle_file = str(math.floor(len(files)/2))
+
             for file in files:
                 try:
-                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list)
+                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list, tensor_size=(244, 244))
                     pickle_object = True
+
+                    if pick_middle and str(d.get_value_of("InstanceNumber")) != middle_file:
+                        continue
 
                     # check whenever we filter fields of DicomoObject
                     if len(field_values):
@@ -102,6 +114,9 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     # dump binary data to the temp file
                     pickle.dump(d, temp)
                     objects_inside += 1
+
+                    if pick_middle:
+                        break
 
                 except Exception as ex:
                     template = "An exception of type {0} occurred. Arguments:\n{1!r}"

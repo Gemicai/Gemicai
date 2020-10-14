@@ -29,6 +29,18 @@ class TestDicomObject(unittest.TestCase):
         with self.assertRaises(TypeError):
             test.DicomObject.from_file(correct_dicom_file_path, {'Modality'})
 
+    def test_from_file_wrong_tensor_size_type(self):
+        with self.assertRaises(TypeError):
+            test.DicomObject.from_file(correct_dicom_file_path, ['Modality'], tensor_size="z")
+
+    def test_from_file_different_tensor_sizes(self):
+        obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'], tensor_size=None)
+        self.assertIsInstance(obj, test.DicomObject)
+        self.assertEqual(obj.tensor.shape, test.torch.Size([512, 512]))
+        obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'], tensor_size=(244, 200))
+        self.assertIsInstance(obj, test.DicomObject)
+        self.assertEqual(obj.tensor.shape, test.torch.Size([244, 200]))
+
     def test_get_value_of_existing_field(self):
         obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'])
         self.assertNotEqual(obj.get_value_of('Modality'), None)

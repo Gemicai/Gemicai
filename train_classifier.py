@@ -22,7 +22,7 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
 
 def demo_prepare_data_set():
     gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
-                                               field_values=[('Modality', ['CT'])])
+                                               field_values=[('Modality', ['CT'])], pick_middle=False)
 
 
 def demo_get_dataset(path):
@@ -48,16 +48,18 @@ def demo_train_classifier():
     # net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
 
     # Train with evaluation dataset
-    testset = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=['BodyPartExamined'])
-    net.train(dataset, epochs=1, test_dataset=testset, verbosity=1)
+    testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
+    # net.train(dataset, epochs=10, test_dataset=testset, verbosity=2)
+    net.train(dataset, epochs=10, test_dataset=testset, verbosity=2,
+               output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
     net.save(classifier_path)
 
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_file(classifier_path)
     dataset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
-    net.evaluate(dataset, verbosity=2)
-    # net.evaluate(demo_get_dataset(eval_data_set_path), num_workers=0, pin_memory=True)
+    # net.evaluate(dataset, verbosity=2)
+    net.evaluate(dataset, verbosity=1, output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
 
 
 def demo_create_dicomo_dataset():
@@ -90,11 +92,13 @@ def demo_train_tree():
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    # demo_prepare_data_set()
+    demo_prepare_data_set()
     # demo_initialize_classifier()
-    demo_train_classifier()
+    # demo_train_classifier()
     # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()
     # ds = demo_get_dataset()
+
+
