@@ -19,6 +19,9 @@ class DefaultLastLayerConfig(GEMICAIABCFunctor):
             raise TypeError("module parameter should have a base class of nn.Module")
         if not isinstance(classes, list):
             raise TypeError("classes parameter should be a list")
-        module.fc = nn.Linear(module.fc.in_features, len(classes))
-        # You don't have to return the object, just calling it is sufficient
-        # return module
+        # All popular models from https://pytorch.org/docs/stable/torchvision/models have either .fc or .classifier[-1].
+        # as their final layer.
+        try:
+            module.fc = nn.Linear(module.fc.in_features, len(classes))
+        except nn.module.ModuleAttributeError:
+            module.classifier[-1] = nn.Linear(module.classifier[-1].in_features, len(classes))

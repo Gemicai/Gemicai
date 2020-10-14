@@ -10,9 +10,11 @@ def bench_classify():
     resnet18 = models.resnet18(pretrained=True)
     ds = gem.DicomoDataset.get_dicomo_dataset('examples', labels=relevant_labels)
     net = gem.Classifier(resnet18, ds.classes('BodyPartExamined'), enable_cuda=False)
+
     ds_iter = iter(ds)
-    tensor = torch.unsqueeze(next(ds_iter)[0], 0)
-    net.classify(tensor)
+    tensors = torch.cat((torch.unsqueeze(next(ds_iter)[0], 0), torch.unsqueeze(next(ds_iter)[0], 0)))
+    cls = net.classify(tensors)
 
 
-bench_classify()
+
+
