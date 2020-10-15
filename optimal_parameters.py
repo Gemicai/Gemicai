@@ -98,7 +98,7 @@ def train(model, excel_file):
     # _train_with_loss_function(model, excel_file, torch.optim.LBFGS(model.parameters()))
 
 
-excel_folder = "/mnt/SharedStor/excel_outputs/"
+excel_folder = "/mnt/SharedStor/excel_outputs"
 excel_resnet18 = os.path.join(excel_folder, "resnet18.xlsx")
 excel_alexnet = os.path.join(excel_folder, "alexnet.xlsx")
 excel_squeezenet = os.path.join(excel_folder, "squeezenet.xlsx")
