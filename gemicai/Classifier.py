@@ -6,8 +6,9 @@ import torch.nn as nn
 import pickle
 import torch
 from gemicai.utils import strfdelta
-from tabulate import tabulate
 from operator import itemgetter
+import gemicai as gem
+
 
 class Classifier:
     def __init__(self, module, classes, layer_config=None, loss_function=None, optimizer=None,
@@ -161,8 +162,7 @@ class Classifier:
     def save(self, file_path=None):
         if not isinstance(file_path, str):
             raise TypeError("save method expects a file_path to be an instance of string")
-        with open(file_path, 'wb') as output:
-            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
+        gem.io.save(file_path=file_path, obj=self)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
         if not isinstance(enable_cuda, bool):
@@ -196,17 +196,12 @@ class Classifier:
             if len(to_set):
                 param.requires_grad = to_set[0][1]
 
-    # Loads classifier object from .pkl file
+    # Loads classifier object from .gemclas file
     @staticmethod
-    def from_file(pkl_file_path=None):
-        if not isinstance(pkl_file_path, str):
+    def from_file(file_path=None):
+        if not isinstance(file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
-
-        with open(pkl_file_path, 'rb') as inp:
-            cf = pickle.load(inp)
-            if not isinstance(cf, Classifier):
-                raise TypeError(pkl_file_path + ' does not contain a valid Classifier class object')
-            return cf
+        return gem.io.load(file_path)
 
     @staticmethod
     def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,

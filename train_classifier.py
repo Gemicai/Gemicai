@@ -11,8 +11,8 @@ path_output = os.path.join("examples", "gzip", "CT")
 
 train_dataset = os.path.join("examples", "gzip", "DX")
 eval_dataset = os.path.join("examples", "gzip", "DX")
-classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
-trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
+classifier_path = os.path.join("classifiers", "dx_bpe.gemclas")
+trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.gemclas")
 
 
 # train_dataset = '/mnt/SharedStor/datasets/dx/train/'

@@ -151,14 +151,9 @@ class ClassifierNode:
             file_path = self.file_path
         else:
             self.file_path = file_path
-        with open(file_path+'.gemnode', 'wb') as out:
-            pickle.dump(self, out, pickle.HIGHEST_PROTOCOL)
+        gem.io.save(file_path=file_path, obj=self)
 
-    # Loads classifier object from .gemnode file
+    # Loads classifier object from .gemnode file.
     @staticmethod
     def from_file(file_path):
-        with open(file_path, 'rb') as inp:
-            gemnode = pickle.load(inp)
-            if not isinstance(gemnode, ClassifierNode):
-                raise TypeError(file_path + ' does not contain a valid ClassifierNode object')
-            return gemnode
+        return gem.io.load(file_path)
