@@ -4,17 +4,16 @@ import torch
 import os
 
 
-dataset_all = '/mnt/SharedStor/dataset'
-dataset_pick_middle = '/mnt/SharedStor/dataset'
-dataset_common_modalities = '/mnt/SharedStor/dataset'
+eval_dataset = '/mnt/SharedStor/eval_dataset'
+train_dataset = '/mnt/SharedStor/train_dataset'
 
 dicom_fields = ['Modality', 'BodyPartExamined', 'StudyDescription', 'SeriesDescription']
 current_field = dicom_fields[0]
 
-train_set = gem.DicomoDataset.get_dicomo_dataset(dataset_common_modalities, labels=[current_field])
+train_set = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=[current_field])
 train_set_classes = train_set.classes(current_field)
 
-eval_set = gem.DicomoDataset.get_dicomo_dataset(dataset_pick_middle, labels=[current_field])
+eval_set = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=[current_field])
 eval_set_classes = eval_set.classes(current_field)
 
 
@@ -99,18 +98,19 @@ def train(model, excel_file):
     # _train_with_loss_function(model, excel_file, torch.optim.LBFGS(model.parameters()))
 
 
-excel_resnet18 = "excel_outputs/resnet18.xlsx"
-excel_alexnet = "excel_outputs/alexnet.xlsx"
-excel_squeezenet = "excel_outputs/squeezenet.xlsx"
-excel_vgg16 = "excel_outputs/vgg16.xlsx"
-excel_densenet = "excel_outputs/densenet.xlsx"
-excel_inception = "excel_outputs/inception.xlsx"
-excel_googlenet = "excel_outputs/googlenet.xlsx"
-excel_shufflenet = "excel_outputs/shufflenet.xlsx"
-excel_mobilenet = "excel_outputs/mobilenet.xlsx"
-excel_resnext50_32x4d = "excel_outputs/resnext50_32x4d.xlsx"
-excel_wide_resnet50_2 = "excel_outputs/wide_resnet50_2.xlsx"
-excel_mnasnet = "excel_outputs/mnasnet.xlsx"
+excel_folder = "/mnt/SharedStor/excel_outputs/"
+excel_resnet18 = os.path.join(excel_folder, "resnet18.xlsx")
+excel_alexnet = os.path.join(excel_folder, "alexnet.xlsx")
+excel_squeezenet = os.path.join(excel_folder, "squeezenet.xlsx")
+excel_vgg16 = os.path.join(excel_folder, "vgg16.xlsx")
+excel_densenet = os.path.join(excel_folder, "densenet.xlsx")
+excel_inception = os.path.join(excel_folder, "inception.xlsx")
+excel_googlenet = os.path.join(excel_folder, "googlenet.xlsx")
+excel_shufflenet = os.path.join(excel_folder, "shufflenet.xlsx")
+excel_mobilenet = os.path.join(excel_folder, "mobilenet.xlsx")
+excel_resnext50_32x4d = os.path.join(excel_folder, "resnext50_32x4d.xlsx")
+excel_wide_resnet50_2 = os.path.join(excel_folder, "wide_resnet50_2.xlsx")
+excel_mnasnet = os.path.join(excel_folder, "mnasnet.xlsx")
 
 
 summarize_sets()

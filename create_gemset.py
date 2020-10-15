@@ -6,7 +6,7 @@ import os
 data_origin = '/mnt/data2/pukkaj/teach/study/PJ_TEACH/PJ_RESEARCH'
 data_origin_just_DX = '/mnt/data2/pukkaj/teach/study/LBLPROJECT1/ZGT_LBLPROJECT1'
 
-data_destination = '/mnt/SharedStor/eval_dataset'
+data_destination = '/mnt/SharedStor/dataset'
 
 
 dicom_fields = ['Modality', 'BodyPartExamined', 'StudyDescription', 'SeriesDescription']
