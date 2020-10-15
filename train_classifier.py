@@ -9,10 +9,11 @@ dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'Se
 path_input = os.path.join("examples", "dicom", "CT")
 path_output = os.path.join("examples", "gzip", "CT")
 
-train_dataset = os.path.join("examples", "gzip", "CT")
-eval_dataset = os.path.join("examples", "gzip", "CT")
+train_dataset = os.path.join("examples", "gzip", "DX")
+eval_dataset = os.path.join("examples", "gzip", "DX")
 classifier_path = os.path.join("classifiers", "dx_bpe.pkl")
 trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.pkl")
+
 
 # train_dataset = '/mnt/SharedStor/datasets/dx/train/'
 # test_dataset = '/mnt/SharedStor/datasets/dx/test/'
@@ -34,7 +35,7 @@ def demo_initialize_classifier():
     resnet18 = models.resnet18(pretrained=True)
     dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     dataset.summarize('BodyPartExamined')
-    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), enable_cuda=True)
+    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), enable_cuda=False)
     net.save(classifier_path)
 
 
@@ -48,10 +49,10 @@ def demo_train_classifier():
     # net.train(dataset, num_workers=0, epochs=1, pin_memory=True)
 
     # Train with evaluation dataset
-    testset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
+    testset = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=['BodyPartExamined'])
     # net.train(dataset, epochs=10, test_dataset=testset, verbosity=2)
-    net.train(dataset, epochs=10, test_dataset=testset, verbosity=2,
-               output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
+    net.train(dataset, epochs=2, test_dataset=testset, verbosity=2,
+              output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
     net.save(classifier_path)
 
 
@@ -92,13 +93,11 @@ def demo_train_tree():
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    demo_prepare_data_set()
-    # demo_initialize_classifier()
-    # demo_train_classifier()
+    # demo_prepare_data_set()
+    demo_initialize_classifier()
+    demo_train_classifier()
     # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()
     # ds = demo_get_dataset()
-
-
