@@ -4,9 +4,9 @@ import torch
 import os
 
 
-dataset_all = os.path.join("examples", "gzip", "CT")
-dataset_pick_middle = os.path.join("examples", "gzip", "CT")
-dataset_common_modalities = os.path.join("examples", "gzip", "CT")
+dataset_all = '/mnt/SharedStor/dataset'
+dataset_pick_middle = '/mnt/SharedStor/dataset'
+dataset_common_modalities = '/mnt/SharedStor/dataset'
 
 dicom_fields = ['Modality', 'BodyPartExamined', 'StudyDescription', 'SeriesDescription']
 current_field = dicom_fields[0]
@@ -81,7 +81,6 @@ def _train_with_loss_function(model, excel_file, optimizer=None):
     # train(model, field_list, value_type, excel_file)
     # value_type[0] = torch.nn.SmoothL1Loss()
     # train(model, field_list, value_type excel_file)
-
 
 def train(model, excel_file):
     _train_with_loss_function(model, excel_file, None)

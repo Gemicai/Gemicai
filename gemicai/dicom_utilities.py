@@ -97,7 +97,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                             else:
                                 if not d.get_value_of(field) in values:
                                     pickle_object = False
-
+                    
                     if not pickle_object:
                         continue
 
