@@ -26,11 +26,8 @@ def load_dicom(filename):
     return ds
 
 
-# Returns ({imgage as tensor}, {label})
-def dicom_get_tensor_and_label(dicom_file_path):
+def extract_tensor(ds: dicom.Dataset):
     # try to load a dicom file
-    ds = load_dicom(dicom_file_path)
-
     # transform pixel_array into a format accepted by the pytorch
     norm = plt.Normalize(vmin=ds.pixel_array.min(), vmax=ds.pixel_array.max())
     data = torch.from_numpy(norm(ds.pixel_array).astype(numpy.float32))
@@ -44,23 +41,7 @@ def dicom_get_tensor_and_label(dicom_file_path):
     ])
 
     tensor = create_tensor(data)
-    labels = (getattr(ds, 'BodyPartExamined'), getattr(ds, 'StudyDescription'),
-              getattr(ds, 'SeriesDescription'), getattr(ds, 'Modality'))
-    # TODO: Figure out direction from which image is taken. e.g. frontal, lateral, top down or down top etc.
-    # TODO: this is probably in the dicom header, ask Jeroen about this.
-    return tensor, labels
-
-
-# Plots dicom image with some additional label info.
-def plot_dicom(dicom_file_path, cmap=None):
-    tensor, label = dicom_get_tensor_and_label(dicom_file_path)
-    tensor = tensor.permute(1, 2, 0)
-    plt.title('')
-    if cmap is None:
-        plt.imshow(tensor)
-    else:
-        plt.imshow(tensor[:, :, 0], cmap=cmap)
-    plt.show()
+    return tensor
 
 
 def create_dicomobject_dataset_from_folder(input, output, field_list, field_values=[],

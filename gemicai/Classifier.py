@@ -6,8 +6,8 @@ import torch.nn as nn
 import pickle
 import torch
 from gemicai.utils import strfdelta
-
-
+from tabulate import tabulate
+from operator import itemgetter
 
 class Classifier:
     def __init__(self, module, classes, layer_config=None, loss_function=None, optimizer=None,
@@ -146,6 +146,14 @@ class Classifier:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
 
             return acc
+
+    def classify(self, tensor):
+        if len(tensor.size()) == 3:
+            tensor = torch.unsqueeze(tensor, 0)
+        res, m = [], torch.nn.Softmax(dim=1)
+        for classification in m(self.module(tensor).data):
+            res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
+        return res
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None):
