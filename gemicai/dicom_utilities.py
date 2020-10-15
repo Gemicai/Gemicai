@@ -12,6 +12,7 @@ import numpy
 import gzip
 import math
 import os
+import gemicai
 
 
 def load_dicom(filename):
@@ -106,7 +107,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     if objects_inside >= objects_per_file:
                         # gzip temp file and clear its content
                         temp.flush()
-                        zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+                        gemicai.io.zip_to_file(temp, os.path.join(output, next(filename_iterator)))
                         objects_inside = 0
                         temp.seek(0)
                         temp.truncate()
@@ -124,22 +125,8 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     print(message)
 
         temp.flush()
-        zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+        gemicai.io.zip_to_file(temp, os.path.join(output, next(filename_iterator)))
     finally:
         temp.close()
         os.remove(temp.name)
     return cnt
-
-
-def zip_to_file(file, zip_path):
-    with gzip.open(zip_path, 'wb') as zipped:
-        file = open(file.name, 'rb')
-        shutil.copyfileobj(file, zipped)
-        file.close()
-
-
-def unzip_to_file(file, zip_path):
-    with gzip.open(zip_path, 'rb') as zipped:
-        file = open(file.name, 'ab+')
-        shutil.copyfileobj(zipped, file)
-        file.close()

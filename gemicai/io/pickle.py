@@ -10,7 +10,9 @@ import gemicai as gem
 supported_ojbects = [gem.Classifier, gem.ClassifierNode]
 
 # File extestions relative to object type.
-file_extensions = ['.gemclas', '.gemnode']
+file_extensions = ['.gemclas', '.gemnode', '.gemset']
+
+# TODO: add support for GemicaiDataset
 
 
 def save(file_path, obj):

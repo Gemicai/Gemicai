@@ -404,7 +404,7 @@ class PickledDicomoDataSet(DicomoDataset):
     def _stream_pickled_dicomos(self):
         self.tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
         try:
-            gem.unzip_to_file(self.tmp, self.pickle_path)
+            gem.io.unzip_to_file(self.tmp, self.pickle_path)
             while True:
                 yield gem.pickle.load(self.tmp)
         finally:
