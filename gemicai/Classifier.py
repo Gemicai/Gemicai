@@ -70,8 +70,7 @@ class Classifier:
             output_policy.training_header()
 
         for epoch in range(epochs):
-            running_loss = 0.0
-            total = 0
+            running_loss, total = 0.0, 0
             for i, data in enumerate(data_loader):
                 # get the inputs; data is a list of [tensors, labels]
                 tensors, labels = data
@@ -90,6 +89,9 @@ class Classifier:
                 loss = self.loss_function(outputs, labels)
                 loss.backward()
                 self.optimizer.step()
+
+                running_loss += loss.item()
+                total += len(labels)
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
