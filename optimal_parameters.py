@@ -56,7 +56,6 @@ def _train_with_loss_function(model, excel_file, optimizer=None):
     field_list = []
     value_type = []
 
-    #_train(model, field_list, value_type, excel_file)
     if optimizer is not None:
         field_list = ["optimizer"]
         value_type = [optimizer]
