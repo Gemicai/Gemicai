@@ -137,6 +137,7 @@ class ToExcelFile(OutputPolicy):
     def print_row(self, data_list, cells):
         for index, data in enumerate(data_list):
             self.sheet[cells[index] + str(self.row)] = data
+        self.workbook.save(self.file_path)
         self.row += 1
 
 

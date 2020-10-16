@@ -1,5 +1,6 @@
 import torchvision.models as models
 import gemicai as gem
+from datetime import datetime
 import torch
 import os
 
@@ -46,7 +47,7 @@ def _train(model, field_list, value_list, file):
         log_train_options(["default"], file)
 
     # train and log the results
-    net.train(train_set, epochs=150, test_dataset=eval_set, verbosity=2, num_workers=4, batch_size=4,
+    net.train(train_set, epochs=80, test_dataset=eval_set, verbosity=2, num_workers=4, batch_size=4,
               output_policy=gem.ToConsoleAndExcelFile(file))
 
 
@@ -55,7 +56,7 @@ def _train_with_loss_function(model, excel_file, optimizer=None):
     field_list = []
     value_type = []
 
-    _train(model, field_list, value_type, excel_file)
+    #_train(model, field_list, value_type, excel_file)
     if optimizer is not None:
         field_list = ["optimizer"]
         value_type = [optimizer]
@@ -82,7 +83,7 @@ def _train_with_loss_function(model, excel_file, optimizer=None):
     # train(model, field_list, value_type excel_file)
 
 def train(model, excel_file):
-    _train_with_loss_function(model, excel_file, None)
+    #_train_with_loss_function(model, excel_file, None)
     # _train_with_loss_function(model, excel_file, torch.optim.Adadelta(model.parameters()))
     # _train_with_loss_function(model, excel_file, torch.optim.Adagrad(model.parameters()))
     _train_with_loss_function(model, excel_file, torch.optim.Adam(model.parameters()))
@@ -112,18 +113,19 @@ excel_resnext50_32x4d = os.path.join(excel_folder, "resnext50_32x4d.xlsx")
 excel_wide_resnet50_2 = os.path.join(excel_folder, "wide_resnet50_2.xlsx")
 excel_mnasnet = os.path.join(excel_folder, "mnasnet.xlsx")
 
-
-summarize_sets()
+# start = datetime.now()
+# summarize_sets()
+# print('create_dataset_with_common_modalities: Total time elapsed: {}'.format(str(datetime.now() - start)))
 
 # TODO: Those models work
 # train(models.resnet18(pretrained=True), excel_resnet18)
 # train(models.googlenet(pretrained=True), excel_googlenet)
-# train(models.shufflenet_v2_x1_0(pretrained=True), excel_shufflenet)
 # train(models.resnext50_32x4d(pretrained=True), excel_resnext50_32x4d)
 # train(models.wide_resnet50_2(pretrained=True), excel_wide_resnet50_2)
 # train(models.alexnet(pretrained=True), excel_alexnet)
 # train(models.vgg16(pretrained=True), excel_vgg16)
-# train(models.mobilenet_v2(pretrained=True), excel_mobilenet)
+train(models.mobilenet_v2(pretrained=True), excel_mobilenet)
+train(models.shufflenet_v2_x1_0(pretrained=True), excel_shufflenet)
 # train(models.mnasnet1_0(pretrained=True), excel_mnasnet)
 
 # TODO: Calculated padded input size per channel: (3 x 3). Kernel size: (5 x 5).
