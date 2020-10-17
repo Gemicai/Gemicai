@@ -32,6 +32,7 @@ def copy_files(origin, destination):
             except:
                 pass
 
+
 copy_files(data_origin, data_destination)
 # create_dataset("CT")
 # create_dataset("MR")

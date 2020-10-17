@@ -21,7 +21,7 @@ def strfdelta(tdelta, fmt='%H:%M:%S'):
     return t.substitute(**d)
 
 
-unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2])
+unit_list = list(zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]))
 
 
 def format_byte_size(num):
@@ -56,4 +56,5 @@ def get_directory_info(directory):
     print('\nTotal number of files: {}\nTotal size of directory: {}'.format())
 
 
-get_directory_info('/mnt/SharedStor/eval_dataset/MG/')
+if __name__ == '__main__':
+    get_directory_info('/mnt/SharedStor/eval_dataset/MG/')
