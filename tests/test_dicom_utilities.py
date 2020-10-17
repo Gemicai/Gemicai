@@ -51,27 +51,27 @@ class TestCreateDicomObjectDatasetFromFolder(unittest.TestCase):
     def test_wrong_input(self):
         os.mkdir(test_output_directory)
         with self.assertRaises(NotADirectoryError):
-            test.create_dicomobject_dataset_from_folder(os.path.join(correct_dicom_directory, "test"),
-                                                        test_output_directory, ['Modality'])
+            test.dicom_to_gemset(os.path.join(correct_dicom_directory, "test"),
+                                 test_output_directory, ['Modality'])
         os.rmdir(test_output_directory)
 
     def test_wrong_output(self):
         with self.assertRaises(NotADirectoryError):
-            test.create_dicomobject_dataset_from_folder(correct_dicom_directory,
-                                                        test_output_directory, ['Modality'])
+            test.dicom_to_gemset(correct_dicom_directory,
+                                 test_output_directory, ['Modality'])
 
     def test_wrong_objects_per_file_type(self):
         os.mkdir(test_output_directory)
         with self.assertRaises(TypeError):
-            test.create_dicomobject_dataset_from_folder(correct_dicom_directory,
-                                                        test_output_directory, ['Modality'], objects_per_file=None)
+            test.dicom_to_gemset(correct_dicom_directory,
+                                 test_output_directory, ['Modality'], objects_per_file=None)
         os.rmdir(test_output_directory)
 
     def test_correct_usage(self):
         os.mkdir(test_output_directory)
         try:
-            test.create_dicomobject_dataset_from_folder(correct_dicom_directory,
-                                                        test_output_directory, ['Modality'], objects_per_file=50)
+            test.dicom_to_gemset(correct_dicom_directory,
+                                 test_output_directory, ['Modality'], objects_per_file=50)
             size = 0
             for root, dirs, files in os.walk(test_output_directory):
                 for file in files:
@@ -84,7 +84,7 @@ class TestCreateDicomObjectDatasetFromFolder(unittest.TestCase):
     def test_correct_usage_pick_middle_true(self):
         os.mkdir(test_output_directory)
         try:
-            test.create_dicomobject_dataset_from_folder(
+            test.dicom_to_gemset(
                 correct_dicom_directory, test_output_directory, ['Modality'], objects_per_file=50, pick_middle=True)
             size = 0
 

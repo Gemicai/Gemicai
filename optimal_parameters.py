@@ -72,14 +72,14 @@ def _train_with_loss_function(model, excel_file, optimizer=None):
 
     # TODO: TypeError: forward() missing 1 required positional argument: 'target'
     # value_type[0] = torch.nn.CosineEmbeddingLoss()
-    # train(model, field_list, value_type, excel_file)
+    # train(model, relevant_labels, value_type, excel_file)
 
     # TODO: UserWarning: Using a target size (torch.Size([6])) that is different to the input size (torch.Size([6, 1])).
     # TODO: This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
     # value_type[0] = torch.nn.torch.nn.MSELoss()
-    # train(model, field_list, value_type, excel_file)
+    # train(model, relevant_labels, value_type, excel_file)
     # value_type[0] = torch.nn.SmoothL1Loss()
-    # train(model, field_list, value_type excel_file)
+    # train(model, relevant_labels, value_type excel_file)
 
 def train(model, excel_file):
     #_train_with_loss_function(model, excel_file, None)

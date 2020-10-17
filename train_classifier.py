@@ -22,8 +22,8 @@ trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.gemclas")
 
 
 def demo_prepare_data_set():
-    gem.create_dicomobject_dataset_from_folder(path_input, path_output, dicom_fields, objects_per_file=25,
-                                               field_values=[('Modality', ['CT'])], pick_middle=False)
+    gem.dicom_to_gemset(path_input, path_output, dicom_fields, objects_per_file=25,
+                        field_values=[('Modality', ['CT'])], pick_middle=False)
 
 
 def demo_get_dataset(path):
@@ -66,8 +66,8 @@ def demo_evaluate_classifier():
 def demo_create_dicomo_dataset():
     data_origin = '/mnt/data2/pukkaj/teach/study/PJ_TEACH/PJ_RESEARCH/'
     data_destination = '/home/nheinen/gemicai/dicom_objects/DX/'
-    gem.create_dicomobject_dataset_from_folder(data_origin, data_destination, ['Modality'],
-                                               field_values=[('Modality', ['DX'])])
+    gem.dicom_to_gemset(data_origin, data_destination, ['Modality'],
+                        field_values=[('Modality', ['DX'])])
 
 
 def demo_initialize_tree():

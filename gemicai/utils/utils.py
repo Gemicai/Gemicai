@@ -21,10 +21,8 @@ def strfdelta(tdelta, fmt='%H:%M:%S'):
     return t.substitute(**d)
 
 
-unit_list = list(zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]))
-
-
 def format_byte_size(num):
+    unit_list = list(zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2]))
     if num > 1:
         exponent = min(int(log(num, 1024)), len(unit_list) - 1)
         quotient = float(num) / 1024 ** exponent
@@ -37,7 +35,7 @@ def format_byte_size(num):
         return '1 byte'
 
 
-def get_directory_info(directory):
+def dir_info(directory):
     cnt_ext, sum_size = Counter(), {}
     for root, dirs, files in os.walk(directory):
         for f in files:
@@ -52,9 +50,6 @@ def get_directory_info(directory):
     data = []
     for k in sum_size:
         data.append([k, cnt_ext[k], format_byte_size(sum_size[k])])
-    print(tabulate(data, headers=['Extension', 'Files', 'Total size'], tablefmt='orgtbl'))
-    print('\nTotal number of files: {}\nTotal size of directory: {}'.format())
-
-
-if __name__ == '__main__':
-    get_directory_info('/mnt/SharedStor/eval_dataset/MG/')
+    if len(data) > 1:
+        data.append(['TOTAL', sum(cnt_ext.values()), format_byte_size(sum(sum_size.values()))])
+    print(tabulate(data, headers=['Extension', 'Files', 'Size'], tablefmt='orgtbl'), '\n')

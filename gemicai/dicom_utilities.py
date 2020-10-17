@@ -52,14 +52,14 @@ def extract_tensor(ds: dicom.Dataset):
     return tensor
 
 
-def create_dicomobject_dataset_from_folder(input, output, field_list, field_values=[],
-                                           objects_per_file=1000, pick_middle=False):
-    if not os.path.isdir(input):
+def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values=[],
+                    objects_per_file=1000, pick_middle=False):
+    if not os.path.isdir(data_origin):
         raise NotADirectoryError
-    if not os.path.isdir(output):
+    if not os.path.isdir(data_destination):
         raise NotADirectoryError
-    if not isinstance(field_list, list):
-        raise TypeError("field_list parameter should be a list of strings with a name of a relevant fields to fetch "
+    if not isinstance(relevant_labels, list):
+        raise TypeError("relevant_labels parameter should be a list of strings with a name of a relevant fields to fetch "
                         "and put in the DicomoObject")
     if not isinstance(field_values, list):
         raise TypeError("field_values parameter should be a list of tuples (field_name, field_values). This parameter "
@@ -81,14 +81,14 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
         objects_inside = 0
 
         if pick_middle:
-            field_list += ["InstanceNumber"]
+            relevant_labels += ["InstanceNumber"]
 
-        for root, dirs, files in os.walk(input):
+        for root, dirs, files in os.walk(data_origin):
             middle_file = str(math.floor(len(files)/2))
 
             for file in files:
                 try:
-                    d = gemicai.DicomObject.from_file(root + '/' + file, field_list, tensor_size=(244, 244))
+                    d = gemicai.DicomObject.from_file(root + '/' + file, relevant_labels, tensor_size=(244, 244))
                     pickle_object = True
 
                     if pick_middle and str(d.get_value_of("InstanceNumber")) != middle_file:
@@ -114,7 +114,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     if objects_inside >= objects_per_file:
                         # gzip temp file and clear its content
                         temp.flush()
-                        gemicai.io.zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+                        gemicai.io.zip_to_file(temp, os.path.join(data_destination, next(filename_iterator)))
                         objects_inside = 0
                         temp.seek(0)
                         temp.truncate()
@@ -132,7 +132,7 @@ def create_dicomobject_dataset_from_folder(input, output, field_list, field_valu
                     print(message)
 
         temp.flush()
-        gemicai.io.zip_to_file(temp, os.path.join(output, next(filename_iterator)))
+        gemicai.io.zip_to_file(temp, os.path.join(data_destination, next(filename_iterator)))
     finally:
         temp.close()
         os.remove(temp.name)

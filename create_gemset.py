@@ -16,8 +16,8 @@ relevant_modalities = ["CT", "MR", "US", "MG", "PT", "DX"]
 
 def create_dataset(folder):
     start = datetime.now()
-    gem.create_dicomobject_dataset_from_folder(data_origin, os.path.join(data_destination, folder), dicom_fields,
-                                               field_values=[("Modality", [folder])], objects_per_file=100, pick_middle=True)
+    gem.dicom_to_gemset(data_origin, os.path.join(data_destination, folder), dicom_fields,
+                        field_values=[("Modality", [folder])], objects_per_file=100, pick_middle=True)
     print('create_dataset_with_common_modalities: Total time elapsed: {}'.format(str(datetime.now() - start)))
 
 
