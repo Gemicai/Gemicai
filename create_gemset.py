@@ -1,12 +1,13 @@
 import gemicai as gem
 from datetime import datetime
 import os
+import shutil
 
 
 data_origin = '/mnt/data2/pukkaj/teach/study/PJ_TEACH/PJ_RESEARCH'
 data_origin_just_DX = '/mnt/data2/pukkaj/teach/study/LBLPROJECT1/ZGT_LBLPROJECT1'
 
-data_destination = '/mnt/SharedStor/dataset'
+data_destination = '/mnt/SharedStor/tutorials/Mammography'
 
 
 dicom_fields = ['Modality', 'BodyPartExamined', 'StudyDescription', 'SeriesDescription']
@@ -20,10 +21,22 @@ def create_dataset(folder):
     print('create_dataset_with_common_modalities: Total time elapsed: {}'.format(str(datetime.now() - start)))
 
 
-create_dataset("CT")
-create_dataset("MR")
-create_dataset("US")
-create_dataset("MG")
-create_dataset("PT")
-create_dataset("DX")
+# Both origin and destination are directories
+def copy_files(origin, destination):
+    for root, dirs, files in os.walk(origin):
+        for file in files:
+            try:
+                d = gem.DicomObject.from_file(root + '/' + file, ['Modality'], tensor_size=(244, 244))
+                if d.get_value_of('Modality') == 'MG':
+                    shutil.copyfile(root + '/' + file, destination + '/' + file)
+            except:
+                pass
+
+copy_files(data_origin, data_destination)
+# create_dataset("CT")
+# create_dataset("MR")
+# create_dataset("US")
+# create_dataset("MG")
+# create_dataset("PT")
+# create_dataset("DX")
 

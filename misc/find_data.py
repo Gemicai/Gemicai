@@ -11,25 +11,30 @@ from itertools import count
 
 def find_data():
     modalities = ['CT', 'MR', 'DX', 'MG', 'US', 'PT']
-    modality = modalities[1]
+    modality = modalities[3]
     data_origin = '/mnt/data2/pukkaj/teach/study/PJ_TEACH/PJ_RESEARCH/'
-    data_destination = '/home/nheinen/tsclient/niekh/Desktop/zgt/utilities/examples/dicom/' + modality + '/'
+    data_destination = '/home/nheinen/'
+    filename_iterator = ("%06i.gemset" % i for i in count(1))
 
     for root, dirs, files in os.walk(data_origin):
         for file in files:
             try:
-                d = gem.Dicomo(root + '/' + file)
-                if d.modality == modality:
-                    gem.plot_dicomo(d)
+                fp = root + '/' + file
+                d = gem.DicomObject.from_file(fp, ['Modality'])
+                if d.get_value_of('Modality') == modality:
+                    d.plot()
+                    inp = input('Save image? y/n')
+                    if inp == 'y':
+                        print(fp)
+                        shutil.copyfile(fp, data_destination + next(filename_iterator))
+                    if inp == 'quit':
+                        return None
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print(message)
-        print(root)
-        if input('Want to continue looking? y/n') == 'n':
-            break
 
-    print(data_destination)
+
 
 
 def construct_demo_data():
@@ -40,7 +45,7 @@ def construct_demo_data():
         # counts distinct field values
         cnt = gem.LabelCounter()
         # holds names for the gziped files
-        filename_iterator = ("%06i.gemset" % i for i in count(1))
+        filename_iterator = ("MG_%03i.dcm.gz" % i for i in count(1))
         objects_inside = 0
         with open('demo_data.pkl', 'rb') as inp:
             dataset = pickle.load(inp)
@@ -66,4 +71,4 @@ def zip_to_file(file, zip_path):
         shutil.copyfileobj(open(file.name, 'rb'), zipped)
 
 
-construct_demo_data()
+find_data()

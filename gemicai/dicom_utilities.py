@@ -27,6 +27,13 @@ def load_dicom(filename):
     return ds
 
 
+def plot_dicom_file(dcm, cmap='gray'):
+    if isinstance(dcm, str):
+        dcm = load_dicom(dcm)
+    plt.imshow(extract_tensor(dcm)[0], cmap)
+    plt.show()
+
+
 def extract_tensor(ds: dicom.Dataset):
     # try to load a dicom file
     # transform pixel_array into a format accepted by the pytorch

@@ -31,6 +31,8 @@ class LabelCounter(GemicaiLabelCounter):
         return s
 
     def update(self, s):
+        if s is None:
+            s = 'None'
         if not isinstance(s, list) and not isinstance(s, str) and not isinstance(s, pydicom.valuerep.IS):
             raise TypeError("LabelCounter update method expects a list or a string but " + str(type(s)) + " is given")
 
