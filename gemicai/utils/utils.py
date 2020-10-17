@@ -2,6 +2,7 @@ from string import Template
 import os
 from tabulate import tabulate
 from collections import Counter
+from math import log
 
 
 class DeltaTemplate(Template):
@@ -20,13 +21,39 @@ def strfdelta(tdelta, fmt='%H:%M:%S'):
     return t.substitute(**d)
 
 
+unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'], [0, 0, 1, 2, 2, 2])
+
+
+def format_byte_size(num):
+    if num > 1:
+        exponent = min(int(log(num, 1024)), len(unit_list) - 1)
+        quotient = float(num) / 1024 ** exponent
+        unit, num_decimals = unit_list[exponent]
+        format_string = '{:.%sf} {}' % num_decimals
+        return format_string.format(quotient, unit)
+    if num == 0:
+        return '0 bytes'
+    if num == 1:
+        return '1 byte'
+
+
 def get_directory_info(directory):
-    total_size = 0
-    cnt_files
+    cnt_ext, sum_size = Counter(), {}
     for root, dirs, files in os.walk(directory):
         for f in files:
             fp = os.path.join(root, f)
             if not os.path.islink(fp):
-                total_size += os.path.getsize(fp)
+                ext = f[f.find('.'):]
+                cnt_ext.update({ext: 1})
+                if ext in sum_size:
+                    sum_size[ext] += os.path.getsize(fp)
+                else:
+                    sum_size[ext] = os.path.getsize(fp)
+    data = []
+    for k in sum_size:
+        data.append([k, cnt_ext[k], format_byte_size(sum_size[k])])
+    print(tabulate(data, headers=['Extension', 'Files', 'Total size'], tablefmt='orgtbl'))
+    print('\nTotal number of files: {}\nTotal size of directory: {}'.format())
 
-    return str(tabulate(data, headers=['Extension', 'Files', 'Size'], tablefmt='orgtbl'))
+
+get_directory_info('/mnt/SharedStor/eval_dataset/MG/')
