@@ -18,15 +18,20 @@ class GemicaiLabelCounter(ABC):
 
 
 class LabelCounter(GemicaiLabelCounter):
-    def __init__(self):
+    def __init__(self, label=None):
+        self.label = label
         self.dic = {}
 
     def __str__(self):
         table = []
         for k, v in self.dic.items():
             table.append([k, v])
-        s = str(tabulate(table, headers=['Class', 'Frequency'], tablefmt='orgtbl')) +\
-            '\nTotal number of training images: {} \nTotal number of classes: {}\n'\
+        if self.label is None:
+            headers = ['Class', 'Frequency']
+        else:
+            headers = ['Class ({})'.format(self.label), 'Frequency']
+        s = str(tabulate(table, headers=headers, tablefmt='orgtbl')) +\
+            '\n\nTotal number of training images: {} \nTotal number of classes: {}\n'\
             .format(sum(self.dic.values()), len(self.dic.keys()))
         return s
 

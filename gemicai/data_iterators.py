@@ -89,11 +89,12 @@ class DicomoDataset(GemicaiDataset):
 
         temp = self.labels
         self.labels = []
-        cnt = self.lbl_ctr_tpe()
+        cnt = self.lbl_ctr_tpe(label)
         constraints = {**self.constraints, **constraints}
         for dicomo in self:
-            if dicomo.meets_constraints(constraints):
-                cnt.update(dicomo.get_value_of(label))
+            # This is already handled in PickledDicomoDataSet __next__, no need for double check
+            # if dicomo.meets_constraints(constraints):
+            cnt.update(dicomo.get_value_of(label))
         self.labels = temp
         if print_summary:
             print(cnt)
@@ -355,13 +356,22 @@ class PickledDicomoDataSet(DicomoDataset):
                     raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
                                     + type(dicomo_class))
 
+                # constraints is a dictionary.
+                meets_constraints = True
+                for k, v in self.constraints.items():
+                    if isinstance(v, list):
+                        if dicomo_class.get_value_of(k) not in v:
+                            meets_constraints = False
+                            break
+                    else:
+                        if dicomo_class.get_value_of(k) != v:
+                            meets_constraints = False
+                            break
+                if not meets_constraints:
+                    return self.__next__()
+
                 if len(self.labels) == 0:
                     return dicomo_class
-
-                # constraints is a dictionary.
-                for k in self.constraints.keys():
-                    if self.constraints[k] != dicomo_class.get_value_of(k):
-                        return self.__next__()
 
                 # fetch a tensor
                 tensor = dicomo_class.tensor

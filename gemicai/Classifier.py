@@ -153,16 +153,17 @@ class Classifier:
     def classify(self, tensor):
         if len(tensor.size()) == 3:
             tensor = torch.unsqueeze(tensor, 0)
+        tensor = tensor.to(self.device)
         res, m = [], torch.nn.Softmax(dim=1)
         for classification in m(self.module(tensor).data):
             res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
-        return res
+        return res[0]
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
-    def save(self, file_path=None):
+    def save(self, file_path=None, zipped=False):
         if not isinstance(file_path, str):
             raise TypeError("save method expects a file_path to be an instance of string")
-        gem.io.save(file_path=file_path, obj=self)
+        gem.io.save(file_path=file_path, obj=self, zipped=zipped)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
         if not isinstance(enable_cuda, bool):
@@ -198,10 +199,10 @@ class Classifier:
 
     # Loads classifier object from .gemclas file
     @staticmethod
-    def from_file(file_path=None):
+    def from_file(file_path=None, zipped=False):
         if not isinstance(file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
-        return gem.io.load(file_path)
+        return gem.io.load(file_path, zipped=zipped)
 
     @staticmethod
     def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,

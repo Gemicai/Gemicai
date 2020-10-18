@@ -36,6 +36,8 @@ def format_byte_size(num):
 
 
 def dir_info(directory):
+    if not os.path.isdir(directory):
+        raise NotADirectoryError('{} isn\'t a directory'.format(directory))
     cnt_ext, sum_size = Counter(), {}
     for root, dirs, files in os.walk(directory):
         for f in files:

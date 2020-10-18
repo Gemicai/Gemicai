@@ -4,6 +4,7 @@ import pickle
 import gzip
 import shutil
 import tempfile
+import os
 import gemicai as gem
 
 # Supported object types
@@ -13,17 +14,24 @@ supported_ojbects = [gem.Classifier, gem.ClassifierNode]
 file_extensions = ['.gemclas', '.gemnode', '.gemset']
 
 # TODO: add support for GemicaiDataset
+# FIXME: zipped=True seems to not be working on linux
 
 
-def save(file_path, obj):
+def save(file_path, obj, zipped=False):
     if type(obj) not in supported_ojbects:
         raise Exception('Object of type {} is not supported by gemicai.io'.format(type(obj)))
-    temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
-    pickle.dump(obj=obj, file=temp, protocol=pickle.HIGHEST_PROTOCOL)
-    zip_to_file(temp, get_path_with_extension(file_path, obj))
+    if zipped:
+        temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        pickle.dump(obj=obj, file=temp, protocol=pickle.HIGHEST_PROTOCOL)
+        zip_to_file(temp, get_path_with_extension(file_path, obj))
+        temp.close()
+        os.remove(temp.name)
+    else:
+        f = open(get_path_with_extension(file_path, obj), 'wb')
+        pickle.dump(obj=obj, file=f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load(file_path, zipped=True):
+def load(file_path, zipped=False):
     if zipped:
         with gzip.open(file_path, 'rb') as inp:
             res = pickle.load(inp)

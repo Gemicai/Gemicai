@@ -13,6 +13,7 @@ import gzip
 import math
 import os
 import gemicai
+from datetime import datetime
 
 
 def load_dicom(filename):
@@ -52,8 +53,10 @@ def extract_tensor(ds: dicom.Dataset):
     return tensor
 
 
-def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values=[],
-                    objects_per_file=1000, pick_middle=False):
+# TODO: Implement test_split
+def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values=[], objects_per_file=1000,
+                    test_split=0.0, pick_middle=False, verbosity=0):
+    start = datetime.now()
     if not os.path.isdir(data_origin):
         raise NotADirectoryError
     if not os.path.isdir(data_destination):
@@ -73,9 +76,6 @@ def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values
     temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
 
     try:
-        # counts distinct field values
-        cnt = LabelCounter()
-
         # holds names for the gziped files
         filename_iterator = ("%06i.gemset" % i for i in count(1))
         objects_inside = 0
@@ -109,7 +109,6 @@ def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values
                     if not pickle_object:
                         continue
 
-                    cnt.update(d.labels)
                     # check if we are not allowed to append more files
                     if objects_inside >= objects_per_file:
                         # gzip temp file and clear its content
@@ -136,4 +135,5 @@ def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values
     finally:
         temp.close()
         os.remove(temp.name)
-    return cnt
+    if verbosity >= 1:
+        print('Creating .gemset took {}'.format(gemicai.utils.strfdelta(datetime.now() - start)))
