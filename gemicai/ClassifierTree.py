@@ -89,8 +89,7 @@ class ClassifierTree:
     @staticmethod
     def from_node(node=None):
         if isinstance(node, str):
-            with open(node, 'rb') as inp:
-                node = pickle.load(inp)
+            node = gem.io.load(node)
         if not isinstance(node, ClassifierNode):
             raise TypeError('Not a valid ClassifierNode object')
         return ClassifierTree(None, None, None, None, root=node)

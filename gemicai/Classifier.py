@@ -150,14 +150,16 @@ class Classifier:
 
             return acc
 
+    # FIXME: classification done on CPU as it keeps failing on GPU for some reason
     def classify(self, tensor):
+        self.module.cpu()
+        tensor.to(self.device)
         if len(tensor.size()) == 3:
             tensor = torch.unsqueeze(tensor, 0)
-        tensor = tensor.to(self.device)
         res, m = [], torch.nn.Softmax(dim=1)
         for classification in m(self.module(tensor).data):
             res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
-        return res[0]
+        return res
 
     # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None, zipped=False):
