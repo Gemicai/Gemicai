@@ -89,7 +89,7 @@ class ClassifierTree:
     @staticmethod
     def from_node(node=None):
         if isinstance(node, str):
-            node = gem.io.load(node)
+            node = ClassifierNode.from_file(node)
         if not isinstance(node, ClassifierNode):
             raise TypeError('Not a valid ClassifierNode object')
         return ClassifierTree(None, None, None, None, root=node)
@@ -98,7 +98,9 @@ class ClassifierTree:
     def from_dir(directory):
         for f in os.listdir(directory):
             if f.endswith('.gemnode'):
-                return ClassifierTree.from_node(node=os.path.join(directory, f))
+                tree = ClassifierTree.from_node(node=os.path.join(directory, f))
+                tree.path = directory
+                return tree
 
 
 # label: this is the label the node classifies e.g. 'BodyPartExamined'
@@ -155,4 +157,6 @@ class ClassifierNode:
     # Loads classifier object from .gemnode file.
     @staticmethod
     def from_file(file_path):
-        return gem.io.load(file_path)
+        node = gem.io.load(file_path)
+        node.file_path = file_path
+        return node
