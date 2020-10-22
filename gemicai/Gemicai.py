@@ -6,6 +6,7 @@ import os
 
 class Gemicai:
     def __init__(self, classifiers_path):
+        eams
         self.relevant_modalities = ['CT', 'DX', 'MG', 'MR', 'PT', 'US']
         # self.relevant_modalities = ['DX', 'MG']
         self.classifiers_path = classifiers_path

@@ -53,8 +53,8 @@ class Classifier:
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
               verbosity=0, test_dataset=None, output_policy=policy.ToConsole()):
-        Classifier.validate_data_set_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
-                                                test_dataset, verbosity, output_policy)
+        Classifier.validate_dataset_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
+                                               test_dataset, verbosity, output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -110,9 +110,9 @@ class Classifier:
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
                  output_policy=policy.ToConsole()):
-        Classifier.validate_data_set_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
-                                                pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
-                                                output_policy=output_policy)
+        Classifier.validate_dataset_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
+                                               pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
+                                               output_policy=output_policy)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -207,8 +207,8 @@ class Classifier:
         return gem.io.load(file_path, zipped=zipped)
 
     @staticmethod
-    def validate_data_set_parameters(dataset=None, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
-                                     test_dataset=None, verbosity=0, output_policy=policy.ToConsole()):
+    def validate_dataset_parameters(dataset, batch_size, epochs, num_workers, pin_memory, test_dataset, verbosity,
+                                    output_policy):
 
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
@@ -224,6 +224,10 @@ class Classifier:
 
         if not isinstance(dataset, iterators.GemicaiDataset):
             raise TypeError("dataset parameter should have a base class of data_iterators.GemicaiDataset")
+
+        if len(next(iter(dataset))) != 2:
+            raise ValueError('Specify what label should be classified. This dataset containts the labels {}. E.g. try'
+                             ' again with dataset[\'{}\'] or dataset[0]'.format(dataset.labels, dataset.labels[0]))
 
         if not isinstance(test_dataset, iterators.GemicaiDataset) and test_dataset is not None:
             raise TypeError("test_dataset parameter should have a base class of data_iterators.GemicaiDataset "
