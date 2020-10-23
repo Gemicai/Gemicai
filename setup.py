@@ -1,23 +1,23 @@
 import setuptools
 
-long_description = """Gemicai is at its core a deep learning library that makes working with PyToch. 
+long_description = '''Gemicai is at its core a deep learning library that makes working with PyToch. 
 Gemicai also contains extensive functionality for the Dicom standard. 
-This makes Gemicai an excellent tool for dealing with deep-learning-based medical image classifiers."""
+This makes Gemicai an excellent tool for dealing with deep-learning-based medical image classifiers.'''
 
 setuptools.setup(
-    name="gemicai",
-    version="0.0.1",
-    author="Gemicai",
-    author_email="info@gemic.ai",
-    description="Deep learning library for medical research ini PyTorch",
+    name='gemicai',
+    version='0.5.0b',
+    author='Gemicai',
+    author_email='info@gemic.ai',
+    description='Deep learning library for medical research ini PyTorch',
     long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/gemicai/utilities",
+    long_description_content_type='text/markdown',
+    url='https://github.com/gemicai/utilities',
     packages=setuptools.find_packages(),
     classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
     ],
     python_requires='>=3.8',
     install_requires=[

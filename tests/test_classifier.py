@@ -1,11 +1,9 @@
-import os,sys,inspect
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+import os
 import torchvision.models as models
-import gemicai.Classifier as test
 import gemicai as gem
 import unittest
+
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 data_path = os.path.join("examples", "gzip", "CT")
 data_set = os.path.join(data_path, "000001.gemset")

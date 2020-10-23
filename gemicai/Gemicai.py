@@ -2,11 +2,23 @@
 import pydicom
 import gemicai as gem
 import os
+from abc import ABC, abstractmethod
 
 
-class Gemicai:
+# Use this class to build your own General-purpose medical image classification AI, or for short, Gemicai.
+class Gemicai(ABC):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def classify(self, dcm):
+        pass
+
+
+# The ZGT implementation of a Gemicai
+class GemicaiZGT(Gemicai):
     def __init__(self, classifiers_path):
-        eams
         self.relevant_modalities = ['CT', 'DX', 'MG', 'MR', 'PT', 'US']
         # self.relevant_modalities = ['DX', 'MG']
         self.classifiers_path = classifiers_path
@@ -20,15 +32,41 @@ class Gemicai:
         if modality not in self.relevant_modalities:
             raise Exception('Modality "{}" is not supported.'.format(modality))
         tensor = gem.extract_tensor(dcm)
-        if modality == 'MG':
-            return self.classify_mg(tensor)
-        # For demonstration purposes use the DX tree anyway
-        return self.trees['DX'].classify(tensor)
 
-    def classify_mg(self, tensor):
+        # All modalities just classify with DX tree for now, as im still training the trees. This way Kevin can use the
+        # AI with deployment and we don't have to worry about new classifiers that should be added to the deploy etc.
+        if modality == 'CT':
+            return self._classify_mg(tensor)
+        elif modality == 'DX':
+            return self._classify_dx(tensor)
+        elif modality == 'MG':
+            return self._classify_mg(tensor)
+        elif modality == 'MR':
+            return self._classify_mr(tensor)
+        elif modality == 'PT':
+            return self._classify_pt(tensor)
+        elif modality == 'US':
+            return self._classify_us(tensor)
+
+    def _classify_ct(self, tensor):
+        self.trees['DX'].classify(tensor)
+
+    def _classify_mg(self, tensor):
         net = gem.Classifier.from_file(os.path.join(self.classifiers_path, 'mg', 'resnext.gemclas'))
         return {
             'Modality': [('MG', 1.0)],
             'BodyPartExamined': [('BREAST', 1.0)],
             'SeriesDescription': net.classify(tensor)[0]
         }
+
+    def _classify_dx(self, tensor):
+        return self.trees['DX'].classify(tensor)
+
+    def _classify_mr(self, tensor):
+        self.trees['DX'].classify(tensor)
+
+    def _classify_pt(self, tensor):
+        self.trees['DX'].classify(tensor)
+
+    def _classify_us(self, tensor):
+        self.trees['DX'].classify(tensor)
