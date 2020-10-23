@@ -49,7 +49,7 @@ class GemicaiZGT(Gemicai):
             return self._classify_us(tensor)
 
     def _classify_ct(self, tensor):
-        self.trees['DX'].classify(tensor)
+        return self.trees['DX'].classify(tensor)
 
     def _classify_mg(self, tensor):
         net = gem.Classifier.from_file(os.path.join(self.classifiers_path, 'mg', 'resnext.gemclas'))
@@ -63,10 +63,10 @@ class GemicaiZGT(Gemicai):
         return self.trees['DX'].classify(tensor)
 
     def _classify_mr(self, tensor):
-        self.trees['DX'].classify(tensor)
+        return self.trees['DX'].classify(tensor)
 
     def _classify_pt(self, tensor):
-        self.trees['DX'].classify(tensor)
+        return self.trees['DX'].classify(tensor)
 
     def _classify_us(self, tensor):
-        self.trees['DX'].classify(tensor)
+        return self.trees['DX'].classify(tensor)
