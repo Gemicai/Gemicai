@@ -14,7 +14,28 @@ The distribution is hosted on pypi at: https://pypi.python.org/pypi/gemicai/. Yo
 
     $ pip install gemicai
     
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Or with conda:
+
+    $ conda install -c conda-forge gemicai
+   
+### Installing a development environment
+To install a development environment for gemicai, we highly recomend using conda. First create a virtual environment for the project:
+
+    $ conda create -n gemicai_dev
+    
+Activate virtual environment:
+    
+    $ conda activate gemicai_dev
+   
+Clone the repository:
+
+    $ git clone https://github.com/Gemicai/utilities.git
+
+Install gemicai in editable state:
+
+    $ pip install -e .
+
+You now have a development version of Gemicai installed, and local edits will be automatically included in the installed package.
 
 ## Jupyter Notebook Intro to Gemicai
 Go to https://learn.gemic.ai/ or put the Jupter Notebook files somewhere in the repo. Our make another .md file to link to? Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
