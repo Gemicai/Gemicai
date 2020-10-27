@@ -67,15 +67,23 @@ class ClassifierTree:
             data.append([labels.index(label), label, cnt_classifiers, '{:.1f}'.format(cnt_classes / cnt_classifiers)])
         return str(tabulate(data, headers=['Depth', 'Label', 'Classifiers', 'Avg. classes'], tablefmt='orgtbl'))
 
-    def train(self, dataset, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
-        self.root.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+    def __iter__(self):
+        # TODO: For gemicai version 1.0 it might be a nice idea to give ClassifierTree an iterator that iterators over
+        #  all nodes in the tree.
+        raise NotImplementedError
+
+    def train(self, dataset, epochs=20, num_workers=0, pin_memory=False):
+        template = ''
+        gem.utils.table_print()
+        self.root.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory)
         for child in self.root.children():
             node = ClassifierNode.from_file(child)
-            node.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+            node.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory)
+            node_acc = node.evaluate(dataset)
 
     def evaluate(self):
-        # TODO
-        pass
+        # TODO: No funcion yet for evaluating the whole tree at once.
+        raise NotImplementedError
 
     def classify(self, tensor):
         predicted = self.root.classify(tensor)
@@ -84,6 +92,17 @@ class ClassifierTree:
         else:
             child = gem.ClassifierTree.from_dir(os.path.join(self.path, predicted[0][0]))
             return {self.root.label: predicted, **child.classify(tensor)}
+
+    # Returns total number of nodes in the tree
+    def nodes_in_tree(self):
+        total = len(self.root.children())
+        for child_path in self.root.children():
+            child = ClassifierTree.from_dir(child_path)
+            if child.root.is_leaf():
+                return total
+            else:
+                total += child.nodes_in_tree()
+        return total
 
     # Instantiates ClassifierTree object from ClassifierNode, or ClassifierNode filepath
     @staticmethod
@@ -127,8 +146,9 @@ class ClassifierNode:
 
     def evaluate(self, dataset, num_workers=0, pin_memory=False, verbosity=0):
         dataset = dataset.subset(self.dataset_constraints)
-        self.accuracy = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory,
-                                                 verbosity=verbosity)
+        acc = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+        self.accuracy = acc
+        return acc
 
     # ClassifierNode can only classify 1 tensor at a time.
     def classify(self, tensor):

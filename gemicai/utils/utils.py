@@ -55,3 +55,14 @@ def dir_info(directory):
     if len(data) > 1:
         data.append(['TOTAL', sum(cnt_ext.values()), format_byte_size(sum(sum_size.values()))])
     print(tabulate(data, headers=['Extension', 'Files', 'Size'], tablefmt='orgtbl'), '\n')
+
+
+def table_print(template, data, is_header=False):
+    assert len(template) == len(data), 'Template length and data length should be equal!'
+    template = ['{:.7f}', '{:8s}']
+    for i, d in enumerate(data):
+        data[i] = template[i].format(d)
+    if is_header:
+        print(tabulate([[]], headers=data, tablefmt='orgtbl'))
+    else:
+        print(tabulate([data], tablefmt='orgtbl'))

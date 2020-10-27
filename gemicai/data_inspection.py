@@ -9,7 +9,7 @@ import torch
 def correct_dataset(net: gem.Classifier, dataset: gem.GemicaiDataset):
     for tensor, label in dataset:
         prediction = net.classify(tensor)
-        if prediction[0][0] != label:
+        if prediction[0][0][0] != label:
             print('True label: {}\nPrediction : {}'.format(label, prediction))
             plt.imshow(torch.transpose(tensor, 0, 2))
             plt.show()

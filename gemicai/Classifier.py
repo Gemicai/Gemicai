@@ -207,8 +207,8 @@ class Classifier:
         return gem.io.load(file_path, zipped=zipped)
 
     @staticmethod
-    def validate_dataset_parameters(dataset, batch_size, epochs, num_workers, pin_memory, test_dataset, verbosity,
-                                    output_policy):
+    def validate_dataset_parameters(dataset, batch_size, num_workers, pin_memory, test_dataset, verbosity,
+                                    output_policy, epochs=1):
 
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
