@@ -10,6 +10,9 @@ __pycache__/*
 .idea/*
 classifiers/*
 gemicai/__pycache__/*
+gemicai/utils/__pycache__/*
+gemicai/io/__pycache__/*
+docs/build/*
 
 # Gradle and Maven with auto-import
 # When using Gradle or Maven with auto-import, you should exclude module files,
