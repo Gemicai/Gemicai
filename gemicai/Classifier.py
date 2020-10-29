@@ -150,12 +150,11 @@ class Classifier:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
             return acc, total, correct
 
-    # FIXME: classification done on CPU as it keeps failing on GPU for some reason
     def classify(self, tensor):
-        self.module.cpu()
+        self.module.to(self.device)
         tensor.to(self.device)
         if len(tensor.size()) == 3:
-            tensor = torch.unsqueeze(tensor, 0)
+            tensor = torch.unsqueeze(tensor, 0).to(self.device)
         res, m = [], torch.nn.Softmax(dim=1)
         for classification in m(self.module(tensor).data):
             res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
