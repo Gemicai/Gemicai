@@ -8,7 +8,14 @@ import os
 
 
 class DataObject(ABC):
+    """"""
+
     def __init__(self, tensor, label_values):
+        """
+
+        :param tensor:
+        :param label_values:
+        """
         if not isinstance(tensor, torch.Tensor):
             raise TypeError("DataObject  expects tensor to be a torch.Tensor")
         if not isinstance(label_values, list):
@@ -18,26 +25,48 @@ class DataObject(ABC):
 
     @abstractmethod
     def plot(self):
+        """
+        """
         pass
 
     @staticmethod
     @abstractmethod
     def from_file(filename):
+        """
+
+        :param filename:
+        """
         pass
 
 
 class DicomObject(DataObject):
+    """"""
+
     def __init__(self, tensor, labels, label_values):
+        """
+
+        :param tensor:
+        :param labels:
+        :param label_values:
+        """
         if not isinstance(labels, list):
             raise TypeError("DataObject expects label_values parameter to be a list")
         DataObject.__init__(self, tensor, label_values)
         self.label_types = labels
 
     def __str__(self):
+        """
+
+        :return:
+        """
         return str(list(zip(self.label_types, self.labels)))
 
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
+        """
+
+        :param cmap:
+        """
         if not isinstance(cmap, str):
             raise TypeError("cmap parameter should be a string")
         plt.title(
@@ -46,6 +75,11 @@ class DicomObject(DataObject):
         plt.show()
 
     def get_value_of(self, item):
+        """
+
+        :param item:
+        :return:
+        """
         if not isinstance(item, str):
             raise TypeError("item parameter should be a string")
         try:
@@ -54,6 +88,11 @@ class DicomObject(DataObject):
             return None
 
     def meets_constraints(self, constraints: dict):
+        """
+
+        :param constraints:
+        :return:
+        """
         if not isinstance(constraints, dict):
             raise TypeError("constraints parameter should be a dict")
         for k in constraints.keys():
@@ -63,6 +102,13 @@ class DicomObject(DataObject):
 
     @staticmethod
     def from_file(filename, labels, tensor_size=None):
+        """
+
+        :param filename:
+        :param labels:
+        :param tensor_size:
+        :return:
+        """
         if not os.path.isfile(filename):
             raise FileNotFoundError
         if not isinstance(labels, list):
