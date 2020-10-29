@@ -45,13 +45,14 @@ def save(file_path, obj, zipped=False):
 
 
 def load(file_path, zipped=False):
-    """This function is used to load back a Gemicai object from a file system.
+    """This function is used to load back a Gemicai object from the file system.
 
     :param file_path: valid path to a file
     :type file_path: str
     :param zipped: whenever the specified file is zipped
     :type zipped: bool
     :return: a valid Gemicai object
+    :raises Exception: raised if object could not have been loaded in
     """
     if zipped:
         with gzip.open(file_path, 'rb') as inp:
@@ -68,7 +69,8 @@ def load(file_path, zipped=False):
 def get_path_with_extension(file_path, obj):
     """Returns file path with a correct extension. Dependent on the object type.
 
-    :param file_path: path to a file without it's extension eg. /home/test/test_file
+    :param file_path: path to a file without it's extension eg. /home/test/test_file. If correct extension is present
+        path will be changed
     :type file_path: str
     :param obj: object which extension type we want to return
     :type obj: Union[gem.Classifier, gem.ClassifierNode]
