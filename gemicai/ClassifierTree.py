@@ -3,6 +3,7 @@ import pickle
 import copy
 from tabulate import tabulate
 import os
+from datetime import datetime
 
 
 class ClassifierTree:
@@ -73,13 +74,23 @@ class ClassifierTree:
         raise NotImplementedError
 
     def train(self, dataset, epochs=20, num_workers=0, pin_memory=False):
-        template = ''
-        gem.utils.table_print()
-        self.root.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory)
-        for child in self.root.children():
-            node = ClassifierNode.from_file(child)
+        print('Training of ClassifierTree {} begun. Total nodes to train: {}'
+              .format(self.path, len(self.nodes_in_tree())))
+        start = datetime.now()
+        # TODO: This is not ideal and can be done better, but good enough for beta release
+        template = ['{:>5s}', '{:>5s}', '{:20s}', '{:>8s}', '{:>10s}', '{:>10s}', '{:8s}']
+        header = ['Node', 'Depth', 'Parents', 'Classes', 'Train size', 'Train acc', 'Elapsed']
+        gem.utils.table_print(template, header, is_header=True)
+        for i, node_path in enumerate(self.nodes_in_tree()):
+            start = datetime.now()
+            node = ClassifierNode.from_file(node_path)
             node.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory)
-            node_acc = node.evaluate(dataset)
+            node.save()
+            parents = os.path.relpath(os.path.dirname(node_path), self.path)
+            acc, total, _ = node.evaluate(dataset)
+            elapsed = gem.utils.strfdelta(datetime.now() - start)
+            data = [i+1, len(parents.split('/')), parents, len(node.classifier.classes), total, str(acc)+'%', elapsed]
+            gem.utils.table_print(template, data)
 
     def evaluate(self):
         # TODO: No funcion yet for evaluating the whole tree at once.
@@ -93,20 +104,22 @@ class ClassifierTree:
             child = gem.ClassifierTree.from_dir(os.path.join(self.path, predicted[0][0]))
             return {self.root.label: predicted, **child.classify(tensor)}
 
-    # Returns total number of nodes in the tree
-    def nodes_in_tree(self):
-        total = len(self.root.children())
+    # Returns list of all nodes in tree
+    def nodes_in_tree(self, _nodes=None):
+        if _nodes is None:
+            nodes = [self.root.file_path]
         for child_path in self.root.children():
             child = ClassifierTree.from_dir(child_path)
             if child.root.is_leaf():
-                return total
+                nodes.append(child.root.file_path)
             else:
-                total += child.nodes_in_tree()
-        return total
+                child.nodes_in_tree(_nodes=nodes)
+        if _nodes is None:
+            return nodes
 
     # Instantiates ClassifierTree object from ClassifierNode, or ClassifierNode filepath
     @staticmethod
-    def from_node(node=None):
+    def from_node(node):
         if isinstance(node, str):
             node = ClassifierNode.from_file(node)
         if not isinstance(node, ClassifierNode):
@@ -140,14 +153,14 @@ class ClassifierNode:
         self.accuracy = '77.77%'
 
     def train(self, dataset, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
-        dataset = dataset.subset(self.dataset_constraints)
+        dataset = dataset.subset(self.dataset_constraints)[self.label]
         self.classifier.train(dataset, epochs=epochs, num_workers=num_workers, pin_memory=pin_memory,
                               verbosity=verbosity)
 
     def evaluate(self, dataset, num_workers=0, pin_memory=False, verbosity=0):
-        dataset = dataset.subset(self.dataset_constraints)
+        dataset = dataset.subset(self.dataset_constraints)[self.label]
         acc = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
-        self.accuracy = acc
+        self.accuracy = acc[0]
         return acc
 
     # ClassifierNode can only classify 1 tensor at a time.

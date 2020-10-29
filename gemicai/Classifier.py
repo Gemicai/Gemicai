@@ -53,8 +53,9 @@ class Classifier:
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
               verbosity=0, test_dataset=None, output_policy=policy.ToConsole()):
-        Classifier.validate_dataset_parameters(dataset, batch_size, epochs, num_workers, pin_memory,
-                                               test_dataset, verbosity, output_policy)
+        Classifier.validate_dataset_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
+                                               pin_memory=pin_memory, test_dataset=test_dataset, verbosity=verbosity,
+                                               output_policy=output_policy, epochs=epochs)
 
         if not dataset.can_be_parallelized():
             num_workers = 0
@@ -147,8 +148,7 @@ class Classifier:
                 output_policy.accuracy_summary_basic(total, correct, acc)
             if verbosity >= 2:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
-
-            return acc
+            return acc, total, correct
 
     # FIXME: classification done on CPU as it keeps failing on GPU for some reason
     def classify(self, tensor):
@@ -209,7 +209,6 @@ class Classifier:
     @staticmethod
     def validate_dataset_parameters(dataset, batch_size, num_workers, pin_memory, test_dataset, verbosity,
                                     output_policy, epochs=1):
-
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
 

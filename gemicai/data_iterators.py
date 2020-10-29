@@ -68,6 +68,13 @@ class DicomoDataset(GemicaiDataset):
     def __len__(self):
         pass
 
+    def __getitem__(self, arg):
+        if isinstance(arg, int):
+            arg = self.labels[arg]
+        if arg not in self.labels:
+            raise ValueError('Specified argument not in gemset labels. Valid labels are: {}'.format(self.labels))
+        return type(self)(self.base_path, labels=[arg], transform=self.transform, constraints=self.constraints)
+
     @abstractmethod
     def can_be_parallelized(self):
         pass
