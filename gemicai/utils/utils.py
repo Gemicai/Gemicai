@@ -59,10 +59,20 @@ def dir_info(directory):
 
 def table_print(template, data, is_header=False):
     assert len(template) == len(data), 'Template length and data length should be equal!'
-    template = ['{:.7f}', '{:8s}']
     for i, d in enumerate(data):
-        data[i] = template[i].format(d)
+        data[i] = template[i].format(str(d))
+    s = '| '
+    for d in data:
+        s += d + ' | '
+    print(s)
     if is_header:
-        print(tabulate([[]], headers=data, tablefmt='orgtbl'))
-    else:
-        print(tabulate([data], tablefmt='orgtbl'))
+        line = '|'
+        for d in data:
+            line += '-' * len(d) + '--+'
+        line = line[:-1]
+        print(line+'|')
+    # if is_header:
+    #     print(tabulate([[]], headers=data, tablefmt='orgtbl'))
+    # else:
+    #     print(tabulate(data, tablefmt='orgtbl'))
+
