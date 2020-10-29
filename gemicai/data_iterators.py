@@ -69,8 +69,14 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
     @abstractmethod
-    def plot_one_of_every(self):
-        """Should plot one image per class."""
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        """Should plot one image per class.
+
+        :param label: label according to which we will look for a unique values
+        :type label: str
+        :param cmap: color scheme
+        :type cmap: str
+        """
         pass
 
     @abstractmethod
@@ -79,9 +85,13 @@ class GemicaiDataset(ABC, IterableDataset):
         pass
 
 
-# This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
-    """Every custom policy should extend this abstract base class."""
+    """Every provided non-abstract data iterator extends this class and calls it's __init__ method with a following
+    argument:
+
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    """
 
     def __init__(self, label_counter_type=gem.label_counters.LabelCounter):
         if not issubclass(label_counter_type, gem.label_counters.GemicaiLabelCounter):
@@ -101,8 +111,18 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     def __getitem__(self, arg):
-        if isinstance(arg, int):
-            arg = self.labels[arg]
+        """Custom override for a __getitem__ method. Returns a new data iterator that returns only objects with a
+        label by a given by an arg
+
+        :param arg: index of a label stored in the self.labels list
+        :type arg: int
+        :raises TypeError: raised if arg is not of an int type
+        :return:
+        """
+        if not isinstance(arg, int):
+            raise TypeError("Argument should have an int type")
+
+        arg = self.labels[arg]
         if arg not in self.labels:
             raise ValueError('Specified argument not in gemset labels. Valid labels are: {}'.format(self.labels))
         return type(self)(self.base_path, labels=[arg], transform=self.transform, constraints=self.constraints)
@@ -116,9 +136,24 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     def classes(self, label):
+        """Returns a list of all of the classes in the dataset.
+
+        :param label: label to summarize on
+        :type label: str
+        :return: list of possible label values present in the dataset
+        """
         return list(self.summarize(label, print_summary=False).dic.keys())
 
     def summarize(self, label, print_summary=True):
+        """Returns or prints a summary of all the DataObject values in the dataset selected by the label.
+
+        :param label: field label which values to summarize, for example 'CT' or 'MG'
+        :type label: str
+        :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
+            object
+        :type print_summary: bool
+        :return: if print_summary is set to false a class that extends a gemicai.label_counters.GemicaiLabelCounter
+        """
         if not isinstance(label, str):
             raise TypeError("label should be a string")
         if not isinstance(print_summary, bool):
@@ -136,6 +171,13 @@ class DicomoDataset(GemicaiDataset):
             return cnt
 
     def plot_one_of_every(self, label, cmap='gray_r'):
+        """Plots one image per value type.
+
+        :param label: label according to which we will look for a unique values, eg, 'CT'
+        :type label: str
+        :param cmap: color scheme
+        :type cmap: str
+        """
         if not isinstance(label, str):
             raise TypeError("label should be a string")
 
@@ -162,18 +204,56 @@ class DicomoDataset(GemicaiDataset):
 
     @staticmethod
     def from_file(file_path, labels=[], transform=None, constraints={}):
+        """Creates a data iterator for a supplied .gemset file
+
+        :param file_path: a valid path to a .gemset file
+        :type file_path: str
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param transform: optional transforms to be applied on the tensor
+        :type transform: Optional[any torchvision.transforms]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        :type constraints: Optional[dict]
+        :return: a valid gemicai.data_iterators.PickledDicomoDataSet object
+        """
         if not os.path.isfile(file_path):
             raise FileNotFoundError
         return PickledDicomoDataSet(file_path, labels, transform, constraints)
 
     @staticmethod
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
+        """Creates a data iterator from the supplied folder which should contain .gemset data sets
+
+        :param folder_path: a valid path to an existing folder which contains .gemset datasets
+        :type folder_path: str
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param transform: optional transforms to be applied on the tensor
+        :type transform: Optional[any torchvision.transforms]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        :type constraints: Optional[dict]
+        :return: a valid gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
+        """
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
         return ConcurrentPickledDicomObjectTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
     def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
+        """Created a data iterator from the supplied file or folder path
+
+        :param data_set_path:  a valid path to an existing folder which contains .gemset datasets
+            or a valid path to a .gemset file
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        :type constraints: Optional[dict]
+        :return: gemicai.data_iterators.PickledDicomoDataSet object if file path was supplied otherwise
+            gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
+        """
         transform = gem.torchvision.transforms.Compose([
             gem.torchvision.transforms.ToPILImage(),
             gem.torchvision.transforms.Grayscale(3),
