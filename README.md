@@ -10,6 +10,7 @@ Gemicai is a machine learning library built on top of PyTorch. Gemicai makes num
 All of Gemicai's documentation can be found at https://gemic.ai/docs.
 
 ## Installation
+<p style="color:#FF0000";>Not published yet! Use development installation.</p><br>
 The distribution is hosted on pypi at: https://pypi.python.org/pypi/gemicai/. You can install the package with pip by running the following command in your terminal:
 
     $ pip install gemicai
