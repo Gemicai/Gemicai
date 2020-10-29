@@ -179,7 +179,7 @@ class DicomoDataset(GemicaiDataset):
         :type label: str
         :param cmap: color scheme
         :type cmap: str
-        raises TypeError: raised whenever label is not a str
+        :raises TypeError: raised whenever label is not a str
         """
         if not isinstance(label, str):
             raise TypeError("label should be a string")
