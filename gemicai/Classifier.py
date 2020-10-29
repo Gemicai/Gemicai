@@ -112,7 +112,7 @@ class Classifier:
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
                  output_policy=policy.ToConsole()):
         Classifier.validate_dataset_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
-                                               pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
+                                               epochs=0, pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
                                                output_policy=output_policy)
 
         if not dataset.can_be_parallelized():

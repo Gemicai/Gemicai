@@ -35,7 +35,7 @@ def demo_initialize_classifier():
     resnet18 = models.resnet18(pretrained=True)
     dataset = gem.DicomoDataset.get_dicomo_dataset(train_dataset, labels=['BodyPartExamined'])
     dataset.summarize('BodyPartExamined')
-    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), enable_cuda=False)
+    net = gem.Classifier(resnet18, dataset.classes('BodyPartExamined'), enable_cuda=True)
     net.save(classifier_path)
 
 
@@ -58,9 +58,9 @@ def demo_train_classifier():
 
 def demo_evaluate_classifier():
     net = gem.Classifier.from_file(classifier_path)
-    dataset = gem.DicomoDataset.get_dicomo_dataset(test_dataset, labels=['BodyPartExamined'])
+    dataset = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=['BodyPartExamined'])
     # net.evaluate(dataset, verbosity=2)
-    net.evaluate(dataset, verbosity=1, output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
+    net.evaluate(dataset, verbosity=2, output_policy=gem.ToConsoleAndExcelFile("test.xlsx"))
 
 
 def demo_create_dicomo_dataset():
@@ -94,9 +94,9 @@ def demo_train_tree():
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
     # demo_prepare_data_set()
-    demo_initialize_classifier()
-    demo_train_classifier()
-    # demo_evaluate_classifier()
+    #demo_initialize_classifier()
+    #demo_train_classifier()
+    demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()
