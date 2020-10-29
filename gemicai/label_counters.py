@@ -60,7 +60,6 @@ class LabelCounter(GemicaiLabelCounter):
 
         :param labels: contains labels to count
         :type labels: Union[list, str, pydicom.valuerep.IS]
-        :return:
         """
         if labels is None:
             labels = 'None'
