@@ -1,3 +1,6 @@
+"""This module contains data iterators which are used in order to traverse a dataset and retrieve a relevant information
+from the DataObjects it contains."""
+
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
@@ -9,47 +12,76 @@ import os
 import matplotlib.pyplot as plt
 
 
-# This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
+    """This interface class serves as a basis for the every Gemicai's data iterator."""
+
     @abstractmethod
     def __init__(self):
+        """Should initialize the iterator, it could for example take in a path to the dataset."""
         pass
 
     @abstractmethod
     def __iter__(self):
+        """Should return a valid iterator object on which it is possible to call next."""
         pass
 
     @abstractmethod
     def __next__(self):
+        """Should return a list with a next tensor and it's label."""
         pass
 
     @abstractmethod
     def __len__(self):
+        """Should return a number of items which were iterated over so far."""
         pass
 
     @abstractmethod
-    def summarize(self):
+    def summarize(self, label, print_summary=True):
+        """Should return or print a summary of all the DataObject values in the dataset selected by the label.
+
+        :param label: field label which values to summarize, for example 'CT' or 'MG'
+        :type label: str
+        :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
+            object
+        :type print_summary: bool
+        :return: if print_summary is set to false a class that extends a gemicai.label_counters.GemicaiLabelCounter
+        """
         pass
 
     @abstractmethod
-    def subset(self):
+    def subset(self, constraints):
+        """Should return a subset of a current dataset.
+
+        :param constraints: dictionary with a dataset constraints, eg. {'CT': 'some_value'}
+        :type constraints: dict
+        :return: a correct user defined iterator type which extends gemicai.data_iterators.GemicaiDataset
+        """
         pass
 
     @abstractmethod
     def classes(self, label):
+        """Should return a list of all the classes in the dataset.
+
+        :param label: label to summarize on
+        :type label: str
+        :return: list of possible label values present in the dataset
+        """
         pass
 
     @abstractmethod
     def plot_one_of_every(self):
+        """Should plot one image per class."""
         pass
 
     @abstractmethod
     def can_be_parallelized(self):
+        """Should return a boolean specifying whenever current iterator supports parallelized resource loading."""
         pass
 
 
 # This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
+    """Every custom policy should extend this abstract base class."""
 
     def __init__(self, label_counter_type=gem.label_counters.LabelCounter):
         if not issubclass(label_counter_type, gem.label_counters.GemicaiLabelCounter):
@@ -86,21 +118,16 @@ class DicomoDataset(GemicaiDataset):
     def classes(self, label):
         return list(self.summarize(label, print_summary=False).dic.keys())
 
-    def summarize(self, label, constraints={}, print_summary=True):
+    def summarize(self, label, print_summary=True):
         if not isinstance(label, str):
             raise TypeError("label should be a string")
-        if not isinstance(constraints, dict):
-            raise TypeError("constraints should be a dict")
         if not isinstance(print_summary, bool):
             raise TypeError("print_summary should be a boolean")
 
         temp = self.labels
         self.labels = []
         cnt = self.lbl_ctr_tpe(label)
-        constraints = {**self.constraints, **constraints}
         for dicomo in self:
-            # This is already handled in PickledDicomoDataSet __next__, no need for double check
-            # if dicomo.meets_constraints(constraints):
             cnt.update(dicomo.get_value_of(label))
         self.labels = temp
         if print_summary:
@@ -207,15 +234,17 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return True
 
     def subset(self, constraints):
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
         return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
                                                         {**self.constraints, **constraints})
 
-    def summarize(self, label, constraints={}, print_summary=True):
+    def summarize(self, label, print_summary=True):
         dataset = self.__iter__()
 
         if not print_summary:
-            return dataset.summarize(label, constraints, print_summary)
-        dataset.summarize(label, constraints, print_summary)
+            return dataset.summarize(label, print_summary)
+        dataset.summarize(label, print_summary)
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         return self.__iter__().plot_one_of_every(label, cmap)
