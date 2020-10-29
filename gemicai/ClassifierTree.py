@@ -30,7 +30,13 @@ class ClassifierTree:
             # Set root of the tree
             classes = base_dataset.subset(dataset_constraints).classes(labels[0])
             root_file_path = os.path.join(self.path, labels[0])
-            self.root = ClassifierNode(default_classifier, labels[0], classes, root_file_path, dataset_constraints)
+            default_classifier = gem.Classifier(module=copy.deepcopy(default_classifier.module),
+                                                classes=classes,
+                                                layer_config=copy.deepcopy(default_classifier.layer_config),
+                                                loss_function=copy.deepcopy(default_classifier.loss_function),
+                                                optimizer=copy.deepcopy(default_classifier.optimizer),
+                                                enable_cuda=default_classifier.enable_cuda)
+            self.root = ClassifierNode(default_classifier, labels[0], root_file_path, dataset_constraints)
             self.root.save()
 
             # Recursively sets up the ClassifierTree
@@ -47,7 +53,13 @@ class ClassifierTree:
                 if len(labels) == 2:
                     child_classes = base_dataset.subset(cons).classes(labels[1])
                     child_path = os.path.join(child_dir, labels[1])
-                    ClassifierNode(default_classifier, labels[1], child_classes, child_path, cons).save()
+                    default_classifier = gem.Classifier(module=copy.deepcopy(default_classifier.module),
+                                                        classes=child_classes,
+                                                        layer_config=copy.deepcopy(default_classifier.layer_config),
+                                                        loss_function=copy.deepcopy(default_classifier.loss_function),
+                                                        optimizer=copy.deepcopy(default_classifier.optimizer),
+                                                        enable_cuda=default_classifier.enable_cuda)
+                    ClassifierNode(default_classifier, labels[1], child_path, cons).save()
                 else:
                     ClassifierTree(default_classifier, labels[1:], base_dataset, child_dir, cons)
 
@@ -89,12 +101,23 @@ class ClassifierTree:
             parents = os.path.relpath(os.path.dirname(node_path), self.path)
             acc, total, _ = node.evaluate(dataset)
             elapsed = gem.utils.strfdelta(datetime.now() - start)
-            data = [i+1, len(parents.split('/')), parents, len(node.classifier.classes), total, str(acc)+'%', elapsed]
+            if parents == '.':
+                depth = 0
+            else:
+                depth = len(parents.split('/'))
+            data = [i + 1, depth, parents, len(node.classifier.classes), total, str(acc)+'%', elapsed]
             gem.utils.table_print(template, data)
 
-    def evaluate(self):
-        # TODO: No funcion yet for evaluating the whole tree at once.
-        raise NotImplementedError
+    def evaluate(self, dataset):
+        template = ['{:>5s}', '{:>5s}', '{:20s}', '{:>8s}', '{:>10s}', '{:>10s}']
+        header = ['Node', 'Depth', 'Parents', 'Classes', 'Test size', 'Test acc']
+        gem.utils.table_print(template, header, is_header=True)
+        for i, node_path in enumerate(self.nodes_in_tree()):
+            node = ClassifierNode.from_file(node_path)
+            acc, total, _ = node.evaluate(dataset)
+            parents = os.path.relpath(os.path.dirname(node_path), self.path)
+            data = [i + 1, len(parents.split('/')), parents, len(node.classifier.classes), total, str(acc)+'%']
+            gem.utils.table_print(template, data)
 
     def classify(self, tensor):
         predicted = self.root.classify(tensor)
@@ -138,12 +161,8 @@ class ClassifierTree:
 # label: this is the label the node classifies e.g. 'BodyPartExamined'
 # classes: this is a list of all possible classes a label can have. e.g. ['ABDOMEN','SKULL',etc.]
 class ClassifierNode:
-    def __init__(self, default_classifier, label, classes, file_path, dataset_constraints={}):
-        self.classifier = gem.Classifier(module=copy.deepcopy(default_classifier.module), classes=classes,
-                                         layer_config=copy.deepcopy(default_classifier.layer_config),
-                                         loss_function=copy.deepcopy(default_classifier.loss_function),
-                                         optimizer=copy.deepcopy(default_classifier.optimizer),
-                                         enable_cuda=default_classifier.enable_cuda)
+    def __init__(self, default_classifier, label, file_path, dataset_constraints={}):
+        self.classifier = default_classifier
         self.label = label
         self.file_path = file_path
         self.dataset_constraints = dataset_constraints
@@ -158,10 +177,14 @@ class ClassifierNode:
                               verbosity=verbosity)
 
     def evaluate(self, dataset, num_workers=0, pin_memory=False, verbosity=0):
-        dataset = dataset.subset(self.dataset_constraints)[self.label]
-        acc = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
-        self.accuracy = acc[0]
-        return acc
+        try:
+            dataset = dataset.subset(self.dataset_constraints)[self.label]
+            atc = self.classifier.evaluate(dataset, num_workers=num_workers, pin_memory=pin_memory, verbosity=verbosity)
+        # StopIteration will be raised if the subset contains 0 training images.
+        except StopIteration:
+            atc = 'N/A', 0, 0
+        self.accuracy = atc[0]
+        return atc
 
     # ClassifierNode can only classify 1 tensor at a time.
     def classify(self, tensor):

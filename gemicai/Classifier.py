@@ -101,9 +101,9 @@ class Classifier:
                 train_acc, test_acc = '-', '-'
                 # Evaluating models increases epoch time significantly
                 if verbosity >= 2:
-                    train_acc = str(self.evaluate(dataset)) + '%'
+                    train_acc = str(self.evaluate(dataset)[0]) + '%'
                     if test_dataset is not None:
-                        test_acc = str(self.evaluate(test_dataset)) + '%'
+                        test_acc = str(self.evaluate(test_dataset)[0]) + '%'
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
                 output_policy.training_epoch_stats(epoch + 1, running_loss, total, train_acc, test_acc, elapsed, eta)
         if verbosity >= 1:
