@@ -94,9 +94,9 @@ def demo_train_tree():
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
     # demo_prepare_data_set()
-    #demo_initialize_classifier()
-    #demo_train_classifier()
-    demo_evaluate_classifier()
+    demo_initialize_classifier()
+    # demo_train_classifier()
+    # demo_evaluate_classifier()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()
