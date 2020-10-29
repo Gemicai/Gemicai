@@ -376,6 +376,7 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
 
 class PickledDicomoFilePool(DicomoDataset):
     """This class takes in a list of files as an input and iterates over them.
+    It's constructor takes in the following parameters:
 
     :param file_pool: list of a valid file paths to .gemset datasets
     :type file_pool: list
@@ -469,6 +470,7 @@ class PickledDicomoFilePool(DicomoDataset):
 
 class PickledDicomoDataFolder(DicomoDataset):
     """This class takes in a path to a folder containing a .gemset datasets and iterates over them.
+    It's constructor takes in the following parameters:
 
     :param base_path: a path to a valid folder containing a .gemset datasets
     :type base_path: str
@@ -562,11 +564,12 @@ class PickledDicomoDataFolder(DicomoDataset):
 
 class PickledDicomoDataSet(DicomoDataset):
     """This class takes in a valid path to a .gemset dataset and iterates over it.
+    It's constructor takes in the following parameters:
 
     :param pickle_path: a path to a valid .gemset file
     :type pickle_path: str
     :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
-    :type labels: list
+    :type labels: Optional[list]
     :param transform: optional transforms to be applied on the tensor
     :type transform: Optional[any torchvision.transforms]
     :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
