@@ -1,3 +1,5 @@
+"""This module contains data objects used by the Gemicai's iterators"""
+
 from gemicai import dicom_utilities as du
 from matplotlib import pyplot as plt
 from abc import ABC, abstractmethod
@@ -8,13 +10,15 @@ import os
 
 
 class DataObject(ABC):
-    """"""
+    """Every custom data object should extend this abstract base class and call it's constructor."""
 
     def __init__(self, tensor, label_values):
-        """
+        """Default constructor which enforces some basic rules on it's children.
 
-        :param tensor:
-        :param label_values:
+        :param tensor: contains tensor
+        :type tensor: torch.Tensor
+        :param label_values: contains a list of tensor's labels
+        :type label_values: list
         """
         if not isinstance(tensor, torch.Tensor):
             raise TypeError("DataObject  expects tensor to be a torch.Tensor")
@@ -25,29 +29,32 @@ class DataObject(ABC):
 
     @abstractmethod
     def plot(self):
-        """
-        """
+        """Call to this method should plot DataObject's tensor to the screen."""
         pass
 
     @staticmethod
     @abstractmethod
     def from_file(filename):
-        """
+        """This method should create and return a DataObject instance.
 
-        :param filename:
+        :param filename: path to a valid file name
+        :type filename: Union[os.path, str]
         """
         pass
 
 
 class DicomObject(DataObject):
-    """"""
+    """Gemicai's default data object """
 
     def __init__(self, tensor, labels, label_values):
-        """
+        """Constructs a DicomoObject from the given data.
 
         :param tensor:
-        :param labels:
-        :param label_values:
+        :type tensor: torch.Tensor
+        :param labels: list of image label types
+        :type labels: list
+        :param label_values: list of image label values
+        :type label_values: list
         """
         if not isinstance(labels, list):
             raise TypeError("DataObject expects label_values parameter to be a list")
@@ -55,17 +62,18 @@ class DicomObject(DataObject):
         self.label_types = labels
 
     def __str__(self):
-        """
+        """Returns a string representation of the labels held by this object.
 
-        :return:
+        :return: a string containing a list of tuples in a format (label_type, label_values)
         """
         return str(list(zip(self.label_types, self.labels)))
 
     # Plots dicom image with some additional label info.
     def plot(self, cmap='gray'):
-        """
+        """Prints labels and plots the tensor.
 
-        :param cmap:
+        :param cmap: color scheme
+        :type cmap: str
         """
         if not isinstance(cmap, str):
             raise TypeError("cmap parameter should be a string")
@@ -75,10 +83,11 @@ class DicomObject(DataObject):
         plt.show()
 
     def get_value_of(self, item):
-        """
+        """Returns a label value of a given label type.
 
-        :param item:
-        :return:
+        :param item: string with a objects label
+        :type item: str
+        :return: value of a label or None if the object does not contain it
         """
         if not isinstance(item, str):
             raise TypeError("item parameter should be a string")
@@ -88,10 +97,11 @@ class DicomObject(DataObject):
             return None
 
     def meets_constraints(self, constraints: dict):
-        """
+        """Checks whenever the object meets a certain type of criteria.
 
-        :param constraints:
-        :return:
+        :param constraints: constraints to check against eg. {'CT': 'has_some_value'}
+        :type constraints: dict
+        :return: True if the object meets criteria, False otherwise
         """
         if not isinstance(constraints, dict):
             raise TypeError("constraints parameter should be a dict")
@@ -102,12 +112,17 @@ class DicomObject(DataObject):
 
     @staticmethod
     def from_file(filename, labels, tensor_size=None):
-        """
+        """Creates a DicomoObject from a specified file.
 
-        :param filename:
-        :param labels:
-        :param tensor_size:
-        :return:
+        :param filename: a valid file path
+        :type filename: Union[os.path, str]
+        :param labels: labels which values will be taken from the Dicom object. The pixel_array field should not be
+            specified as it is one of the default fields fetched internally.
+        :type labels: list
+        :param tensor_size: used to resize a tensor. If left unspecified it will try to use the current image size
+            otherwise it will use the specified values. Correct format ((int)x, (int)y)
+        :type tensor_size: Optional[tuple]
+        :return: DicomoObject instance
         """
         if not os.path.isfile(filename):
             raise FileNotFoundError
