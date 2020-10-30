@@ -39,7 +39,7 @@ class GemicaiDataset(ABC, IterableDataset):
     def summarize(self, label, print_summary=True):
         """Should return or print a summary of all the DataObject values in the dataset selected by the label.
 
-        :param label: field label which values to summarize, for example 'CT' or 'MG'
+        :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
         :type label: str
         :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
             object
@@ -52,7 +52,7 @@ class GemicaiDataset(ABC, IterableDataset):
     def subset(self, constraints):
         """Should return a subset of a current dataset.
 
-        :param constraints: dictionary with a dataset constraints, eg. {'CT': 'some_value'}
+        :param constraints: dictionary with a dataset constraints, eg. {'Modality': 'CT'}
         :type constraints: dict
         :return: a correct user defined iterator type which extends gemicai.data_iterators.GemicaiDataset
         """
@@ -148,7 +148,7 @@ class DicomoDataset(GemicaiDataset):
     def summarize(self, label, print_summary=True):
         """Returns or prints a summary of all the DataObject values in the dataset selected by the label.
 
-        :param label: field label which values to summarize, for example 'CT' or 'MG'
+        :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
         :type label: str
         :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
             object
@@ -175,7 +175,7 @@ class DicomoDataset(GemicaiDataset):
     def plot_one_of_every(self, label, cmap='gray_r'):
         """Plots one image per value type.
 
-        :param label: label according to which we will look for a unique values, eg, 'CT'
+        :param label: label according to which we will look for a unique values, eg, 'Modality'
         :type label: str
         :param cmap: color scheme
         :type cmap: str
@@ -216,7 +216,7 @@ class DicomoDataset(GemicaiDataset):
         :param transform: optional transforms to be applied on the tensor
         :type transform: Optional[any torchvision.transforms]
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: Optional[dict]
         :return: a valid gemicai.data_iterators.PickledDicomoDataSet object
         :raises FileNotFoundError: raised whenever file_path does not point to any valid file
@@ -236,7 +236,7 @@ class DicomoDataset(GemicaiDataset):
         :param transform: optional transforms to be applied on the tensor
         :type transform: Optional[any torchvision.transforms]
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: Optional[dict]
         :return: a valid gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
         :raises NotADirectoryError: raised whenever passed folder_path is invalid
@@ -254,7 +254,7 @@ class DicomoDataset(GemicaiDataset):
         :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
         :type labels: Optional[list]
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: Optional[dict]
         :return: gemicai.data_iterators.PickledDicomoDataSet object if file path was supplied otherwise
             gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
@@ -287,7 +287,7 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
     :param transform: optional transforms to be applied on the tensor
     :type transform: Optional[any torchvision.transforms]
     :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-        next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
     :type constraints: Optional[dict]
     :param label_counter_type: label counter used by the summarize method
     :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
@@ -353,7 +353,7 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         """Returns a dataset subset using provided constraints
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: dict
         :return: a valid gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
         :raises TypeError: raised whenever constraints parameter is not a dict
@@ -385,7 +385,7 @@ class PickledDicomoFilePool(DicomoDataset):
     :param transform: optional transforms to be applied on the tensor
     :type transform: Optional[any torchvision.transforms]
     :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-        next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
     :type constraints: Optional[dict]
     :param label_counter_type: label counter used by the summarize method
     :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
@@ -458,7 +458,7 @@ class PickledDicomoFilePool(DicomoDataset):
         """Returns a dataset subset using provided constraints
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: dict
         :return: a valid gemicai.data_iterators.PickledDicomoFilePool object
         :raises TypeError: raised whenever constraints parameter is not a dict
@@ -479,7 +479,7 @@ class PickledDicomoDataFolder(DicomoDataset):
     :param transform: optional transforms to be applied on the tensor
     :type transform: Optional[any torchvision.transforms]
     :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-        next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
     :type constraints: Optional[dict]
     :param label_counter_type: label counter used by the summarize method
     :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
@@ -552,7 +552,7 @@ class PickledDicomoDataFolder(DicomoDataset):
         """Returns a dataset subset using provided constraints
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: dict
         :return: a valid gemicai.data_iterators.PickledDicomoDataFolder object
         :raises TypeError: raised whenever constraints parameter is not a dict
@@ -573,7 +573,7 @@ class PickledDicomoDataSet(DicomoDataset):
     :param transform: optional transforms to be applied on the tensor
     :type transform: Optional[any torchvision.transforms]
     :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-        next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
     :type constraints: Optional[dict]
     :param label_counter_type: label counter used by the summarize method
     :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
@@ -706,7 +706,7 @@ class PickledDicomoDataSet(DicomoDataset):
         """Returns a dataset subset using provided constraints
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
-            next() call, eg. {'CT': 'some_value'} or {'CT': ['val_1', 'val_2']}
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
         :type constraints: dict
         :return: a valid gemicai.data_iterators.PickledDicomoDataSet object
         :raises TypeError: raised whenever constraints parameter is not a dict

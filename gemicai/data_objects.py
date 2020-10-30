@@ -99,7 +99,7 @@ class DicomObject(DataObject):
     def meets_constraints(self, constraints: dict):
         """Checks whenever the object meets a certain type of criteria.
 
-        :param constraints: constraints to check against eg. {'CT': 'has_some_value'}
+        :param constraints: constraints to check against eg. {'Modality': 'CT'}
         :type constraints: dict
         :return: True if the object meets criteria, False otherwise
         """
