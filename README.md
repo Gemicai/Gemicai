@@ -30,7 +30,7 @@ Activate virtual environment:
    
 Clone the repository:
 
-    $ git clone https://github.com/Gemicai/utilities.git
+    $ git clone https://github.com/Gemicai/Gemicai.git
 
 Install gemicai in editable state:
 
