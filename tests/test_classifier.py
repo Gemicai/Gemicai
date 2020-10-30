@@ -3,6 +3,15 @@ import torchvision.models as models
 import gemicai as gem
 import unittest
 
+# TODO: We do not need this code:
+# import os,sys,inspect
+# current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+# parent_dir = os.path.dirname(current_dir)
+# sys.path.insert(0, parent_dir)
+# TODO: It's not super important, as this works as well, however if you do a development install of gemicai
+#  (the README.md says how to do that) you can import gemicai everywhere withouth having to worry about relative imports
+
+
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 data_path = os.path.join("examples", "gzip", "CT")
