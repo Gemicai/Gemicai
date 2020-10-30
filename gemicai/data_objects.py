@@ -99,7 +99,7 @@ class DicomObject(DataObject):
     def meets_constraints(self, constraints: dict):
         """Checks whenever the object meets a certain type of criteria.
 
-        :param constraints: constraints to check against eg. {'CT': 'has_some_value'}
+        :param constraints: constraints to check against eg. {'Modality': 'CT'}
         :type constraints: dict
         :return: True if the object meets criteria, False otherwise
         """
@@ -114,7 +114,7 @@ class DicomObject(DataObject):
     def from_file(filename, labels, tensor_size=None):
         """Creates a DicomoObject from a specified file.
 
-        :param filename: a valid file path
+        :param filename: a valid dicom file path
         :type filename: Union[os.path, str]
         :param labels: labels which values will be taken from the Dicom object. The pixel_array field should not be
             specified as it is one of the default fields fetched internally.

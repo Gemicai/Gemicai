@@ -89,14 +89,22 @@ def demo_train_tree():
     print(tree)
 
 
+def demo_classify_tensor():
+    net = gem.Classifier.from_file(classifier_path)
+    dataset = gem.DicomoDataset.get_dicomo_dataset(eval_dataset, labels=['BodyPartExamined'])
+    data = next(iter(dataset))
+    print(net.classify(data[0]))
+
+
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
-    # demo_prepare_data_set()
+    #demo_prepare_data_set()
     demo_initialize_classifier()
     # demo_train_classifier()
     # demo_evaluate_classifier()
+    demo_classify_tensor()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()

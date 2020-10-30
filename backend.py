@@ -6,4 +6,4 @@ mg = gem.load_dicom('/mnt/SharedStor/tutorials/Mammography/325262712664941599250
 assert isinstance(dx, pydicom.Dataset)
 ai = gem.GemicaiZGT('/mnt/SharedStor/trees')
 print(ai.classify(dx))
-print(ai.classify(mg))
+print(ai.classify(mg)

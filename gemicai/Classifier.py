@@ -1,3 +1,7 @@
+"""This module contains a Classifier class which simplifies model training and evaluation process by abstracting away
+many implementation details. As a result this module allows the user to save a lot of time by providing a default
+implementation for many of the PyTorch options."""
+
 import gemicai.classifier_functors as functr
 import gemicai.data_iterators as iterators
 import gemicai.output_policies as policy
@@ -11,8 +15,36 @@ import gemicai as gem
 
 
 class Classifier:
+    """This class does all of the heavy lifting when it comes down to the model training, evaluation and tensor
+    classification. During creation of this class it is possible to specify the following attributes:
+
+    :param module: specifies a model to train, for more information about models themselves please refer
+        to the https://pytorch.org/docs/stable/torchvision/models
+    :type module: nn.Module
+    :param classes: a list of classes present in the dataset, this will be used in order to modify model's last layer.
+        For more information about how to obtain such a list please refer to the classes method of the
+        gemicai.data_iterators.DicomoDataset
+    :type classes: list
+    :param layer_config: optional parameter containing a functor that can be used to modify a given model.
+        For more information please refer to the gemicai.classifier_functors module
+    :type layer_config: Optional[gemicai.classifier_functors.GEMICAIABCFunctor]
+    :param loss_function: optional parameter containing a loss function used during a training.
+    :type loss_function: Optional[nn.Module]
+    :param optimizer: optional parameter containing an optimizer used during a training.
+    :type optimizer: Optional[torch.optim.Optimizer]
+    :param enable_cuda: if set to True the training will be done on the gpu otherwise the model will be
+            trained on the cpu. Please note that training on a gpu is substantially faster.
+    :type enable_cuda: Optional[bool]
+    :param cuda_device: allows for selection of a particular cuda device if enable_cuda is set to True. PyTorch's
+        Device ids start at 0 and are incremented by one.
+    :type cuda_device: Optional[int]
+    :raise RuntimeError: raised if the cuda device was selected but its not supported by the underlying machine
+    :raises TypeError: raised if any of the parameters is of an invalid type
+    """
+
     def __init__(self, module, classes, layer_config=None, loss_function=None, optimizer=None,
                  enable_cuda=False, cuda_device=None):
+
         # Sets base module of the classifier
         if not isinstance(module, nn.Module):
             raise TypeError("module_wrapper should extend a nn.Modules class")
@@ -53,6 +85,32 @@ class Classifier:
 
     def train(self, dataset, batch_size=4, epochs=20, num_workers=0, pin_memory=False,
               verbosity=0, test_dataset=None, output_policy=policy.ToConsole()):
+        """Used to train a model.
+
+        :param dataset: dataset iterator used in order to train a model
+        :type dataset: gemicai.data_iterators.GemicaiDataset
+        :param batch_size: number (non-negative) of DataObject which will be feed into a classifier at once
+        :type batch_size: int
+        :param epochs: specifies how many training iterations (non-negative) to perform. One iteration goes over a
+            whole dataset.
+        :type epochs: int
+        :param num_workers: number (non-negative) of worker threads used to load data from the dataset
+        :type num_workers: int
+        :param pin_memory: whenever memory pages should be pinned or not. If set to false there is a possibility
+            that memory pages might be moved to a swap decreasing overall program's performance.
+        :type pin_memory: bool
+        :param verbosity: specifies verbosity (non-negative) of training/evaluation output. 0 - no output, 1 - basic
+            output, 2 or more - extended output
+        :type verbosity: int
+        :param test_dataset: optional parameter, if a test_dataset iterator is passed and verbosity is set to at least 2
+            it will be used in order to evaluate model's performance after a training epoch.
+        :type test_dataset: Union[None, gemicai.data_iterators.GemicaiDataset]
+        :param output_policy: specifies how and where to write the training statistics
+        :type output_policy: gemicai.output_policies.OutputPolicy
+        :raises TypeError: if passed arguments are not of a correct type or their values are outside of valid
+            bounds this method will raise a TypeError exception.
+        :raises ValueError: thrown whenever given data iterator object returns object containing more than two entries
+        """
         Classifier.validate_dataset_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                                                pin_memory=pin_memory, test_dataset=test_dataset, verbosity=verbosity,
                                                output_policy=output_policy, epochs=epochs)
@@ -111,6 +169,27 @@ class Classifier:
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
                  output_policy=policy.ToConsole()):
+        """Used to evaluate the model's performance on a provided dataset.
+
+        :param dataset: dataset iterator used in order to evaluate a model's performance.
+        :type dataset: gemicai.data_iterators.GemicaiDataset
+        :param batch_size: number (non-negative) of DataObject which will be feed into a classifier at once
+        :type batch_size: int
+        :param num_workers: number (non-negative) of worker threads used to load data from the dataset
+        :type num_workers: int
+        :param pin_memory: whenever memory pages should be pinned or not. If set to false there is a possibility
+            that memory pages might be moved to a swap decreasing overall program's performance.
+        :type pin_memory: bool
+        :param verbosity:  specifies verbosity (non-negative) of training/evaluation output. 0 - no output, 1 - basic
+            output, 2 or more - extended output
+        :type verbosity: int
+        :param output_policy: specifies how and where to write the evaluation statistics
+        :type output_policy: gemicai.output_policies.OutputPolicy
+        :return: tuple of model's accuracy, number of total images and number of correctly classified images
+        :raises TypeError: if passed arguments are not of a correct type or their values are outside of valid
+            bounds this method will raise a TypeError exception.
+        :raises ValueError: thrown whenever given data iterator object returns object containing more than two entries
+        """
         Classifier.validate_dataset_parameters(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                                                epochs=0, pin_memory=pin_memory, test_dataset=None, verbosity=verbosity,
                                                output_policy=output_policy)
@@ -150,24 +229,53 @@ class Classifier:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
             return acc, total, correct
 
-    # FIXME: classification done on CPU as it keeps failing on GPU for some reason
     def classify(self, tensor):
-        self.module.cpu()
+        """Takes in a tensor object and returns a list of predicted class types along with their certainties.
+
+        :param tensor: tensor to classify
+        :type tensor: torch.Tensor
+        :return: list of predicted classes and their certainty
+        :raise TypeError: raised if tensor does not have a torch.Tensor type
+        """
+        if not isinstance(tensor, torch.Tensor):
+            raise TypeError("tensor should be an instance of a torch.Tensor")
+        self.module.to(self.device)
         tensor.to(self.device)
         if len(tensor.size()) == 3:
-            tensor = torch.unsqueeze(tensor, 0)
+            tensor = torch.unsqueeze(tensor, 0).to(self.device)
         res, m = [], torch.nn.Softmax(dim=1)
         for classification in m(self.module(tensor).data):
             res.append(sorted(zip(self.classes, classification.tolist()), reverse=True, key=itemgetter(1))[:3])
         return res
 
-    # save classifier object to .pkl file, can be retrieved with load_classifier()
     def save(self, file_path=None, zipped=False):
+        """Saves current classifier object to the file system, it can be loaded back in using the
+        gemicai.Classifier.Classifier.from_file method.
+
+        :param file_path: a valid path to a file, it does not require a file to exist. Optionally .gemclas file
+            extension can be appended to a file path like so /home/test/classifier.gemclas, if the extension is not
+            present it will be added automatically.
+        :type file_path: str
+        :param zipped: whenever this object should be zipped or not
+        :type zipped: bool
+        :raises TypeError: file_path is not a str type
+        """
         if not isinstance(file_path, str):
             raise TypeError("save method expects a file_path to be an instance of string")
         gem.io.save(file_path=file_path, obj=self, zipped=zipped)
 
     def set_device(self, enable_cuda=False, cuda_device=None):
+        """Used in order to select a device on which model training will be done.
+
+        :param enable_cuda: if set to True the training will be done on the gpu otherwise the model will be
+            trained on the cpu. Please note that training on a gpu is substantially faster.
+        :type enable_cuda: Optional[bool]
+        :param cuda_device: allows for selection of a particular cuda device if enable_cuda is set to True. PyTorch's
+            Device ids start at 0 and are incremented by one.
+        :type cuda_device: Optional[int]
+        :raise RuntimeError: raised if the cuda device was selected but its not supported by the underlying machine
+        :raise TypeError: raised if any of the parameters has an invalid type
+        """
         if not isinstance(enable_cuda, bool):
             raise TypeError("enable_cuda parameter should be a bool")
 
@@ -187,6 +295,15 @@ class Classifier:
             self.device = torch.device("cpu")
 
     def set_trainable_layers(self, layers):
+        """Sets specified layers to be either trainable or not.
+
+        :param layers: list of tuples specifying which layers should be trainable or not, eg. [('fc', True), ...]. Where
+            'fc' is a layer name and True specifies that it should be trainable. Note that instead of a layer
+            name it is possible to pass 'all' in its place which will set every layer in the model to the
+            specified mode, eg. [('all', False)] makes every layer untrainable.
+        :type layers: list
+        :raises TypeError: thrown if layers parameter has a wrong type
+        """
         if not isinstance(layers, list):
             raise TypeError("set_trainable_layers method expects parameter layers to be a nonempty list "
                             "of tuples (layer_name: string, status: bool)")
@@ -199,9 +316,18 @@ class Classifier:
             if len(to_set):
                 param.requires_grad = to_set[0][1]
 
-    # Loads classifier object from .gemclas file
     @staticmethod
     def from_file(file_path=None, zipped=False):
+        """Used to load a Classifier object from a given file
+
+        :param file_path: a valid path to a file up to and including it's extension type.
+        :type file_path: str
+        :param zipped: whenever given file is zipped or not
+        :type zipped: bool
+        :return: a valid Classifier object
+        :raises TypeError: thrown if the given path is of an invalid format
+        :raises Exception: thrown if Classifier object could not have been loaded in from the given file
+        """
         if not isinstance(file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
         return gem.io.load(file_path, zipped=zipped)
@@ -209,6 +335,32 @@ class Classifier:
     @staticmethod
     def validate_dataset_parameters(dataset, batch_size, num_workers, pin_memory, test_dataset, verbosity,
                                     output_policy, epochs=1):
+        """Called internally in order to validate passed arguments to the train and evaluate methods.
+
+        :param dataset: dataset iterator used in order to train/evaluate a model
+        :type dataset: gemicai.data_iterators.GemicaiDataset
+        :param batch_size: number (non-negative) of DataObject which will be feed into a classifier at once
+        :type batch_size: int
+        :param num_workers: number (non-negative) of worker threads used to load data from the dataset
+        :type num_workers: int
+        :param pin_memory: whenever memory pages should be pinned or not. If set to false there is a possibility
+            that memory pages might be moved to a swap decreasing overall program's performance.
+        :type pin_memory: bool
+        :param test_dataset: optional parameter, validates whenever a test_dataset iterator passed to the train
+            function is a valid gemicai object
+        :type test_dataset: Union[None, gemicai.data_iterators.GemicaiDataset]
+        :param verbosity: specifies verbosity (non-negative) of training/evaluation output. 0 - no output, 1 - basic
+            output, 2 or more - extended output
+        :type verbosity: int
+        :param output_policy: specifies how and where to write the training/evaluation output
+        :type output_policy: gemicai.output_policies.OutputPolicy
+        :param epochs: specifies how many training iterations (non-negative) to perform. One iteration goes over a
+            whole dataset.
+        :type epochs: int
+        :raises TypeError: if passed arguments are not of a correct type or their values are outside of valid
+            bounds this method will raise a TypeError exception.
+        :raises ValueError: thrown whenever given data iterator object returns object containing more than two entries
+        """
         if not isinstance(epochs, int) or epochs < 0:
             raise TypeError("epochs parameter should be a non-negative integer")
 

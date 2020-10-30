@@ -1,3 +1,6 @@
+"""This module contains data iterators which are used in order to traverse a dataset and retrieve a relevant information
+from the DataObjects it contains."""
+
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
@@ -9,47 +12,87 @@ import os
 import matplotlib.pyplot as plt
 
 
-# This class interface serves as a basis for any data iterator
 class GemicaiDataset(ABC, IterableDataset):
+    """This interface class serves as a basis for the every Gemicai's data iterator."""
+
     @abstractmethod
     def __init__(self):
+        """Should initialize the iterator, it could for example take in a path to the dataset."""
         pass
 
     @abstractmethod
     def __iter__(self):
+        """Should return a valid iterator object on which it is possible to call next."""
         pass
 
     @abstractmethod
     def __next__(self):
+        """Should return a list with a next tensor and it's label."""
         pass
 
     @abstractmethod
     def __len__(self):
+        """Should return a number of items which were iterated over so far."""
         pass
 
     @abstractmethod
-    def summarize(self):
+    def summarize(self, label, print_summary=True):
+        """Should return or print a summary of all the DataObject values in the dataset selected by the label.
+
+        :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
+        :type label: str
+        :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
+            object
+        :type print_summary: bool
+        :return: if print_summary is set to false a class that extends a gemicai.label_counters.GemicaiLabelCounter
+        """
         pass
 
     @abstractmethod
-    def subset(self):
+    def subset(self, constraints):
+        """Should return a subset of a current dataset.
+
+        :param constraints: dictionary with a dataset constraints, eg. {'Modality': 'CT'}
+        :type constraints: dict
+        :return: a correct user defined iterator type which extends gemicai.data_iterators.GemicaiDataset
+        """
         pass
 
     @abstractmethod
     def classes(self, label):
+        """Should return a list of all the classes in the dataset.
+
+        :param label: label to summarize on
+        :type label: str
+        :return: list of possible label values present in the dataset
+        """
         pass
 
     @abstractmethod
-    def plot_one_of_every(self):
+    def plot_one_of_every(self, label, cmap='gray_r'):
+        """Should plot one image per class.
+
+        :param label: label according to which we will look for a unique values
+        :type label: str
+        :param cmap: color scheme
+        :type cmap: str
+        """
         pass
 
     @abstractmethod
     def can_be_parallelized(self):
+        """Should return a boolean specifying whenever current iterator supports parallelized resource loading."""
         pass
 
 
-# This class interface serves as a basis for any dicomo data iterator
 class DicomoDataset(GemicaiDataset):
+    """Every provided non-abstract data iterator extends this class and calls it's __init__ method with a following
+    argument:
+
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    :raises TypeError: raised if any of the parameters has an invalid type
+    """
 
     def __init__(self, label_counter_type=gem.label_counters.LabelCounter):
         if not issubclass(label_counter_type, gem.label_counters.GemicaiLabelCounter):
@@ -69,8 +112,18 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     def __getitem__(self, arg):
-        if isinstance(arg, int):
-            arg = self.labels[arg]
+        """Custom override for a __getitem__ method. Returns a new data iterator that returns only objects with a
+        label by a given by an arg
+
+        :param arg: index of a label stored in the self.labels list
+        :type arg: int
+        :return: a new data iterator of the same type
+        :raises TypeError: raised if arg is not of an int type
+        """
+        if not isinstance(arg, int):
+            raise TypeError("Argument should have an int type")
+
+        arg = self.labels[arg]
         if arg not in self.labels:
             raise ValueError('Specified argument not in gemset labels. Valid labels are: {}'.format(self.labels))
         return type(self)(self.base_path, labels=[arg], transform=self.transform, constraints=self.constraints)
@@ -84,23 +137,34 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     def classes(self, label):
+        """Returns a list of all of the classes in the dataset.
+
+        :param label: label to summarize on
+        :type label: str
+        :return: list of possible label values present in the dataset
+        """
         return list(self.summarize(label, print_summary=False).dic.keys())
 
-    def summarize(self, label, constraints={}, print_summary=True):
+    def summarize(self, label, print_summary=True):
+        """Returns or prints a summary of all the DataObject values in the dataset selected by the label.
+
+        :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
+        :type label: str
+        :param print_summary: whenever to print or return an instance of gemicai.label_counters.GemicaiLabelCounter
+            object
+        :type print_summary: bool
+        :return: if print_summary is set to false a class that extends a gemicai.label_counters.GemicaiLabelCounter
+        :raise TypeError: raised whenever one of the parameter has an invalid type
+        """
         if not isinstance(label, str):
             raise TypeError("label should be a string")
-        if not isinstance(constraints, dict):
-            raise TypeError("constraints should be a dict")
         if not isinstance(print_summary, bool):
             raise TypeError("print_summary should be a boolean")
 
         temp = self.labels
         self.labels = []
         cnt = self.lbl_ctr_tpe(label)
-        constraints = {**self.constraints, **constraints}
         for dicomo in self:
-            # This is already handled in PickledDicomoDataSet __next__, no need for double check
-            # if dicomo.meets_constraints(constraints):
             cnt.update(dicomo.get_value_of(label))
         self.labels = temp
         if print_summary:
@@ -109,6 +173,14 @@ class DicomoDataset(GemicaiDataset):
             return cnt
 
     def plot_one_of_every(self, label, cmap='gray_r'):
+        """Plots one image per value type.
+
+        :param label: label according to which we will look for a unique values, eg, 'Modality'
+        :type label: str
+        :param cmap: color scheme
+        :type cmap: str
+        :raises TypeError: raised whenever label is not a str
+        """
         if not isinstance(label, str):
             raise TypeError("label should be a string")
 
@@ -135,18 +207,60 @@ class DicomoDataset(GemicaiDataset):
 
     @staticmethod
     def from_file(file_path, labels=[], transform=None, constraints={}):
+        """Creates a data iterator for a supplied .gemset file
+
+        :param file_path: a valid path to a .gemset file
+        :type file_path: str
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param transform: optional transforms to be applied on the tensor
+        :type transform: Optional[any torchvision.transforms]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: Optional[dict]
+        :return: a valid gemicai.data_iterators.PickledDicomoDataSet object
+        :raises FileNotFoundError: raised whenever file_path does not point to any valid file
+        """
         if not os.path.isfile(file_path):
             raise FileNotFoundError
         return PickledDicomoDataSet(file_path, labels, transform, constraints)
 
     @staticmethod
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
+        """Creates a data iterator from the supplied folder which should contain .gemset data sets
+
+        :param folder_path: a valid path to an existing folder which contains .gemset datasets
+        :type folder_path: str
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param transform: optional transforms to be applied on the tensor
+        :type transform: Optional[any torchvision.transforms]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: Optional[dict]
+        :return: a valid gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
+        :raises NotADirectoryError: raised whenever passed folder_path is invalid
+        """
         if not os.path.isdir(folder_path):
             raise NotADirectoryError
         return ConcurrentPickledDicomObjectTaskSplitter(folder_path, labels, transform, constraints)
 
     @staticmethod
     def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
+        """Created a data iterator from the supplied file or folder path
+
+        :param data_set_path:  a valid path to an existing folder which contains .gemset datasets
+            or a valid path to a .gemset file
+        :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+        :type labels: Optional[list]
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: Optional[dict]
+        :return: gemicai.data_iterators.PickledDicomoDataSet object if file path was supplied otherwise
+            gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
+        :raises FileNotFoundError: raised whenever file_path does not point to any valid file
+        :raises NotADirectoryError: raised whenever passed folder_path is invalid
+        """
         transform = gem.torchvision.transforms.Compose([
             gem.torchvision.transforms.ToPILImage(),
             gem.torchvision.transforms.Grayscale(3),
@@ -162,6 +276,24 @@ class DicomoDataset(GemicaiDataset):
 
 
 class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
+    """This class server as a proxy for the underlying iterators when the iter() method is called it returns a
+    PickledDicomoFilePool object which can be iterated over, this results in a class that supports a parallel data
+    loading. It's constructor takes in the following parameters:
+
+    :param base_path: a valid path to a folder containing a .gemset datasets
+    :type base_path: str
+    :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+    :type labels: list
+    :param transform: optional transforms to be applied on the tensor
+    :type transform: Optional[any torchvision.transforms]
+    :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+    :type constraints: Optional[dict]
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    :raises TypeError: raised if any of the parameters has an invalid type
+    """
+
     def __init__(self, base_path, labels, transform=None, constraints={},
                  label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
@@ -184,6 +316,11 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
                 self.file_pool.append(os.path.join(root, name))
 
     def __iter__(self):
+        """If there are worker threads present it divides a file pool between them otherwise pool is left untouched and
+        the PickledDicomoFilePool object is returned.
+
+        :return: a valid gemicai.data_iterators.PickledDicomoFilePool object
+        """
         worker_info = get_worker_info()
         if worker_info is None:
             # we are in a single threaded environment so there is no need to modify the data set
@@ -198,30 +335,64 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
                                               self.labels, self.transform, self.constraints))
 
     def __next__(self):
+        """:raises Exception: Not supported by this class"""
         raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
 
     def __len__(self):
+        """:raises Exception: Not supported by this class"""
         raise Exception("This 'Iterator' is meant to split a file pool and return PickledDicomoFilePool")
 
     def can_be_parallelized(self):
+        """This iterator supports a parallelized resource loading.
+
+        :return: always returns True
+        """
         return True
 
     def subset(self, constraints):
+        """Returns a dataset subset using provided constraints
+
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: dict
+        :return: a valid gemicai.data_iterators.ConcurrentPickledDicomObjectTaskSplitter object
+        :raises TypeError: raised whenever constraints parameter is not a dict
+        """
+        if not isinstance(constraints, dict):
+            raise TypeError('constraints is not a dict')
         return ConcurrentPickledDicomObjectTaskSplitter(self.base_path, self.labels, self.transform,
                                                         {**self.constraints, **constraints})
 
-    def summarize(self, label, constraints={}, print_summary=True):
+    def summarize(self, label, print_summary=True):
         dataset = self.__iter__()
 
         if not print_summary:
-            return dataset.summarize(label, constraints, print_summary)
-        dataset.summarize(label, constraints, print_summary)
+            return dataset.summarize(label, print_summary)
+        dataset.summarize(label, print_summary)
 
     def plot_one_of_every(self, label, cmap='gray_r'):
         return self.__iter__().plot_one_of_every(label, cmap)
 
 
 class PickledDicomoFilePool(DicomoDataset):
+    """This class takes in a list of files as an input and iterates over them.
+    It's constructor takes in the following parameters:
+
+    :param file_pool: list of a valid file paths to .gemset datasets
+    :type file_pool: list
+    :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+    :type labels: list
+    :param transform: optional transforms to be applied on the tensor
+    :type transform: Optional[any torchvision.transforms]
+    :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+    :type constraints: Optional[dict]
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    :raises TypeError: raised if any of the parameters has an invalid type
+    :raises FileNotFoundError: raised if some path in the file_pool does not point to any existing file
+    """
+
     def __init__(self, file_pool, labels, transform=None, constraints={},
                  label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
@@ -244,11 +415,21 @@ class PickledDicomoFilePool(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
+        """Prepares data iterator such that next() can be called on it
+
+        :return: self
+        """
         self.set_generator = self._pool_walker()
         self.data_set = next(self.set_generator)
         return self
 
     def __next__(self):
+        """Returns list containing a tensor and selected label values
+
+        :return: list containing a tensor and selected label values
+        :raises StopIteration: raised when there is no more data left to iterate over
+        :raises Exception: raised when the specified transformation cannot be applied to the tensor
+        """
         while True:
             try:
                 temp = next(self.data_set)
@@ -258,22 +439,54 @@ class PickledDicomoFilePool(DicomoDataset):
                 self.data_set = next(self.set_generator)
 
     def __len__(self):
+        """:return: number of objects iterated over so far"""
         return self.len
 
     def can_be_parallelized(self):
+        """This iterator does not support a parallelized resource loading.
+
+        :return: always returns False
+        """
         return False
 
     def _pool_walker(self):
+        """used internally in order to fetch a next PickledDicomoDataSet"""
         for file_path in self.file_pool:
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
 
     def subset(self, constraints):
+        """Returns a dataset subset using provided constraints
+
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: dict
+        :return: a valid gemicai.data_iterators.PickledDicomoFilePool object
+        :raises TypeError: raised whenever constraints parameter is not a dict
+        """
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
 
 class PickledDicomoDataFolder(DicomoDataset):
+    """This class takes in a path to a folder containing a .gemset datasets and iterates over them.
+    It's constructor takes in the following parameters:
+
+    :param base_path: a path to a valid folder containing a .gemset datasets
+    :type base_path: str
+    :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+    :type labels: list
+    :param transform: optional transforms to be applied on the tensor
+    :type transform: Optional[any torchvision.transforms]
+    :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+    :type constraints: Optional[dict]
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    :raises TypeError: raised if any of the parameters has an invalid type
+    :raises NotADirectoryError: raised if the passed path does not point to any directory
+    """
+
     def __init__(self, base_path, labels, transform=None, constraints={},
                  label_counter_type=gem.label_counters.LabelCounter):
         if not isinstance(labels, list):
@@ -293,12 +506,22 @@ class PickledDicomoDataFolder(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
+        """Prepares data iterator such that next() can be called on it
+
+       :return: self
+       """
         self.data_set_gen = self._get_next_data_set()
         self.data_set = next(self.data_set_gen)
         self.len = 0
         return self
 
     def __next__(self):
+        """Returns list containing a tensor and selected label values
+
+        :return: list containing a tensor and selected label values
+        :raises StopIteration: raised when there is no more data left to iterate over
+        :raises Exception: raised when the specified transformation cannot be applied to the tensor
+        """
         while True:
             try:
                 temp = next(self.data_set)
@@ -308,27 +531,56 @@ class PickledDicomoDataFolder(DicomoDataset):
                 self.data_set = next(self.data_set_gen)
 
     def __len__(self):
+        """:return: number of objects iterated over so far"""
         return self.len
 
-    def __str__(self):
-        return str(self.summaray(count_field=self.labels[1]))
-
     def _get_next_data_set(self):
+        """used internally in order to fetch a next PickledDicomoDataSet"""
         for root, dirs, files in os.walk(self.base_path):
             for name in files:
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.labels, self.transform,
                                                 self.constraints))
 
     def can_be_parallelized(self):
+        """This iterator does not support a parallelized resource loading.
+
+        :return: always returns False
+        """
         return False
 
     def subset(self, constraints):
+        """Returns a dataset subset using provided constraints
+
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: dict
+        :return: a valid gemicai.data_iterators.PickledDicomoDataFolder object
+        :raises TypeError: raised whenever constraints parameter is not a dict
+        """
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
 
 
 class PickledDicomoDataSet(DicomoDataset):
+    """This class takes in a valid path to a .gemset dataset and iterates over it.
+    It's constructor takes in the following parameters:
+
+    :param pickle_path: a path to a valid .gemset file
+    :type pickle_path: str
+    :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
+    :type labels: Optional[list]
+    :param transform: optional transforms to be applied on the tensor
+    :type transform: Optional[any torchvision.transforms]
+    :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+        next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+    :type constraints: Optional[dict]
+    :param label_counter_type: label counter used by the summarize method
+    :type label_counter_type: gemicai.label_counter.GemicaiLabelCounter
+    :raises TypeError: raised if any of the parameters has an invalid type
+    :raises FileNotFoundError: raised whenever passed pickle_path does not point to any existing file
+    """
+
     def __init__(self, pickle_path, labels=[], transform=None, constraints={},
                  label_counter_type=gem.label_counters.LabelCounter):
         self.tmp = None
@@ -350,11 +602,23 @@ class PickledDicomoDataSet(DicomoDataset):
         self.len = 0
 
     def __iter__(self):
+        """Prepares data iterator such that next() can be called on it
+
+        :return: self
+        """
         self.len = 0
         self.pickle_stream = self._stream_pickled_dicomos()
         return self
 
     def __next__(self):
+        """Returns list containing a tensor and selected label values
+
+        :return: list containing a tensor and selected label values
+        :raises StopIteration: raised when there is no more data left to iterate over
+        :raises Exception: raised when the specified transformation cannot be applied to the tensor
+        :raises TypeError: raised whenever a file pointed by the pickle_path does not contain a valid
+            gemicai.data_objects.DicomObject object
+        """
         try:
             try:
                 # get next dicomo class from the stream
@@ -407,18 +671,22 @@ class PickledDicomoDataSet(DicomoDataset):
             raise StopIteration
 
     def __len__(self):
+        """:return: number of objects iterated over so far"""
         return self.len
 
     def __del__(self):
+        """Closes a file when it goes out of scope"""
         self._file_cleanup()
 
     def _file_cleanup(self):
+        """Closes an open file"""
         if self.tmp is not None:
             self.tmp.close()
             os.remove(self.tmp.name)
             self.tmp = None
 
     def _stream_pickled_dicomos(self):
+        """used internally in order to fetch a next instance of gemicai.data_objects.DataObject"""
         self.tmp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
         try:
             gem.io.unzip_to_file(self.tmp, self.pickle_path)
@@ -428,9 +696,21 @@ class PickledDicomoDataSet(DicomoDataset):
             pass
 
     def can_be_parallelized(self):
+        """This iterator does not support a parallelized resource loading.
+
+        :return: always returns False
+        """
         return False
 
     def subset(self, constraints):
+        """Returns a dataset subset using provided constraints
+
+        :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
+            next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
+        :type constraints: dict
+        :return: a valid gemicai.data_iterators.PickledDicomoDataSet object
+        :raises TypeError: raised whenever constraints parameter is not a dict
+        """
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})

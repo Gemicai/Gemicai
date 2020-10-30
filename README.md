@@ -1,15 +1,16 @@
 
-<p align="center"><a href="https://www.gemic.ai"> <img width="1000" src="./examples/pngs/placeholder_logo.png"> </a></p>
+<p align="center"><a href="https://www.gemic.ai"> <img width="800" src="./examples/pngs/gemicai_logo.png"> </a></p>
 
- ![Python 3.8](https://img.shields.io/badge/python-3.8-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![build succeeded](https://img.shields.io/badge/build-succeeded-brightgreen.svg) ![Test passing](https://img.shields.io/badge/Tests-passing-brightgreen.svg) 
+![Python 3.8](https://img.shields.io/badge/python-3.8-blue) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![build succeeded](https://img.shields.io/badge/build-succeeded-brightgreen.svg) ![Test passing](https://img.shields.io/badge/Tests-passing-brightgreen.svg) 
 
 ## Introduction
-Gemicai is at its core a deep learning library that makes working with PyToch. Gemicai also contains extensive functionality for the Dicom standard. This makes Gemicai an excellent tool for dealing with deep-learning-based medical image classifiers. bla bla bla more introduction (The logo is just a placeholder for now and generated at https://app.brandmark.io/v3/)
+Gemicai is a machine learning library built on top of PyTorch. Gemicai makes numerous machine learning aspects more straightforward. With extensive functionality for data preprocessing, model training and evaluation, creating a tree-like structure of neural networks, automatic GPU configuration, and much more. To see what Gemicai can do, check out our Jupyter Notebook tutorials at https://gemic.ai/tutorials!
 
 ## Documentation
-Go to https://docs.gemic.ai for the documentation. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+All of Gemicai's documentation can be found at https://gemic.ai/docs.
 
 ## Installation
+<p style="color:#FF0000";>Not published yet! Use development installation.</p><br>
 The distribution is hosted on pypi at: https://pypi.python.org/pypi/gemicai/. You can install the package with pip by running the following command in your terminal:
 
     $ pip install gemicai
@@ -37,15 +38,9 @@ Install gemicai in editable state:
 
 You now have a development version of Gemicai installed, and local edits will be automatically included in the installed package.
 
-## Jupyter Notebook Intro to Gemicai
-Go to https://learn.gemic.ai/ or put the Jupter Notebook files somewhere in the repo. Our make another .md file to link to? Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
 ## Development
-Development made possible by a collaboration of ZGT (_"Ziekenhuisgroep Twente"_, translated from Dutch "Hospital Group Twente") and University of Twente. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Development made possible by a collaboration of ZGT (_"Ziekenhuisgroep Twente"_, translated from Dutch "Hospital Group Twente") and University of Twente. However, anyone can contribute!
 
 ![UT Logo](./examples/pngs/zgt_ut_logo.png)
-
-### Special thanks
-Jeroen Geerdink, Other people, bla bla Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 
 **Copyright (c) 2020 Ziekhuisgroep Twente**
