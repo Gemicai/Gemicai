@@ -278,7 +278,7 @@ class TestClassifier(unittest.TestCase):
             test_file_path = os.path.join(test_classifier_dir, "1.pkl")
             variable = list()
             with open(test_file_path, 'wb') as output:
-                gem.pickle.dump(variable, output, gem.pickle.HIGHEST_PROTOCOL)
+                gem.io.pickle.dump(variable, output, gem.pickle.HIGHEST_PROTOCOL)
 
             self.assertEqual(os.path.isfile(test_file_path), True)
             with self.assertRaises(TypeError):

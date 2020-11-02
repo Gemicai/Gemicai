@@ -5,11 +5,12 @@ from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
 from torch.utils.data import DataLoader
 from abc import ABC, abstractmethod
+import matplotlib.pyplot as plt
 import gemicai.data_objects
+from itertools import count
 import gemicai as gem
 import math
 import os
-import matplotlib.pyplot as plt
 
 
 class GemicaiDataset(ABC, IterableDataset):
@@ -82,6 +83,22 @@ class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
     def can_be_parallelized(self):
         """Should return a boolean specifying whenever current iterator supports parallelized resource loading."""
+        pass
+
+    @abstractmethod
+    def save(self, directory):
+        pass
+
+    @abstractmethod
+    def erase(self):
+        pass
+
+    @abstractmethod
+    def modify(self, index, fields):
+        pass
+
+    @abstractmethod
+    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
         pass
 
 
@@ -165,7 +182,7 @@ class DicomoDataset(GemicaiDataset):
         self.labels = []
         cnt = self.lbl_ctr_tpe(label)
         for dicomo in self:
-            cnt.update(dicomo.get_value_of(label))
+            cnt.update(dicomo.get(label))
         self.labels = temp
         if print_summary:
             print(cnt)
@@ -189,7 +206,7 @@ class DicomoDataset(GemicaiDataset):
         temp = self.labels
         self.labels = []
         for dicomo in self:
-            v = dicomo.get_value_of(label)
+            v = dicomo.get(label)
             if v in classes:
                 ooe.append(dicomo)
                 classes.remove(v)
@@ -627,18 +644,7 @@ class PickledDicomoDataSet(DicomoDataset):
                     raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
                                     + type(dicomo_class))
 
-                # constraints is a dictionary.
-                meets_constraints = True
-                for k, v in self.constraints.items():
-                    if isinstance(v, list):
-                        if dicomo_class.get_value_of(k) not in v:
-                            meets_constraints = False
-                            break
-                    else:
-                        if dicomo_class.get_value_of(k) != v:
-                            meets_constraints = False
-                            break
-                if not meets_constraints:
+                if not self._meets_constraints(dicomo_class):
                     return self.__next__()
 
                 if len(self.labels) == 0:
@@ -657,7 +663,7 @@ class PickledDicomoDataSet(DicomoDataset):
                 labels = []
                 # fetch values of the labels we are interested in
                 for label in self.labels:
-                    labels.append(dicomo_class.get_value_of(label))
+                    labels.append(dicomo_class.get(label))
 
                 self.len += 1
 
@@ -714,3 +720,192 @@ class PickledDicomoDataSet(DicomoDataset):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, {**self.constraints, **constraints})
+
+    def _meets_constraints(self, dicomo_class):
+        # constraints is a dictionary.
+        for k, v in self.constraints.items():
+            if isinstance(v, list):
+                if dicomo_class.get(k) not in v:
+                    return False
+
+            else:
+                if dicomo_class.get(k) != v:
+                    return False
+        return True
+
+    def save(self, directory):
+        self._file_cleanup()
+
+        if not os.path.isdir(directory):
+            raise NotADirectoryError
+
+        # open temp file
+        temp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        empty = True
+        try:
+            # fetch next DataObjects until there are none left
+            try:
+                for dicomo_class in self._stream_pickled_dicomos():
+                    # if a DataObject meets the dataset constraints put them into temp file
+                    if self._meets_constraints(dicomo_class):
+                        gemicai.io.pickle.dump(dicomo_class, temp)
+                        empty = False
+            except EOFError:
+                None
+            if not empty:
+                # if the dataset is not empty zip temp file's data to a specified folder
+                temp.flush()
+                gemicai.io.pickle.zip_to_file(temp, os.path.join(directory, os.path.basename(self.pickle_path)))
+        finally:
+            temp.close()
+            os.remove(temp.name)
+
+    # zero indexed!!!
+    def modify(self, index, fields):
+        if not isinstance(index, int) or index < 0:
+            raise TypeError("index should be a non-negative int")
+        if not isinstance(fields, dict):
+            raise TypeError("fields should be a dict, eg. {'Modality': 'CT', ...} here a value of the Modality label "
+                            "will be changed to CT")
+
+        # since we have to preserve this iterators state let's create a new one
+        dataset = iter(PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, self.constraints))
+        temp = gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False)
+        try:
+            # TODO all of this has to be done because of how pickle works, maybe we should exchange it or implement our
+            #  own file format?
+
+            # advance internal data pointer, copy all of the files inside to a new temp file
+            while index:
+                data_object = next(dataset.pickle_stream)
+                gemicai.io.pickle.dump(data_object, temp)
+                index -= 1
+
+            # fetch an object to modify
+            data_object = next(dataset.pickle_stream)
+
+            # modify it
+            for key in fields:
+                data_object.set(key, fields[key])
+
+            # write it back
+            gemicai.io.pickle.dump(data_object, temp)
+
+            # copy rest of the remaining files in the dataset
+            try:
+                while True:
+                    data_object = next(dataset.pickle_stream)
+                    gemicai.io.pickle.dump(data_object, temp)
+            except EOFError:
+                None
+
+            # exchange the dataset
+            temp.flush()
+            gemicai.io.pickle.zip_to_file(temp, self.pickle_path)
+
+        except EOFError:
+            # turns out that the size of index is bigger (or equal) than the count of actual objects in the dataset
+            raise IndexError("given index is out of bounds for the given dataset")
+        finally:
+            temp.close()
+            os.remove(temp.name)
+
+    def erase(self):
+        self._file_cleanup()
+        os.remove(self.pickle_path)
+
+    def split(self, sets={'train': 0.8, 'test': 0.2}, max_objects_per_file=1000, self_erase_afterwards=False):
+        if not isinstance(sets, dict):
+            raise TypeError("sets parameter should be a dict and have a format {'file_path_1': ratio_1, "
+                            "'file_path_2: ratio_2'}, note that sum of ratios should add up to a 1")
+        if not isinstance(max_objects_per_file, int):
+            raise TypeError("max_objects_per_file parameter should be an int")
+        if not isinstance(self_erase_afterwards, bool):
+            raise TypeError("self_erase_afterwards parameter should be a bool")
+
+        ratio_sum = 0.0
+        for path in sets:
+            if not os.path.isdir(path):
+                raise ValueError(path + " is not a valid folder path")
+            ratio_sum += sets[path]
+
+        if ratio_sum != 1.0:
+            raise ValueError("ratios added up all together should result in 1.0")
+
+        # TODO: it would be smart to hold information how many objects there are in a dataset to not count that
+        #  everytime
+        # TODO all of this has to be done because of how pickle works, maybe we should exchange it or implement our
+        #  own file format?
+
+        # find out how many items there are in this dataset
+        # since we have to preserve this iterators state let's create a new one
+        dataset = iter(PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, self.constraints))
+        objects = 0
+
+        try:
+            while True:
+                data_object = next(dataset.pickle_stream)
+                objects += 1
+        except EOFError:
+            None
+
+        # calculate how many files each set should hold in the end
+        should_get = [round(objects * sets[key]) for key in sets]
+
+        # objects left before a new temp file has to be created, per set basis
+        objects_left = [max_objects_per_file for _ in range(len(sets))]
+
+        # generators for the file names, each set gets its own
+        file_names = ["%06i.gemset" % i for i in count(1) for _ in range(len(sets))]
+
+        # create a temp file per set
+        temp_files = [gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False) for _ in range(len(sets))]
+
+        try:
+            # reset iterator's internal pointer
+            dataset = iter(dataset)
+
+            current_file = 0
+            file_number = len(temp_files)
+
+            # split dataset
+            while True:
+                if should_get[current_file]:
+
+                    # fetch next data object and try to dump it into a temp file
+                    gemicai.io.pickle.dump(next(dataset), temp_files[current_file])
+                    objects_left[current_file] -= 1
+                    should_get[current_file] -= 1
+
+                    # we have reached max_objects_per_file limit
+                    if not objects_left[current_file]:
+                        temp = temp_files[current_file]
+                        temp.flush()
+
+                        # write the temp file to the file system
+                        gemicai.io.pickle.zip_to_file(temp, next(file_names[current_file]))
+                        objects_left[current_file] = max_objects_per_file
+
+                        # clear the temp file's content
+                        temp.seek(0)
+                        temp.truncate()
+
+                # advance to the next file
+                current_file = (current_file + 1) % file_number
+
+        except EOFError:
+            # no more objects left, save temp file's content
+            for index, path in enumerate(sets):
+                # if temp file its not empty copy it's content
+                if objects_left[index] != max_objects_per_file:
+                    temp_files[index].flush()
+                    gemicai.io.pickle.zip_to_file(temp_files[index], next(file_names[index]))
+
+        finally:
+            # now remove created temp files
+            for temp in temp_files:
+                temp.close()
+                os.remove(temp.name)
+
+        if self_erase_afterwards:
+            self.erase()

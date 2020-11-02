@@ -21,7 +21,7 @@ def find_data():
             try:
                 fp = root + '/' + file
                 d = gem.DicomObject.from_file(fp, ['Modality'])
-                if d.get_value_of('Modality') == modality:
+                if d.get('Modality') == modality:
                     d.plot()
                     inp = input('Save image? y/n')
                     if inp == 'y':
@@ -54,7 +54,7 @@ def construct_demo_data():
                     d = gem.DicomObject(tensor=d['tensor'], labels=['modality', 'bpe', 'studydes', 'seriesdes'],
                                         label_values=[d['modality'], d['bpe'], d['studydes'], d['seriesdes']])
 
-                    pickle.dump(d, temp)
+                    gem.os.io.pickle.dump(d, temp)
 
 
         temp.flush()

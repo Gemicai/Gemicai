@@ -96,15 +96,39 @@ def demo_classify_tensor():
     print(net.classify(data[0]))
 
 
+input = os.path.join("examples", "dicom", "DX")
+output = os.path.join("iterator_test")
+output_new = os.path.join("iterator_test_2")
+
+output_file = os.path.join("iterator_test", "000001.gemset")
+
+
+def test():
+    #gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
+    #                    pick_middle=False)
+    #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
+    #                                                    constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
+
+    #dataset.save(output_new)
+    #dataset.summarize('BodyPartExamined')
+
+    dataset2 = gem.DicomoDataset.get_dicomo_dataset(os.path.join(output_new, "000001.gemset"), labels=['Modality'])
+    dataset2.summarize('BodyPartExamined')
+    dataset2.split(sets={os.path.join(output_new, 'train'): 0.8, os.path.join(output_new, 'test'): 0.2},
+                   self_erase_afterwards=False)
+
+
+
 # this has to wrap the code we call
 # you can say thank you to how python implements multithreading
 # and yes it has to be here and not in the Classifier.py
 if __name__ == '__main__':
+    test()
     #demo_prepare_data_set()
-    demo_initialize_classifier()
+    #demo_initialize_classifier()
     # demo_train_classifier()
     # demo_evaluate_classifier()
-    demo_classify_tensor()
+    #demo_classify_tensor()
     # demo_create_dicomo_dataset()
     # demo_initialize_tree()
     # demo_train_tree()

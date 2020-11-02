@@ -35,13 +35,13 @@ def save(file_path, obj, zipped=False):
         raise Exception('Object of type {} is not supported by gemicai.io'.format(type(obj)))
     if zipped:
         temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
-        pickle.dump(obj=obj, file=temp, protocol=pickle.HIGHEST_PROTOCOL)
+        dump(obj=obj, file=temp, protocol=pickle.HIGHEST_PROTOCOL)
         zip_to_file(temp, get_path_with_extension(file_path, obj))
         temp.close()
         os.remove(temp.name)
     else:
         f = open(get_path_with_extension(file_path, obj), 'wb')
-        pickle.dump(obj=obj, file=f, protocol=pickle.HIGHEST_PROTOCOL)
+        dump(obj=obj, file=f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def load(file_path, zipped=False):
@@ -108,3 +108,15 @@ def unzip_to_file(file, zip_path):
         file = open(file.name, 'ab+')
         shutil.copyfileobj(zipped, file)
         file.close()
+
+
+def dump(obj, filepath):
+    """Saves an specified object to a pickle file. Acts as an proxy for the pickle.dump call in order to allow
+    swapping out implementations if something more efficient/different file format is desired.
+
+    :param obj: object to pickle
+    :type obj: any
+    :param filepath: file to save object to
+    :type filepath: Union[str, io.path]
+    """
+    pickle.dump(obj, filepath)

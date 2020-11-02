@@ -82,19 +82,37 @@ class DicomObject(DataObject):
         plt.imshow(self.tensor, cmap)
         plt.show()
 
-    def get_value_of(self, item):
-        """Returns a label value of a given label type.
+    def get(self, field):
+        """Returns a value of a given field.
 
-        :param item: string with a objects label
-        :type item: str
+        :param field: string with a field label, eg. 'Modality'
+        :type field: str
         :return: value of a label or None if the object does not contain it
         """
-        if not isinstance(item, str):
-            raise TypeError("item parameter should be a string")
+        if not isinstance(field, str):
+            raise TypeError("field parameter should be a string")
         try:
-            return self.labels[self.label_types.index(item)]
+            return self.labels[self.label_types.index(field)]
         except:
             return None
+
+    def set(self, field, value):
+        """Sets a specified field to a given value
+
+        :param field: string with a field name, eg. 'Modality'
+        :type field: str
+        :param value: value that the field will be set to
+        :type value: any
+        :return True on success, False on failure
+        """
+        if not isinstance(field, str):
+            raise TypeError("field parameter should be a string")
+
+        try:
+            self.labels[self.label_types.index(field)] = value
+            return True
+        except ValueError:
+            return False
 
     def meets_constraints(self, constraints: dict):
         """Checks whenever the object meets a certain type of criteria.
@@ -106,7 +124,7 @@ class DicomObject(DataObject):
         if not isinstance(constraints, dict):
             raise TypeError("constraints parameter should be a dict")
         for k in constraints.keys():
-            if self.get_value_of(k) != constraints[k]:
+            if self.get(k) != constraints[k]:
                 return False
         return True
 

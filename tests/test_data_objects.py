@@ -43,20 +43,20 @@ class TestDicomObject(unittest.TestCase):
 
     def test_get_value_of_existing_field(self):
         obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'])
-        self.assertNotEqual(obj.get_value_of('Modality'), None)
+        self.assertNotEqual(obj.get('Modality'), None)
 
     def test_get_value_of_non_existing_field(self):
         obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'])
-        self.assertEqual(obj.get_value_of('@31'), None)
+        self.assertEqual(obj.get('@31'), None)
 
     def test_get_value_of_wrong_value_type(self):
         obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'])
         with self.assertRaises(TypeError):
-            obj.get_value_of(list())
+            obj.get(list())
 
     def test_meets_constraints_meet_criteria(self):
         obj = test.DicomObject.from_file(correct_dicom_file_path, ['Modality'])
-        value = obj.get_value_of('Modality')
+        value = obj.get('Modality')
         self.assertEqual(obj.meets_constraints({'Modality': value}), True)
 
     def test_meets_constraints_does_not_meet_criteria(self):

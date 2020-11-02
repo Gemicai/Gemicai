@@ -138,19 +138,19 @@ def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values
                     d = gemicai.DicomObject.from_file(root + '/' + file, relevant_labels, tensor_size=(244, 244))
                     pickle_object = True
 
-                    if pick_middle and str(d.get_value_of("InstanceNumber")) != middle_file:
+                    if pick_middle and str(d.get("InstanceNumber")) != middle_file:
                         continue
 
                     # check whenever we filter fields of DicomoObject
                     if len(field_values):
                         for field, values in field_values:
 
-                            value = d.get_value_of(field)
+                            value = d.get(field)
                             if isinstance(value, dicom.multival.MultiValue):
                                 if len([x for x in value if x in values]) == len(value):
                                     pickle_object = False
                             else:
-                                if not d.get_value_of(field) in values:
+                                if not d.get(field) in values:
                                     pickle_object = False
                     
                     if not pickle_object:
@@ -166,7 +166,7 @@ def dicom_to_gemset(data_origin, data_destination, relevant_labels, field_values
                         temp.truncate()
 
                     # dump binary data to the temp file
-                    pickle.dump(d, temp)
+                    gemicai.io.pickle.dump(d, temp)
                     objects_inside += 1
 
                     if pick_middle:

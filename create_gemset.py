@@ -27,7 +27,7 @@ def copy_files(origin, destination):
         for file in files:
             try:
                 d = gem.DicomObject.from_file(root + '/' + file, ['Modality'], tensor_size=(244, 244))
-                if d.get_value_of('Modality') == 'MG':
+                if d.get('Modality') == 'MG':
                     shutil.copyfile(root + '/' + file, destination + '/' + file)
             except:
                 pass
