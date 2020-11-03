@@ -96,7 +96,7 @@ def demo_classify_tensor():
     print(net.classify(data[0]))
 
 
-input = os.path.join("examples", "dicom", "DX")
+input = os.path.join("examples", "dicom", "CT")
 output = os.path.join("iterator_test")
 output_new = os.path.join("iterator_test_2")
 
@@ -106,13 +106,25 @@ output_file_test = os.path.join("iterator_test_2", "test", "000001.gemset")
 output_file_train = os.path.join("iterator_test_2", "train", "000001.gemset")
 
 def test():
-    gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
-                        pick_middle=False)
-    dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
-                                                        constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
+    #gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
+    #                    pick_middle=False)
+    #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
+    #                                                   constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
 
-    dataset.save(output_new)
-    dataset.summarize('BodyPartExamined')
+    dataset = gem.PickledDicomoDataFolder("iterator_test_2", labels=['Modality'])
+
+    for data in dataset:
+        print(data[1])
+    print("-------")
+
+    dataset.modify(49, {'Modality': 'CT'})
+
+    for data in dataset:
+        print(data[1])
+
+    #dataset.erase()
+    #dataset.save(output_new)
+    #dataset.summarize('BodyPartExamined')
 
     #dataset2 = gem.DicomoDataset.get_dicomo_dataset(os.path.join(output_new, "000001.gemset"), labels=['Modality'])
     #dataset2.summarize('BodyPartExamined')

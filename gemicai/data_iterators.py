@@ -532,18 +532,137 @@ class PickledDicomoFilePool(DicomoDataset):
         # since we have to preserve this iterator's state let's create a new one
         dataset = iter(PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints))
 
-        # forward internal pointer to the correct PickledDicomoDataSet
-        while index:
-            next(dataset)
-            index -= 1
+        try:
+            # forward internal pointer to the correct PickledDicomoDataSet
+            while 0 <= index:
+                next(dataset)
+                index -= 1
 
-        # modify underlying dataset
-        dataset.data_set.modify(len(dataset.data_set), fields)
+            # modify underlying dataset
+            dataset.data_set.modify(len(dataset.data_set) - 1, fields)
+
+        except StopIteration:
+            # turns out that the size of index is bigger (or equal) than the count of actual objects in the dataset
+            raise IndexError("given index is out of bounds for the given dataset")
 
     def split(self, sets={'train': 0.2, 'test': 0.8}, max_objects_per_file=1000, self_erase_afterwards=False):
-        raise NotImplementedError
+        if not isinstance(sets, dict):
+            raise TypeError("sets parameter should be a dict and have a format {'file_path_1': ratio_1, "
+                            "'file_path_2: ratio_2'}, note that sum of ratios should add up to a 1")
+        if not isinstance(max_objects_per_file, int):
+            raise TypeError("max_objects_per_file parameter should be an int")
+        if not isinstance(self_erase_afterwards, bool):
+            raise TypeError("self_erase_afterwards parameter should be a bool")
+
+        ratio_sum = 0.0
+        for path in sets:
+            if not os.path.isdir(path):
+                raise ValueError(path + " is not a valid folder path")
+            ratio_sum += sets[path]
+
+        if ratio_sum != 1.0:
+            raise ValueError("ratios added up all together should result in 1.0")
+
+        # TODO: it would be smart to hold information how many objects there are in a dataset to not count that
+        #  everytime
+        # TODO all of this has to be done because of how pickle works, maybe we should exchange it or implement our
+        #  own file format?
+
+        # find out how many items there are in this dataset
+        # since we have to preserve this iterator's state let's create a new one
+        dataset = iter(PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints))
+        objects = 0
+
+        try:
+            while True:
+                data_object = next(dataset)
+                objects += 1
+        except StopIteration:
+            None
+
+        # calculate how many files each set should hold in the end
+        should_get = [round(objects * sets[key]) for key in sets]
+
+        # sanity check
+        sum = 0
+        for file_count in should_get:
+            sum += file_count
+        if sum != objects:
+            raise AssertionError("it is impossible to split given dataset using current ratio")
+
+        # objects left before a new temp file has to be created, per set basis
+        objects_left = [max_objects_per_file for _ in range(len(sets))]
+
+        # generators for the file names, each set gets its own
+        folder_paths = [directory for directory in sets]
+        file_names = [("%06i.gemset" % i for i in count(1)) for directory in sets]
+
+        # create a temp file per set
+        temp_files = [gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False) for _ in range(len(sets))]
+        try:
+            # reset iterator's internal pointer
+            dataset = iter(dataset)
+
+            current_file = 0
+            file_number = len(temp_files)
+
+            # small function for fetching a new data object
+            def next_object(dataset):
+                while True:
+                    try:
+                        return next(dataset.data_set)
+                    except StopIteration:
+                        dataset.data_set = next(dataset.set_generator)
+            obj = next_object(dataset)
+
+            # split dataset
+            while True:
+                if should_get[current_file]:
+
+                    # fetch next data object and try to dump it into a temp file
+                    gemicai.io.pickle.dump(obj, temp_files[current_file])
+                    objects_left[current_file] -= 1
+                    should_get[current_file] -= 1
+
+                    # we have reached max_objects_per_file limit
+                    if not objects_left[current_file]:
+                        temp = temp_files[current_file]
+                        temp.flush()
+
+                        # write the temp file to the file system
+                        gemicai.io.pickle.zip_to_file(temp, os.path.join(folder_paths[current_file],
+                                                                         next(file_names[current_file])))
+                        objects_left[current_file] = max_objects_per_file
+
+                        # clear the temp file's content
+                        temp.seek(0)
+                        temp.truncate()
+
+                    obj = next_object(dataset)
+
+                # advance to the next file
+                current_file = (current_file + 1) % file_number
+
+        except StopIteration:
+            # no more objects left, save temp file's content
+            for index, path in enumerate(sets):
+                # if temp file its not empty copy it's content
+                if objects_left[index] != max_objects_per_file:
+                    temp_files[index].flush()
+                    gemicai.io.pickle.zip_to_file(temp_files[index], os.path.join(folder_paths[index],
+                                                                                  next(file_names[index])))
+
+        finally:
+            # now remove created temp files
+            for temp in temp_files:
+                temp.close()
+                os.remove(temp.name)
+
+        if self_erase_afterwards:
+            self.erase()
 
 
+# TODO whole PickledDicomoDataFolder could be implemented in terms of PickledDicomoFilePool at this point
 class PickledDicomoDataFolder(DicomoDataset):
     """This class takes in a path to a folder containing a .gemset datasets and iterates over them.
     It's constructor takes in the following parameters:
@@ -935,6 +1054,13 @@ class PickledDicomoDataSet(DicomoDataset):
         # calculate how many files each set should hold in the end
         should_get = [round(objects * sets[key]) for key in sets]
 
+        # sanity check
+        sum = 0
+        for file_count in should_get:
+            sum += file_count
+        if sum != objects:
+            raise AssertionError("it is impossible to split given dataset using current ratio")
+
         # objects left before a new temp file has to be created, per set basis
         objects_left = [max_objects_per_file for _ in range(len(sets))]
 
@@ -951,7 +1077,7 @@ class PickledDicomoDataSet(DicomoDataset):
             current_file = 0
             file_number = len(temp_files)
             obj = next(dataset.pickle_stream)
-            counter = 1
+
             # split dataset
             while True:
                 if should_get[current_file]:
