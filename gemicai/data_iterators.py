@@ -152,6 +152,22 @@ class DicomoDataset(GemicaiDataset):
     @abstractmethod
     def subset(self):
         pass
+    
+    @abstractmethod
+    def save(self, directory):
+        pass
+
+    @abstractmethod
+    def erase(self):
+        pass
+
+    @abstractmethod
+    def modify(self, index, fields):
+        pass
+
+    @abstractmethod
+    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
+        pass
 
     def classes(self, label):
         """Returns a list of all of the classes in the dataset.
@@ -390,6 +406,18 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
     def plot_one_of_every(self, label, cmap='gray_r'):
         return self.__iter__().plot_one_of_every(label, cmap)
 
+    def save(self, directory):
+        raise NotImplementedError
+
+    def erase(self):
+        raise NotImplementedError
+
+    def modify(self, index, fields):
+        raise NotImplementedError
+
+    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
+        raise NotImplementedError
+
 
 class PickledDicomoFilePool(DicomoDataset):
     """This class takes in a list of files as an input and iterates over them.
@@ -484,6 +512,18 @@ class PickledDicomoFilePool(DicomoDataset):
             raise TypeError('constraints is not a dict')
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
+    def save(self, directory):
+        raise NotImplementedError
+
+    def erase(self):
+        raise NotImplementedError
+
+    def modify(self, index, fields):
+        raise NotImplementedError
+
+    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
+        raise NotImplementedError
+
 
 class PickledDicomoDataFolder(DicomoDataset):
     """This class takes in a path to a folder containing a .gemset datasets and iterates over them.
@@ -577,6 +617,18 @@ class PickledDicomoDataFolder(DicomoDataset):
         if not isinstance(constraints, dict):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
+
+    def save(self, directory):
+        raise NotImplementedError
+
+    def erase(self):
+        raise NotImplementedError
+
+    def modify(self, index, fields):
+        raise NotImplementedError
+
+    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
+        raise NotImplementedError
 
 
 class PickledDicomoDataSet(DicomoDataset):
