@@ -106,27 +106,27 @@ output_file_test = os.path.join("iterator_test_2", "test", "000001.gemset")
 output_file_train = os.path.join("iterator_test_2", "train", "000001.gemset")
 
 def test():
-    #gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
-    #                    pick_middle=False)
-    #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
-    #                                                    constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
+    gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
+                        pick_middle=False)
+    dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
+                                                        constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
 
-    #dataset.save(output_new)
-    #dataset.summarize('BodyPartExamined')
+    dataset.save(output_new)
+    dataset.summarize('BodyPartExamined')
 
-    dataset2 = gem.DicomoDataset.get_dicomo_dataset(os.path.join(output_new, "000001.gemset"), labels=['Modality'])
-    dataset2.summarize('BodyPartExamined')
-    dataset2.split(sets={os.path.join(output_new, 'train'): 0.2, os.path.join(output_new, 'test'): 0.8}, max_objects_per_file=1,
-                   self_erase_afterwards=True)
+    #dataset2 = gem.DicomoDataset.get_dicomo_dataset(os.path.join(output_new, "000001.gemset"), labels=['Modality'])
+    #dataset2.summarize('BodyPartExamined')
+    #dataset2.split(sets={os.path.join(output_new, 'train'): 0.2, os.path.join(output_new, 'test'): 0.8}, max_objects_per_file=1,
+    #               self_erase_afterwards=True)
 
-    test_set = gem.DicomoDataset.get_dicomo_dataset(output_file_test, labels=['Modality'])
-    for obj in test_set:
-        print(obj[1])
-    print("---------")
+    #test_set = gem.DicomoDataset.get_dicomo_dataset(output_file_test, labels=['Modality'])
+    #for obj in test_set:
+    #    print(obj[1])
+    #print("---------")
 
-    train_set = gem.DicomoDataset.get_dicomo_dataset(output_file_train, labels=['Modality'])
-    for obj in train_set:
-        print(obj[1])
+    #train_set = gem.DicomoDataset.get_dicomo_dataset(output_file_train, labels=['Modality'])
+    #for obj in train_set:
+    #    print(obj[1])
 
 
 # this has to wrap the code we call

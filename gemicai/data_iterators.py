@@ -345,7 +345,8 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
 
         self.file_pool = []
         for root, dirs, files in os.walk(self.base_path):
-            for name in files:
+            dirs.sort()
+            for name in sorted(files):
                 self.file_pool.append(os.path.join(root, name))
 
     def __iter__(self):
@@ -407,16 +408,17 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return self.__iter__().plot_one_of_every(label, cmap)
 
     def save(self, directory):
-        raise NotImplementedError
+        PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).save(directory)
 
     def erase(self):
-        raise NotImplementedError
+        PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).erase()
 
     def modify(self, index, fields):
-        raise NotImplementedError
+        PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).modify(index, fields)
 
-    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
-        raise NotImplementedError
+    def split(self, sets={'train': 0.2, 'test': 0.8}, max_objects_per_file=1000, self_erase_afterwards=False):
+        PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).\
+            split(sets, max_objects_per_file, self_erase_afterwards)
 
 
 class PickledDicomoFilePool(DicomoDataset):
@@ -513,15 +515,32 @@ class PickledDicomoFilePool(DicomoDataset):
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
     def save(self, directory):
-        raise NotImplementedError
+        for file_path in self.file_pool:
+            PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints).save(directory)
 
     def erase(self):
-        raise NotImplementedError
+        for file_path in self.file_pool:
+            PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints).erase()
 
     def modify(self, index, fields):
-        raise NotImplementedError
+        if not isinstance(index, int) or index < 0:
+            raise TypeError("index should be a non-negative int")
+        if not isinstance(fields, dict):
+            raise TypeError("fields should be a dict, eg. {'Modality': 'CT', ...} here a value of the Modality label "
+                            "will be changed to CT")
 
-    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
+        # since we have to preserve this iterator's state let's create a new one
+        dataset = iter(PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints))
+
+        # forward internal pointer to the correct PickledDicomoDataSet
+        while index:
+            next(dataset)
+            index -= 1
+
+        # modify underlying dataset
+        dataset.data_set.modify(len(dataset.data_set), fields)
+
+    def split(self, sets={'train': 0.2, 'test': 0.8}, max_objects_per_file=1000, self_erase_afterwards=False):
         raise NotImplementedError
 
 
@@ -594,7 +613,8 @@ class PickledDicomoDataFolder(DicomoDataset):
     def _get_next_data_set(self):
         """used internally in order to fetch a next PickledDicomoDataSet"""
         for root, dirs, files in os.walk(self.base_path):
-            for name in files:
+            dirs.sort()
+            for name in sorted(files):
                 yield iter(PickledDicomoDataSet(os.path.join(root, name), self.labels, self.transform,
                                                 self.constraints))
 
@@ -618,17 +638,28 @@ class PickledDicomoDataFolder(DicomoDataset):
             raise TypeError('constraints is not a dict')
         return PickledDicomoDataFolder(self.base_path, self.labels, self.transform, {**self.constraints, **constraints})
 
+    def _get_underlying_file_pool(self):
+        file_pool = []
+        for root, dirs, files in os.walk(self.base_path):
+            dirs.sort()
+            for name in sorted(files):
+                file_pool += [os.path.join(root, name)]
+        return file_pool
+
     def save(self, directory):
-        raise NotImplementedError
+        PickledDicomoFilePool(self._get_underlying_file_pool(), self.labels, self.transform, self.constraints).\
+            save(directory)
 
     def erase(self):
-        raise NotImplementedError
+        PickledDicomoFilePool(self._get_underlying_file_pool(), self.labels, self.transform, self.constraints).erase()
 
     def modify(self, index, fields):
-        raise NotImplementedError
+        PickledDicomoFilePool(self._get_underlying_file_pool(), self.labels, self.transform, self.constraints).\
+            modify(index, fields)
 
-    def split(self, sets={'train': 0.2, 'test': 0.8}, self_erase_afterwards=False):
-        raise NotImplementedError
+    def split(self, sets={'train': 0.2, 'test': 0.8},  max_objects_per_file=1000, self_erase_afterwards=False):
+        PickledDicomoFilePool(self._get_underlying_file_pool(), self.labels, self.transform, self.constraints).\
+            split(sets,  max_objects_per_file, self_erase_afterwards)
 
 
 class PickledDicomoDataSet(DicomoDataset):
