@@ -856,24 +856,25 @@ class PickledDicomoDataSet(DicomoDataset):
         objects_left = [max_objects_per_file for _ in range(len(sets))]
 
         # generators for the file names, each set gets its own
-        file_names = ["%06i.gemset" % i for i in count(1) for _ in range(len(sets))]
+        folder_paths = [directory for directory in sets]
+        file_names = [("%06i.gemset" % i for i in count(1)) for directory in sets]
 
         # create a temp file per set
         temp_files = [gem.tempfile.NamedTemporaryFile(mode="ab+", delete=False) for _ in range(len(sets))]
-
         try:
             # reset iterator's internal pointer
             dataset = iter(dataset)
 
             current_file = 0
             file_number = len(temp_files)
-
+            obj = next(dataset.pickle_stream)
+            counter = 1
             # split dataset
             while True:
                 if should_get[current_file]:
 
                     # fetch next data object and try to dump it into a temp file
-                    gemicai.io.pickle.dump(next(dataset), temp_files[current_file])
+                    gemicai.io.pickle.dump(obj, temp_files[current_file])
                     objects_left[current_file] -= 1
                     should_get[current_file] -= 1
 
@@ -883,12 +884,15 @@ class PickledDicomoDataSet(DicomoDataset):
                         temp.flush()
 
                         # write the temp file to the file system
-                        gemicai.io.pickle.zip_to_file(temp, next(file_names[current_file]))
+                        gemicai.io.pickle.zip_to_file(temp, os.path.join(folder_paths[current_file],
+                                                                         next(file_names[current_file])))
                         objects_left[current_file] = max_objects_per_file
 
                         # clear the temp file's content
                         temp.seek(0)
                         temp.truncate()
+
+                    obj = next(dataset.pickle_stream)
 
                 # advance to the next file
                 current_file = (current_file + 1) % file_number
@@ -899,7 +903,8 @@ class PickledDicomoDataSet(DicomoDataset):
                 # if temp file its not empty copy it's content
                 if objects_left[index] != max_objects_per_file:
                     temp_files[index].flush()
-                    gemicai.io.pickle.zip_to_file(temp_files[index], next(file_names[index]))
+                    gemicai.io.pickle.zip_to_file(temp_files[index], os.path.join(folder_paths[index],
+                                                                                  next(file_names[index])))
 
         finally:
             # now remove created temp files

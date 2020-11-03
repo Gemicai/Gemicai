@@ -102,6 +102,8 @@ output_new = os.path.join("iterator_test_2")
 
 output_file = os.path.join("iterator_test", "000001.gemset")
 
+output_file_test = os.path.join("iterator_test_2", "test", "000001.gemset")
+output_file_train = os.path.join("iterator_test_2", "train", "000001.gemset")
 
 def test():
     #gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
@@ -114,9 +116,17 @@ def test():
 
     dataset2 = gem.DicomoDataset.get_dicomo_dataset(os.path.join(output_new, "000001.gemset"), labels=['Modality'])
     dataset2.summarize('BodyPartExamined')
-    dataset2.split(sets={os.path.join(output_new, 'train'): 0.8, os.path.join(output_new, 'test'): 0.2},
-                   self_erase_afterwards=False)
+    dataset2.split(sets={os.path.join(output_new, 'train'): 0.2, os.path.join(output_new, 'test'): 0.8}, max_objects_per_file=1,
+                   self_erase_afterwards=True)
 
+    test_set = gem.DicomoDataset.get_dicomo_dataset(output_file_test, labels=['Modality'])
+    for obj in test_set:
+        print(obj[1])
+    print("---------")
+
+    train_set = gem.DicomoDataset.get_dicomo_dataset(output_file_train, labels=['Modality'])
+    for obj in train_set:
+        print(obj[1])
 
 
 # this has to wrap the code we call
