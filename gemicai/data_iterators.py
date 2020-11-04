@@ -610,8 +610,8 @@ class PickledDicomoFilePool(DicomoDataset):
             def next_object(dataset):
                 while True:
                     try:
-                        return next(dataset.data_set)
-                    except StopIteration:
+                        return next(dataset.data_set.pickle_stream)
+                    except EOFError:
                         dataset.data_set = next(dataset.set_generator)
             obj = next_object(dataset)
 
