@@ -1,5 +1,5 @@
-"""This module contains data iterators which are used in order to traverse a dataset and retrieve a relevant information
-from the DataObjects it contains."""
+"""This module contains data iterators which are used in order to traverse a data set and retrieve a relevant
+information from the DataObjects it contains."""
 
 from torch.utils.data import get_worker_info
 from torch.utils.data import IterableDataset
@@ -18,7 +18,7 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def __init__(self):
-        """Should initialize the iterator, it could for example take in a path to the dataset."""
+        """Should initialize the iterator, it could for example take in a path to the data set."""
         pass
 
     @abstractmethod
@@ -38,7 +38,7 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def summarize(self, label, print_summary=True):
-        """Should return or print a summary of all the DataObject values in the dataset selected by the label.
+        """Should return or print a summary of all the DataObject values in the data set selected by the label.
 
         :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
         :type label: str
@@ -51,9 +51,9 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def subset(self, constraints):
-        """Should return a subset of a current dataset.
+        """Should return a subset of a current data set.
 
-        :param constraints: dictionary with a dataset constraints, eg. {'Modality': 'CT'}
+        :param constraints: dictionary with a data set constraints, eg. {'Modality': 'CT'}
         :type constraints: dict
         :return: a correct user defined iterator type which extends gemicai.data_iterators.GemicaiDataset
         """
@@ -61,11 +61,11 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def classes(self, label):
-        """Should return a list of all the classes in the dataset.
+        """Should return a list of all the classes in the data set.
 
         :param label: label to summarize on
         :type label: str
-        :return: list of possible label values present in the dataset
+        :return: list of possible label values present in the data set
         """
         pass
 
@@ -105,8 +105,8 @@ class GemicaiDataset(ABC, IterableDataset):
     @abstractmethod
     def modify(self, index, fields):
         """Should modify an underlying DataObject with a given index using a provided dictionary with a field-value
-        mappings, eg. set.modify(2, {'Modality': 'CT'}) should set 'Modality' of a third object in the dataset to 'CT'.
-        Note that the first object in the dataset should have an index equal to zero.
+        mappings, eg. set.modify(2, {'Modality': 'CT'}) should set 'Modality' of a third object in the data set to 'CT'.
+        Note that the first object in the data set should have an index equal to zero.
 
         :param index: a non-negative index of the object to modify
         :type  index: int
@@ -117,19 +117,19 @@ class GemicaiDataset(ABC, IterableDataset):
 
     @abstractmethod
     def split(self, sets={'train': 0.8, 'test': 0.2}, max_objects_per_file=1000, self_erase_afterwards=False):
-        """Should split the underlying original dataset into N-sets specified by the sets parameter. Each dataset that
+        """Should split the underlying original data set into N-sets specified by the sets parameter. Each data set that
         is a file with a .gemset extension should contain up to a max_objects_per_file DataObjects as a result. If
-        self_erase_afterwards is set to True the original dataset should be erased.
+        self_erase_afterwards is set to True the original data set should be erased.
 
         :param sets: dictionary with a valid path-ratio mappings, eg.
-            sets={'train': 0.8, 'test': 0.2} should split the original dataset into two sets with a ratio of 8:2. First
+            sets={'train': 0.8, 'test': 0.2} should split the original data set into two sets with a ratio of 8:2. First
             set should be saved into a 'train' folder and the second into a 'test' folder. The sum of all the ratios
             added up all together should be equal to 1.0.
         :type sets: dict
         :param max_objects_per_file: a non-negative integer specifying how many objects at maximum can be inside of each
             .gemset file
         :type max_objects_per_file: int
-        :param self_erase_afterwards: specifies whenever the original dataset should be removed after splitting or not.
+        :param self_erase_afterwards: specifies whenever the original data set should be removed after splitting or not.
         :type self_erase_afterwards: bool
         """
         pass
@@ -203,16 +203,16 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     def classes(self, label):
-        """Returns a list of all of the classes in the dataset.
+        """Returns a list of all of the classes in the data set.
 
         :param label: label to summarize on
         :type label: str
-        :return: list of possible label values present in the dataset
+        :return: list of possible label values present in the data set
         """
         return list(self.summarize(label, print_summary=False).dic.keys())
 
     def summarize(self, label, print_summary=True):
-        """Returns or prints a summary of all the DataObject values in the dataset selected by the label.
+        """Returns or prints a summary of all the DataObject values in the data set selected by the label.
 
         :param label: field label which values to summarize, for example 'BodyPartExamined' or 'Modality'
         :type label: str
@@ -295,7 +295,7 @@ class DicomoDataset(GemicaiDataset):
     def from_directory(folder_path, labels=[], transform=None, constraints={}):
         """Creates a data iterator from the supplied folder which should contain .gemset data sets
 
-        :param folder_path: a valid path to an existing folder which contains .gemset datasets
+        :param folder_path: a valid path to an existing folder which contains .gemset data sets
         :type folder_path: str
         :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
         :type labels: Optional[list]
@@ -315,7 +315,7 @@ class DicomoDataset(GemicaiDataset):
     def get_dicomo_dataset(data_set_path, labels=[], constraints={}):
         """Created a data iterator from the supplied file or folder path
 
-        :param data_set_path:  a valid path to an existing folder which contains .gemset datasets
+        :param data_set_path:  a valid path to an existing folder which contains .gemset data sets
             or a valid path to a .gemset file
         :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
         :type labels: Optional[list]
@@ -346,7 +346,7 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
     PickledDicomoFilePool object which can be iterated over, this results in a class that supports a parallel data
     loading. It's constructor takes in the following parameters:
 
-    :param base_path: a valid path to a folder containing a .gemset datasets
+    :param base_path: a valid path to a folder containing a .gemset data sets
     :type base_path: str
     :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
     :type labels: list
@@ -417,9 +417,9 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return True
 
     def subset(self, constraints):
-        """Returns a dataset subset using provided constraints. Subset is created by merging current dataset constraints
-         with the ones passed to this method. In order to store only the DataObjects fulfilling those constraints
-         please refer to the save method.
+        """Returns a data set subset using provided constraints. Subset is created by merging current data set
+        constraints with the ones passed to this method. In order to store only the DataObjects fulfilling those
+        constraints please refer to the save method.
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
             next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
@@ -456,8 +456,8 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
 
     def modify(self, index, fields):
         """Modifies the underlying DataObject with a given index using a provided dictionary with a field-value
-        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the dataset to 'CT'.
-        Note that the first object in the dataset has an index equal to zero.
+        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the data set to 'CT'.
+        Note that the first object in the data set has an index equal to zero.
 
         :param index: a non-negative index of the object to modify
         :type  index: int
@@ -467,19 +467,19 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).modify(index, fields)
 
     def split(self, sets={'train': 0.8, 'test': 0.2}, max_objects_per_file=1000, self_erase_afterwards=False):
-        """Splits the underlying original dataset into N-sets specified by the sets parameter. Each dataset that
+        """Splits the underlying original data set into N-sets specified by the sets parameter. Each data set that
         is a file with a .gemset extension should contain up to a max_objects_per_file DataObjects as a result. If
-        self_erase_afterwards is set to True the original dataset will be erased.
+        self_erase_afterwards is set to True the original data set will be erased.
 
         :param sets: dictionary with a valid path-ratio mappings, eg.
-            sets={'train': 0.8, 'test': 0.2} should split the original dataset into two sets with a ratio of 8:2. First
+            sets={'train': 0.8, 'test': 0.2} should split the original data set into two sets with a ratio of 8:2. First
             set should be saved into a 'train' folder and the second into a 'test' folder. The sum of all the ratios
             added up all together should be equal to 1.0.
         :type sets: dict
         :param max_objects_per_file: a non-negative integer specifying how many objects at maximum can be inside of each
             .gemset file
         :type max_objects_per_file: int
-        :param self_erase_afterwards: specifies whenever the original dataset should be removed after splitting or not.
+        :param self_erase_afterwards: specifies whenever the original data set should be removed after splitting or not.
         :type self_erase_afterwards: bool
         """
         PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints).\
@@ -490,7 +490,7 @@ class PickledDicomoFilePool(DicomoDataset):
     """This class takes in a list of files as an input and iterates over them.
     It's constructor takes in the following parameters:
 
-    :param file_pool: list of a valid file paths to .gemset datasets
+    :param file_pool: list of a valid file paths to .gemset data sets
     :type file_pool: list
     :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
     :type labels: list
@@ -567,9 +567,9 @@ class PickledDicomoFilePool(DicomoDataset):
             yield iter(PickledDicomoDataSet(file_path, self.labels, self.transform, self.constraints))
 
     def subset(self, constraints):
-        """Returns a dataset subset using provided constraints. Subset is created by merging current dataset constraints
-         with the ones passed to this method. In order to store only the DataObjects fulfilling those constraints
-         please refer to the save method.
+        """Returns a data set subset using provided constraints. Subset is created by merging current data set
+        constraints with the ones passed to this method. In order to store only the DataObjects fulfilling those
+        constraints please refer to the save method.
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
             next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
@@ -597,8 +597,8 @@ class PickledDicomoFilePool(DicomoDataset):
 
     def modify(self, index, fields):
         """Modifies the underlying DataObject with a given index using a provided dictionary with a field-value
-        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the dataset to 'CT'.
-        Note that the first object in the dataset has an index equal to zero.
+        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the data set to 'CT'.
+        Note that the first object in the data set has an index equal to zero.
 
         :param index: a non-negative index of the object to modify
         :type  index: int
@@ -624,23 +624,23 @@ class PickledDicomoFilePool(DicomoDataset):
             dataset.data_set.modify(len(dataset.data_set) - 1, fields)
 
         except StopIteration:
-            # turns out that the size of index is bigger (or equal) than the count of actual objects in the dataset
+            # turns out that the size of index is bigger (or equal) than the count of actual objects in the data set
             raise IndexError("given index is out of bounds for the given dataset")
 
     def split(self, sets={'train': 0.8, 'test': 0.2}, max_objects_per_file=1000, self_erase_afterwards=False):
-        """Splits the underlying original dataset into N-sets specified by the sets parameter. Each dataset that
+        """Splits the underlying original data set into N-sets specified by the sets parameter. Each data set that
         is a file with a .gemset extension should contain up to a max_objects_per_file DataObjects as a result. If
-        self_erase_afterwards is set to True the original dataset will be erased.
+        self_erase_afterwards is set to True the original data set will be erased.
 
         :param sets: dictionary with a valid path-ratio mappings, eg.
-            sets={'train': 0.8, 'test': 0.2} should split the original dataset into two sets with a ratio of 8:2. First
+            sets={'train': 0.8, 'test': 0.2} should split the original data set into two sets with a ratio of 8:2. First
             set should be saved into a 'train' folder and the second into a 'test' folder. The sum of all the ratios
             added up all together should be equal to 1.0.
         :type sets: dict
         :param max_objects_per_file: a non-negative integer specifying how many objects at maximum can be inside of each
             .gemset file
         :type max_objects_per_file: int
-        :param self_erase_afterwards: specifies whenever the original dataset should be removed after splitting or not.
+        :param self_erase_afterwards: specifies whenever the original data set should be removed after splitting or not.
         :type self_erase_afterwards: bool
         """
         if not isinstance(sets, dict):
@@ -665,7 +665,7 @@ class PickledDicomoFilePool(DicomoDataset):
         # TODO all of this has to be done because of how pickle works, maybe we should exchange it or implement our
         #  own file format?
 
-        # find out how many items there are in this dataset
+        # find out how many items there are in this data set
         # since we have to preserve this iterator's state let's create a new one
         dataset = iter(PickledDicomoFilePool(self.file_pool, self.labels, self.transform, self.constraints))
         objects = 0
@@ -685,7 +685,7 @@ class PickledDicomoFilePool(DicomoDataset):
         for file_count in should_get:
             sum += file_count
         if sum != objects:
-            raise AssertionError("it is impossible to split given dataset using current ratio")
+            raise AssertionError("it is impossible to split given data set using current ratio")
 
         # objects left before a new temp file has to be created, per set basis
         objects_left = [max_objects_per_file for _ in range(len(sets))]
@@ -761,10 +761,10 @@ class PickledDicomoFilePool(DicomoDataset):
 
 # TODO whole PickledDicomoDataFolder could be implemented in terms of PickledDicomoFilePool at this point
 class PickledDicomoDataFolder(DicomoDataset):
-    """This class takes in a path to a folder containing a .gemset datasets and iterates over them.
+    """This class takes in a path to a folder containing a .gemset data sets and iterates over them.
     It's constructor takes in the following parameters:
 
-    :param base_path: a path to a valid folder containing a .gemset datasets
+    :param base_path: a path to a valid folder containing a .gemset data sets
     :type base_path: str
     :param labels: labels specifying which DataObject values except for a tensor will be returned by the next() call
     :type labels: list
@@ -842,9 +842,9 @@ class PickledDicomoDataFolder(DicomoDataset):
         return False
 
     def subset(self, constraints):
-        """Returns a dataset subset using provided constraints. Subset is created by merging current dataset constraints
-         with the ones passed to this method. In order to store only the DataObjects fulfilling those constraints
-         please refer to the save method.
+        """Returns a data set subset using provided constraints. Subset is created by merging current data set
+         constraints with the ones passed to this method. In order to store only the DataObjects fulfilling those
+         constraints please refer to the save method.
 
         :param constraints: optional constraints that the DataObject has to fulfil in order to be returned by the
             next() call, eg. {'Modality': 'CT'} or {'Modality': ['CT', 'MG']}
@@ -972,7 +972,7 @@ class PickledDicomoDataSet(DicomoDataset):
                 # get next dicomo class from the stream
                 dicomo_class = next(self.pickle_stream)
                 if not isinstance(dicomo_class, gemicai.data_objects.DicomObject):
-                    raise TypeError("pickled dataset should contain gemicai.data_iterators.DicomObject but it contains "
+                    raise TypeError("pickled data set should contain gemicai.data_iterators.DicomObject but it contains "
                                     + type(dicomo_class))
 
                 if not self._meets_constraints(dicomo_class):
@@ -1085,14 +1085,14 @@ class PickledDicomoDataSet(DicomoDataset):
             # fetch next DataObjects until there are none left
             try:
                 for dicomo_class in self._stream_pickled_dicomos():
-                    # if a DataObject meets the dataset constraints put them into temp file
+                    # if a DataObject meets the data set constraints put them into temp file
                     if self._meets_constraints(dicomo_class):
                         gemicai.io.pickle.dump(dicomo_class, temp)
                         empty = False
             except EOFError:
                 None
             if not empty:
-                # if the dataset is not empty zip temp file's data to a specified folder
+                # if the data set is not empty zip temp file's data to a specified folder
                 temp.flush()
                 gemicai.io.pickle.zip_to_file(temp, os.path.join(directory, os.path.basename(self.pickle_path)))
         finally:
@@ -1101,8 +1101,8 @@ class PickledDicomoDataSet(DicomoDataset):
 
     def modify(self, index, fields):
         """Modifies the underlying DataObject with a given index using a provided dictionary with a field-value
-        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the dataset to 'CT'.
-        Note that the first object in the dataset has an index equal to zero.
+        mappings, eg. set.modify(2, {'Modality': 'CT'}) sets 'Modality' of a third object in the data set to 'CT'.
+        Note that the first object in the data set has an index equal to zero.
 
         :param index: a non-negative index of the object to modify
         :type  index: int
@@ -1146,13 +1146,13 @@ class PickledDicomoDataSet(DicomoDataset):
             except EOFError:
                 None
 
-            # exchange the dataset
+            # exchange the data set
             temp.flush()
             gemicai.io.pickle.zip_to_file(temp, self.pickle_path)
 
         except EOFError:
-            # turns out that the size of index is bigger (or equal) than the count of actual objects in the dataset
-            raise IndexError("given index is out of bounds for the given dataset")
+            # turns out that the size of index is bigger (or equal) than the count of actual objects in the data set
+            raise IndexError("given index is out of bounds for the given data set")
         finally:
             temp.close()
             os.remove(temp.name)
@@ -1163,19 +1163,20 @@ class PickledDicomoDataSet(DicomoDataset):
         os.remove(self.pickle_path)
 
     def split(self, sets={'train': 0.8, 'test': 0.2}, max_objects_per_file=1000, self_erase_afterwards=False):
-        """Splits the underlying original dataset into N-sets specified by the sets parameter. Each dataset that
+        """Splits the underlying original data set into N-sets specified by the sets parameter. Each data set that
          is a file with a .gemset extension should contain up to a max_objects_per_file DataObjects as a result. If
-         self_erase_afterwards is set to True the original dataset will be erased.
+         self_erase_afterwards is set to True the original data set will be erased.
 
          :param sets: dictionary with a valid path-ratio mappings, eg.
-             sets={'train': 0.8, 'test': 0.2} should split the original dataset into two sets with a ratio of 8:2. First
-             set should be saved into a 'train' folder and the second into a 'test' folder. The sum of all the ratios
-             added up all together should be equal to 1.0.
+            sets={'train': 0.8, 'test': 0.2} should split the original data set into two sets with a ratio of 8:2.
+            First set should be saved into a 'train' folder and the second into a 'test' folder. The sum of all the
+            ratios added up all together should be equal to 1.0.
          :type sets: dict
-         :param max_objects_per_file: a non-negative integer specifying how many objects at maximum can be inside of each
-             .gemset file
+         :param max_objects_per_file: a non-negative integer specifying how many objects at maximum can be inside of
+            each .gemset file
          :type max_objects_per_file: int
-         :param self_erase_afterwards: specifies whenever the original dataset should be removed after splitting or not.
+         :param self_erase_afterwards: specifies whenever the original data set should be removed after splitting or
+            not.
          :type self_erase_afterwards: bool
          """
         if not isinstance(sets, dict):
@@ -1195,12 +1196,12 @@ class PickledDicomoDataSet(DicomoDataset):
         if ratio_sum != 1.0:
             raise ValueError("ratios added up all together should result in 1.0")
 
-        # TODO: it would be smart to hold information how many objects there are in a dataset to not count that
+        # TODO: it would be smart to hold information how many objects there are in a data set to not count that
         #  everytime
         # TODO all of this has to be done because of how pickle works, maybe we should exchange it or implement our
         #  own file format?
 
-        # find out how many items there are in this dataset
+        # find out how many items there are in this data set
         # since we have to preserve this iterators state let's create a new one
         dataset = iter(PickledDicomoDataSet(self.pickle_path, self.labels, self.transform, self.constraints))
         objects = 0
@@ -1220,7 +1221,7 @@ class PickledDicomoDataSet(DicomoDataset):
         for file_count in should_get:
             sum += file_count
         if sum != objects:
-            raise AssertionError("it is impossible to split given dataset using current ratio")
+            raise AssertionError("it is impossible to split given data set using current ratio")
 
         # objects left before a new temp file has to be created, per set basis
         objects_left = [max_objects_per_file for _ in range(len(sets))]
@@ -1239,7 +1240,7 @@ class PickledDicomoDataSet(DicomoDataset):
             file_number = len(temp_files)
             obj = next(dataset.pickle_stream)
 
-            # split dataset
+            # split data set
             while True:
                 if should_get[current_file]:
 
