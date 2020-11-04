@@ -443,7 +443,7 @@ class ConcurrentPickledDicomObjectTaskSplitter(DicomoDataset):
         return self.__iter__().plot_one_of_every(label, cmap)
 
     def save(self, directory):
-        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as a .gemset files.
+        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as .gemset files.
 
         :param directory: a valid directory path to which data sets will be saved
         :type directory: str
@@ -582,7 +582,7 @@ class PickledDicomoFilePool(DicomoDataset):
         return PickledDicomoFilePool(self.file_pool, self.labels, self.transform, {**self.constraints, **constraints})
 
     def save(self, directory):
-        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as a .gemset files.
+        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as .gemset files.
 
         :param directory: a valid directory path to which data sets will be saved
         :type directory: str
@@ -865,7 +865,7 @@ class PickledDicomoDataFolder(DicomoDataset):
         return file_pool
 
     def save(self, directory):
-        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as a .gemset files.
+        """Saves DataObjects fulfilling the iterator's constraints to the specified directory as .gemset files.
 
          :param directory: a valid directory path to which data sets will be saved
          :type directory: str
