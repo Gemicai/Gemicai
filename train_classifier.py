@@ -111,12 +111,12 @@ def test():
     #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
     #                                                   constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
 
-    dataset = gem.PickledDicomoDataFolder(output, labels=['Modality'])
-    dataset.split(sets={os.path.join(output_new, 'train'): 0.8, os.path.join(output_new, 'test'): 0.2},
-                  max_objects_per_file=1, self_erase_afterwards=False)
+    #dataset = gem.PickledDicomoDataSet(output_file, labels=['Modality'])
+    #dataset.split(sets={os.path.join(output_new, 'train'): 0.8, os.path.join(output_new, 'test'): 0.2},
+    #              max_objects_per_file=1, self_erase_afterwards=False)
 
-    dataset = gem.PickledDicomoDataSet(output_file_test, labels=['Modality'])
-    print(next(iter(dataset)))
+    #dataset = gem.PickledDicomoDataSet(output_file_test, labels=['Modality'])
+    #print(next(iter(dataset)))
 
     #dataset.erase()
     #dataset.save(output_new)

@@ -97,13 +97,13 @@ class DicomObject(DataObject):
             return None
 
     def set(self, field, value):
-        """Sets a specified field to a given value
+        """Sets a specified field to a given value.
 
         :param field: string with a field name, eg. 'Modality'
         :type field: str
         :param value: value that the field will be set to
         :type value: any
-        :return True on success, False on failure
+        :return: True on success, False on failure
         """
         if not isinstance(field, str):
             raise TypeError("field parameter should be a string")
