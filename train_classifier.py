@@ -7,10 +7,10 @@ from datetime import datetime
 
 dicom_fields = ['Modality', 'ImageType', 'ProtocolName', 'StudyDescription', 'SeriesDescription', 'BodyPartExamined']
 path_input = os.path.join("examples", "dicom", "CT")
-path_output = os.path.join("examples", "gzip", "CT")
+path_output = os.path.join("examples", "gemset", "CT")
 
-train_dataset = os.path.join("examples", "gzip", "DX")
-eval_dataset = os.path.join("examples", "gzip", "DX")
+train_dataset = os.path.join("examples", "gemset", "DX")
+eval_dataset = os.path.join("examples", "gemset", "DX")
 classifier_path = os.path.join("classifiers", "dx_bpe.gemclas")
 trained_classifier_path = os.path.join("classifiers", "dx_bpe_trained.gemclas")
 
@@ -106,9 +106,11 @@ output_file_test = os.path.join("iterator_test_2", "test", "000001.gemset")
 output_file_train = os.path.join("iterator_test_2", "train", "000001.gemset")
 
 def test():
-    #gem.dicom_to_gemset(input, output, dicom_fields, objects_per_file=25,
-    #                    pick_middle=False)
-    #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(output_file, labels=['Modality'],
+    #gem.dicom_to_gemset(os.path.join("examples", "dicom", "DX"), os.path.join("examples", "gemset", "DX"),
+    #                    dicom_fields, objects_per_file=25,
+    #                       pick_middle=False)
+
+    #dataset = iter(gem.DicomoDataset.get_dicomo_dataset(os.path.join("examples", "gemset", "DX"), labels=['Modality'],
     #                                                   constraints={'BodyPartExamined': ['VERTEBRAL COLUMN']}))
 
     #dataset = gem.PickledDicomoDataSet(output_file, labels=['Modality'])
