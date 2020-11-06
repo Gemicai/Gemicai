@@ -1,14 +1,11 @@
-import os,sys,inspect
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+import os
 import gemicai as gem
 import unittest
 
-raw_dicom_directory = os.path.join(parent_dir, "examples", "dicom", "CT")
+raw_dicom_directory = os.path.join("..", "examples", "dicom", "CT")
 raw_dicom_file_path = os.path.join(raw_dicom_directory, "325261597578315993471860132776680.dcm.gz")
 
-dicom_directory = os.path.join(parent_dir, "examples", "gzip", "CT")
+dicom_directory = os.path.join("..", "examples", "gemset", "CT")
 dicom_data_set = os.path.join(dicom_directory, "000001.gemset")
 
 
@@ -24,7 +21,7 @@ class TestLabelCounter(unittest.TestCase):
     def test_update_wrong_param_type(self):
         ctr = gem.LabelCounter()
         with self.assertRaises(TypeError):
-            ctr.update(None)
+            ctr.update(dict())
 
     def test_update_correct_param(self):
         ctr = gem.LabelCounter()

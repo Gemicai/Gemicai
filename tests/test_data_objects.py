@@ -1,15 +1,12 @@
-import os,sys,inspect
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+import os
 import gemicai.data_objects as test
 import unittest
 
 
-wrong_dicom_file_path = os.path.join(parent_dir, "325261597578315993471860132776680.dcm.gz")
-correct_dicom_file_path = os.path.join(parent_dir, "examples", "dicom", "CT",
+wrong_dicom_file_path = os.path.join("..", "325261597578315993471860132776680.dcm.gz")
+correct_dicom_file_path = os.path.join("..", "examples", "dicom", "CT",
                                        "325261597578315993471860132776680.dcm.gz")
-gemset_path = os.path.join(parent_dir, "examples", "gzip", "CT", "000001.gemset")
+gemset_path = os.path.join("..", "examples", "gemset", "CT", "000001.gemset")
 
 
 class TestDicomObject(unittest.TestCase):

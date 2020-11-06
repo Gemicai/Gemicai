@@ -3,20 +3,9 @@ import torchvision.models as models
 import gemicai as gem
 import unittest
 
-# TODO: We do not need this code:
-# import os,sys,inspect
-# current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-# parent_dir = os.path.dirname(current_dir)
-# sys.path.insert(0, parent_dir)
-# TODO: It's not super important, as this works as well, however if you do a development install of gemicai
-#  (the README.md says how to do that) you can import gemicai everywhere withouth having to worry about relative imports
-
-
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
-data_path = os.path.join("examples", "gzip", "CT")
+data_path = os.path.join("..", "examples", "gemset", "CT")
 data_set = os.path.join(data_path, "000001.gemset")
-test_classifier_dir = os.path.join(parent_dir, "test_directory")
+test_classifier_dir = os.path.join("test_directory")
 
 model = models.resnet18(pretrained=True)
 train_dataset = gem.DicomoDataset.get_dicomo_dataset(data_path, labels=['BodyPartExamined'])
@@ -197,7 +186,7 @@ class TestClassifier(unittest.TestCase):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
         os.mkdir(test_classifier_dir)
         try:
-            classifier_path = os.path.join(test_classifier_dir, "1.pkl")
+            classifier_path = os.path.join(test_classifier_dir, "1.gemclas")
             classifier.save(classifier_path)
             self.assertEqual(os.path.isfile(classifier_path), True)
         finally:
@@ -209,7 +198,7 @@ class TestClassifier(unittest.TestCase):
 
     def test_save_invalid_path(self):
         classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
-        classifier_path = os.path.join(test_classifier_dir, "1.pkl")
+        classifier_path = os.path.join(test_classifier_dir, "1.gemclas")
         with self.assertRaises(FileNotFoundError):
             classifier.save(classifier_path)
 
@@ -258,7 +247,7 @@ class TestClassifier(unittest.TestCase):
         test_mode(classifier, False)
 
     def test_from_file_invalid_path(self):
-        classifier_path = os.path.join(test_classifier_dir, "1.pkl")
+        classifier_path = os.path.join(test_classifier_dir, "1.gemclas")
         with self.assertRaises(FileNotFoundError):
             gem.Classifier.from_file(classifier_path)
 
@@ -275,10 +264,10 @@ class TestClassifier(unittest.TestCase):
     def test_from_file_pickled_file_but_wrong_data_inside(self):
         os.mkdir(test_classifier_dir)
         try:
-            test_file_path = os.path.join(test_classifier_dir, "1.pkl")
+            test_file_path = os.path.join(test_classifier_dir, "1.gemclas")
             variable = list()
             with open(test_file_path, 'wb') as output:
-                gem.io.pickle.dump(variable, output, gem.pickle.HIGHEST_PROTOCOL)
+                gem.io.pickle.dump(variable, output)
 
             self.assertEqual(os.path.isfile(test_file_path), True)
             with self.assertRaises(TypeError):
@@ -294,7 +283,7 @@ class TestClassifier(unittest.TestCase):
         os.mkdir(test_classifier_dir)
         try:
             self.maxDiff = None
-            test_file_path = os.path.join(test_classifier_dir, "1.pkl")
+            test_file_path = os.path.join(test_classifier_dir, "1.gemclas")
             classifier = gem.Classifier(model, train_dataset.classes('BodyPartExamined'))
             classifier.save(test_file_path)
             classifier = gem.Classifier.from_file(test_file_path)

@@ -6,6 +6,9 @@
 Welcome to Gemicai's documentation!
 ===================================
 
+Please note that the Gemicai is still in the early development stage (ver 0.5.0), therefore
+some parts of the documentation could be missing. 
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

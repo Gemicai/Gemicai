@@ -35,13 +35,18 @@ def save(file_path, obj, zipped=False):
         raise Exception('Object of type {} is not supported by gemicai.io'.format(type(obj)))
     if zipped:
         temp = tempfile.NamedTemporaryFile(mode="ab+", delete=False)
-        dump(obj=obj, file=temp, protocol=pickle.HIGHEST_PROTOCOL)
-        zip_to_file(temp, get_path_with_extension(file_path, obj))
-        temp.close()
-        os.remove(temp.name)
+        try:
+            dump(obj, temp)
+            zip_to_file(temp, get_path_with_extension(file_path, obj))
+        finally:
+            temp.close()
+            os.remove(temp.name)
     else:
         f = open(get_path_with_extension(file_path, obj), 'wb')
-        dump(obj=obj, file=f, protocol=pickle.HIGHEST_PROTOCOL)
+        try:
+            dump(obj, f)
+        finally:
+            f.close()
 
 
 def load(file_path, zipped=False):
@@ -62,7 +67,7 @@ def load(file_path, zipped=False):
             res = pickle.load(inp)
     res_type = supported_ojbects[file_extensions.index('.'+file_path.split('.')[-1])]
     if type(res) != res_type:
-        raise Exception('{} should contain object of type {}, instead got {}'.format(file_path, res_type, type(res)))
+        raise TypeError('{} should contain object of type {}, instead got {}'.format(file_path, res_type, type(res)))
     return res
 
 

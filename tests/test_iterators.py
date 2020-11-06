@@ -1,16 +1,13 @@
-import os,sys,inspect
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+import os
 import gemicai.data_iterators as test
 import torchvision
 import unittest
 
-raw_dicom_directory = os.path.join(parent_dir, "examples", "dicom", "CT")
+raw_dicom_directory = os.path.join("..", "examples", "dicom", "CT")
 raw_dicom_file_path = os.path.join(raw_dicom_directory, "325261597578315993471860132776680.dcm.gz")
 
-wrong_dicom_file_path = os.path.join(parent_dir, "000001.gemset")
-dicom_directory = os.path.join(parent_dir, "examples", "gzip", "CT")
+wrong_dicom_file_path = os.path.join("..", "000001.gemset")
+dicom_directory = os.path.join("..", "examples", "gemset", "CT")
 dicom_data_set = os.path.join(dicom_directory, "000001.gemset")
 
 
@@ -116,7 +113,7 @@ class TestPickledDicomoDataSet(unittest.TestCase):
     def test_summarize_test_CT_constraint(self):
         data = test.PickledDicomoDataSet(dicom_data_set, ["CT"], constraints={})
         summary_1 = data.summarize("Modality", print_summary=False)
-        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        summary_2 = data.summarize("BodyPartExamined", print_summary=False)
         self.assertNotEqual(str(summary_1), str(summary_2))
 
     def test_summarize_wrong_summary_type(self):
@@ -188,7 +185,7 @@ class TestPickledDicomoDataFolder(unittest.TestCase):
         with self.assertRaises(StopIteration):
             while True:
                 next(data)
-        self.assertEqual(len(data), 149)
+        self.assertEqual(len(data), 49)
 
     def test_can_be_parallelized(self):
         data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
@@ -220,7 +217,7 @@ class TestPickledDicomoDataFolder(unittest.TestCase):
     def test_summarize_test_CT_constraint(self):
         data = test.PickledDicomoDataFolder(dicom_directory, ["CT"], constraints={})
         summary_1 = data.summarize("Modality", print_summary=False)
-        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        summary_2 = data.summarize("BodyPartExamined", print_summary=False)
         self.assertNotEqual(str(summary_1), str(summary_2))
 
     def test_summarize_wrong_summary_type(self):
@@ -323,7 +320,7 @@ class TestPickledDicomoFilePool(unittest.TestCase):
     def test_summarize_test_CT_constraint(self):
         data = test.PickledDicomoFilePool([dicom_data_set], ["CT"], constraints={})
         summary_1 = data.summarize("Modality", print_summary=False)
-        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        summary_2 = data.summarize("BodyPartExamined", print_summary=False)
         self.assertNotEqual(str(summary_1), str(summary_2))
 
     def test_summarize_wrong_summary_type(self):
@@ -421,7 +418,7 @@ class TestConcurrentPickledDicomObjectTaskSplitter(unittest.TestCase):
     def test_summarize_test_CT_constraint(self):
         data = test.ConcurrentPickledDicomObjectTaskSplitter(dicom_directory, ["CT"], constraints={})
         summary_1 = data.summarize("Modality", print_summary=False)
-        summary_2 = data.summarize("Modality", {"Modality": "ble"}, print_summary=False)
+        summary_2 = data.summarize("BodyPartExamined", print_summary=False)
         self.assertNotEqual(str(summary_1), str(summary_2))
 
     def test_summarize_wrong_summary_type(self):

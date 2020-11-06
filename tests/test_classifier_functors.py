@@ -7,7 +7,7 @@ import unittest
 class TestDefaultLastLayerConfig(unittest.TestCase):
     def setUp(self):
         self.model = models.resnet18(pretrained=True)
-        self.dataset = gem.DicomoDataset.get_dicomo_dataset(os.path.join("examples", "gzip", "CT"),
+        self.dataset = gem.DicomoDataset.get_dicomo_dataset(os.path.join("..", "examples", "gemset", "CT"),
                                                        labels=['BodyPartExamined'])
         self.classes = self.dataset.classes('BodyPartExamined')
         self.functor = gem.classifier_functors.DefaultLastLayerConfig()
