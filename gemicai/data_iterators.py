@@ -163,7 +163,7 @@ class DicomoDataset(GemicaiDataset):
 
     def __getitem__(self, arg):
         """Custom override for a __getitem__ method. Returns a new data iterator that returns only objects with a
-        label by a given by an arg
+        label given by an arg
 
         :param arg: index of a label stored in the self.labels list
         :type arg: int
@@ -183,7 +183,7 @@ class DicomoDataset(GemicaiDataset):
         pass
 
     @abstractmethod
-    def subset(self):
+    def subset(self, constraints):
         pass
     
     @abstractmethod

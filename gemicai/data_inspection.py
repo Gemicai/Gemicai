@@ -7,13 +7,20 @@ import torch
 
 # TODO: Implement so that this function actually writes back to gemset
 def correct_dataset(net: gem.Classifier, dataset: gem.GemicaiDataset):
-    for tensor, label in dataset:
+    for index, tensor, label in enumerate(dataset):
         prediction = net.classify(tensor)
         if prediction[0][0][0] != label:
             print('True label: {}\nPrediction : {}'.format(label, prediction))
             plt.imshow(torch.transpose(tensor, 0, 2))
             plt.show()
-            input('Overwrite class?')
+
+            override = ''
+            while override != 'Y' or override != 'N':
+                override = input('Overwrite class? [Y/N]')
+
+            if override == 'Y':
+                dataset.modify(index, {dataset.labels[0]: prediction[0][0][0]})
+
             print('\n\n')
 
 
@@ -33,14 +40,3 @@ def generate_metadata_df(dataset_folder):
             }
         )
     return pd.DataFrame(df)
-
-
-# Makes an excel file for the metadata and puts it in the specified dataset folder
-def generate_metadata_excel(dataset_folder):
-    generate_metadata_df(dataset_folder).to_excel('/home/nheinen/metadata.xlsx')
-
-
-if __name__ == '__main__':
-    generate_metadata_excel('/mnt/SharedStor/dataset/PT')
-
-
