@@ -231,7 +231,6 @@ class Classifier:
 
     def classify(self, tensor):
         """Takes in a tensor object and returns a list of predicted class types along with their certainties.
-
         :param tensor: tensor to classify
         :type tensor: torch.Tensor
         :return: list of predicted classes and their certainty
@@ -279,6 +278,7 @@ class Classifier:
         if not isinstance(enable_cuda, bool):
             raise TypeError("enable_cuda parameter should be a bool")
 
+        self.enable_cuda = enable_cuda
         # select a correct cuda device
         if enable_cuda:
             if not torch.cuda.is_available():
@@ -317,20 +317,29 @@ class Classifier:
                 param.requires_grad = to_set[0][1]
 
     @staticmethod
-    def from_file(file_path=None, zipped=False):
+    def from_file(file_path=None, zipped=False, enable_cuda=None):
         """Used to load a Classifier object from a given file
 
         :param file_path: a valid path to a file up to and including it's extension type.
         :type file_path: str
         :param zipped: whenever given file is zipped or not
         :type zipped: bool
+        :param enable_cuda: Wheter or not cuda should be enabled,
+        :type enable_cuda: bool
         :return: a valid Classifier object
         :raises TypeError: thrown if the given path is of an invalid format
         :raises Exception: thrown if Classifier object could not have been loaded in from the given file
         """
         if not isinstance(file_path, str):
             raise TypeError("load_from_pickle method expects a pkl_file_path to be an instance of string")
-        return gem.io.load(file_path, zipped=zipped)
+        net = gem.io.load(file_path, zipped=zipped)
+
+        if enable_cuda is None:
+            enable_cuda = torch.cuda.is_available()
+        if net.enable_cuda != enable_cuda:
+            net.set_device(enable_cuda=enable_cuda)
+
+        return net
 
     @staticmethod
     def validate_dataset_parameters(dataset, batch_size, num_workers, pin_memory, test_dataset, verbosity,

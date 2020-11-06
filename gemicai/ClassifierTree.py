@@ -1,3 +1,5 @@
+import torch
+
 import gemicai as gem
 import pickle
 import copy
@@ -169,7 +171,7 @@ class ClassifierNode:
 
         # ClassifierNode will contain meta data about the classifier like how accurate it is. Otherwise training and
         # evaluating a big ClassifierTree is going to be impossible.
-        self.accuracy = '77.77%'
+        self.accuracy = 'N/A'
 
     def train(self, dataset, epochs=20, num_workers=0, pin_memory=False, verbosity=0):
         dataset = dataset.subset(self.dataset_constraints)[self.label]
@@ -215,4 +217,7 @@ class ClassifierNode:
     def from_file(file_path):
         node = gem.io.load(file_path)
         node.file_path = file_path
+        enable_cuda = torch.cuda.is_available()
+        if node.classifier.enable_cuda != enable_cuda:
+            node.classifier.set_device(enable_cuda=enable_cuda)
         return node

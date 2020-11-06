@@ -54,8 +54,6 @@ class GemicaiZGT(Gemicai):
     def _classify_mg(self, tensor):
         net = gem.Classifier.from_file(os.path.join(self.classifiers_path, 'mg', 'resnext.gemclas'))
         return {
-            'Modality': [('MG', 1.0)],
-            'BodyPartExamined': [('BREAST', 1.0)],
             'SeriesDescription': net.classify(tensor)[0]
         }
 
