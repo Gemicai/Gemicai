@@ -166,14 +166,13 @@ class DicomoDataset(GemicaiDataset):
         label given by an arg
 
         :param arg: index of a label stored in the self.labels list
-        :type arg: int
+        :type arg: int or str representing a label from self.labels
         :return: a new data iterator of the same type
         :raises TypeError: raised if arg is not of an int type
         """
-        if not isinstance(arg, int):
-            raise TypeError("Argument should have an int type")
+        if isinstance(arg, int):
+            arg = self.labels[arg]
 
-        arg = self.labels[arg]
         if arg not in self.labels:
             raise ValueError('Specified argument not in gemset labels. Valid labels are: {}'.format(self.labels))
         return type(self)(self.base_path, labels=[arg], transform=self.transform, constraints=self.constraints)
