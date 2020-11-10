@@ -80,7 +80,7 @@ class ClassifierTree:
         labels = list(dic.keys())
         for label, (cnt_classifiers, cnt_classes) in dic.items():
             data.append([labels.index(label), label, cnt_classifiers, '{:.1f}'.format(cnt_classes / cnt_classifiers)])
-        return str(tabulate(data, headers=['Depth', 'Label', 'Classifiers', 'Avg. classes'], tablefmt='orgtbl'))
+        return str(tabulate(data, headers=['Depth', 'Label', 'Classifiers', 'Avg. classes'], tablefmt='orgtbl'))+'\n'
 
     def __iter__(self):
         # TODO: For gemicai version 1.0 it might be a nice idea to give ClassifierTree an iterator that iterators over
@@ -130,17 +130,15 @@ class ClassifierTree:
             return {self.root.label: predicted, **child.classify(tensor)}
 
     # Returns list of all nodes in tree
-    def nodes_in_tree(self, _nodes=None):
-        if _nodes is None:
-            nodes = [self.root.file_path]
+    def nodes_in_tree(self):
+        nodes = [self.root.file_path]
         for child_path in self.root.children():
             child = ClassifierTree.from_dir(child_path)
             if child.root.is_leaf():
                 nodes.append(child.root.file_path)
             else:
-                child.nodes_in_tree(_nodes=nodes)
-        if _nodes is None:
-            return nodes
+                nodes.extend(child.nodes_in_tree())
+        return nodes
 
     # Instantiates ClassifierTree object from ClassifierNode, or ClassifierNode filepath
     @staticmethod

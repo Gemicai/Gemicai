@@ -132,26 +132,30 @@ class Classifier:
         for epoch in range(epochs):
             running_loss, total = 0.0, 0
             for i, data in enumerate(data_loader):
-                # get the inputs; data is a list of [tensors, labels]
-                tensors, labels = data
-                total += len(labels)
+                try:
+                    # get the inputs; data is a list of [tensors, labels]
+                    tensors, labels = data
+                    total += len(labels)
 
-                tensors = tensors.to(self.device)
-                # labels returned by the data loader are strings, we need to convert this to an int
-                labels = torch.tensor([self.classes.index(label) for label in labels]) \
-                    .to(self.device, non_blocking=pin_memory)
+                    tensors = tensors.to(self.device)
+                    # labels returned by the data loader are strings, we need to convert this to an int
+                    labels = torch.tensor([self.classes.index(label) for label in labels]) \
+                        .to(self.device, non_blocking=pin_memory)
 
-                # zero the parameter gradients
-                self.optimizer.zero_grad()
+                    # zero the parameter gradients
+                    self.optimizer.zero_grad()
 
-                # forward + backward + optimize
-                outputs = self.module(tensors)
-                loss = self.loss_function(outputs, labels)
-                loss.backward()
-                self.optimizer.step()
+                    # forward + backward + optimize
+                    outputs = self.module(tensors)
+                    loss = self.loss_function(outputs, labels)
+                    loss.backward()
+                    self.optimizer.step()
 
-                running_loss += loss.item()
-                total += len(labels)
+                    running_loss += loss.item()
+                    total += len(labels)
+                except ValueError:
+                    # This happens if provided label is not in classes.
+                    pass
             if verbosity >= 1:
                 epoch_time = datetime.now() - start
                 start = datetime.now()
@@ -208,21 +212,28 @@ class Classifier:
         class_total = list(0. for _ in range(len(self.classes)))
         with torch.no_grad():
             for data in data_loader:
-                images, labels = data
-                images = images.to(self.device)
-                labels = torch.tensor([self.classes.index(label) for label in labels]) \
-                    .to(self.device, non_blocking=pin_memory)
-                outputs = self.module(images)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                try:
+                    images, labels = data
+                    images = images.to(self.device)
+                    labels = torch.tensor([self.classes.index(label) for label in labels]) \
+                        .to(self.device, non_blocking=pin_memory)
+                    outputs = self.module(images)
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
 
-                if verbosity >= 2:
-                    for true_label, predicted_label in zip(labels, predicted):
-                        if true_label == predicted_label:
-                            class_correct[true_label] += 1
-                        class_total[true_label] += 1
-            acc = round(100 * correct / total, 2)
+                    if verbosity >= 2:
+                        for true_label, predicted_label in zip(labels, predicted):
+                            if true_label == predicted_label:
+                                class_correct[true_label] += 1
+                            class_total[true_label] += 1
+                except ValueError as e:
+                    # This happens if provided label is not in classes.
+                    pass
+            if total == 0:
+                acc = 'N/A'
+            else:
+                acc = round(100 * correct / total, 2)
             if verbosity == 1:
                 output_policy.accuracy_summary_basic(total, correct, acc)
             if verbosity >= 2:
