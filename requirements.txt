@@ -8,3 +8,5 @@ openpyxl>=3.0.5
 tabulate~=0.8.7
 numpy~=1.19.1
 setuptools~=49.6.0
+gemicai>=0.5.0b0
+scikit-learn>=0.23.2

@@ -1,15 +1,17 @@
 import setuptools
 
-long_description = '''Gemicai is at its core a deep learning library that makes working with PyToch. 
-Gemicai also contains extensive functionality for the Dicom standard. 
-This makes Gemicai an excellent tool for dealing with deep-learning-based medical image classifiers.'''
+long_description = '''Gemicai is an open-source deep-learning library with extensive functionality for the Dicom 
+standard. Its functionalities and applicability make Gemicai an excellent tool for research concerning artificial 
+intelligence in medical imaging. A key benefit of Gemicai is making data pre-processing practical and easy to use while 
+automatically configuring the GPU hardware acceleration. This enables researchers to save time on ordinary tasks so that 
+they can focus on more important matters. '''
 
 setuptools.setup(
-    name='gemicai',
-    version='0.5.0b',
+    name='Gemicai',
+    version='0.5.0',
     author='Gemicai',
     author_email='info@gemic.ai',
-    description='Deep learning library for medical research ini PyTorch',
+    description='Deep learning library for medical imaging',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/gemicai/utilities',

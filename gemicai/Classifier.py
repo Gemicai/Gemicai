@@ -12,6 +12,7 @@ import torch
 from gemicai.utils import strfdelta
 from operator import itemgetter
 import gemicai as gem
+from sklearn.metrics import confusion_matrix
 
 
 class Classifier:
@@ -172,7 +173,7 @@ class Classifier:
             output_policy.training_finished(start, datetime.now())
 
     def evaluate(self, dataset, batch_size=4, num_workers=0, pin_memory=False, verbosity=0,
-                 output_policy=policy.ToConsole()):
+                 output_policy=policy.ToConsole(), plot_cm=False):
         """Used to evaluate the model's performance on a provided dataset.
 
         :param dataset: dataset iterator used in order to evaluate a model's performance.
@@ -210,6 +211,7 @@ class Classifier:
         correct, total = 0, 0
         class_correct = list(0. for _ in range(len(self.classes)))
         class_total = list(0. for _ in range(len(self.classes)))
+        true_labels, pred_labels = [], []
         with torch.no_grad():
             for data in data_loader:
                 try:
@@ -221,7 +223,9 @@ class Classifier:
                     _, predicted = torch.max(outputs.data, 1)
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
-
+                    if plot_cm:
+                        true_labels.extend(labels.tolist())
+                        pred_labels.extend(predicted.tolist())
                     if verbosity >= 2:
                         for true_label, predicted_label in zip(labels, predicted):
                             if true_label == predicted_label:
@@ -238,6 +242,9 @@ class Classifier:
                 output_policy.accuracy_summary_basic(total, correct, acc)
             if verbosity >= 2:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
+            if plot_cm:
+                cm = confusion_matrix(true_labels, pred_labels)
+                gem.utils.plot_confusion_matrix(cm, classes=self.classes, title='Confusion Matrix')
             return acc, total, correct
 
     def classify(self, tensor):
