@@ -118,7 +118,11 @@ class ClassifierTree:
             node = ClassifierNode.from_file(node_path)
             acc, total, _ = node.evaluate(dataset)
             parents = os.path.relpath(os.path.dirname(node_path), self.path)
-            data = [i + 1, len(parents.split('/')), parents, len(node.classifier.classes), total, str(acc)+'%']
+            if parents == '.':
+                depth = 0
+            else:
+                depth = len(parents.split('/'))
+            data = [i + 1, depth, parents, len(node.classifier.classes), total, str(acc)+'%']
             gem.utils.table_print(template, data)
 
     def classify(self, tensor):

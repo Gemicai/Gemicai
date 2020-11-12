@@ -133,7 +133,7 @@ class ToConsole(OutputPolicy):
         :param now: current time
         :type now: datetime.datetime
         """
-        print('Training finished, total time elapsed: {}'.format(now - start))
+        print('Training finished, total time elapsed: {}\n'.format(now - start))
 
     def accuracy_summary_basic(self, total, correct, acc):
         """Outputs model evaluation statistics to the console if verbosity is set to 1.
