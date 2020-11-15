@@ -126,7 +126,8 @@ class Classifier:
         self.module = self.module.to(self.device, non_blocking=pin_memory)
         self.loss_function = self.loss_function.to(self.device, non_blocking=pin_memory)
 
-        start = datetime.now()
+        epoch_start = datetime.now()
+        start = epoch_start
         if verbosity >= 1:
             output_policy.training_header()
 
@@ -158,16 +159,16 @@ class Classifier:
                     # This happens if provided label is not in classes.
                     pass
             if verbosity >= 1:
-                epoch_time = datetime.now() - start
-                start = datetime.now()
-                eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
-                train_acc, test_acc = '-', '-'
                 # Evaluating models increases epoch time significantly
+                train_acc, test_acc = '-', '-'
                 if verbosity >= 2:
                     train_acc = str(self.evaluate(dataset)[0]) + '%'
                     if test_dataset is not None:
                         test_acc = str(self.evaluate(test_dataset)[0]) + '%'
+                epoch_time = datetime.now() - epoch_start
+                epoch_start = datetime.now()
                 elapsed = strfdelta(epoch_time, '%H:%M:%S')
+                eta = (datetime.now() + (epochs - epoch) * epoch_time).strftime('%H:%M:%S')
                 output_policy.training_epoch_stats(epoch + 1, running_loss, total, train_acc, test_acc, elapsed, eta)
         if verbosity >= 1:
             output_policy.training_finished(start, datetime.now())
