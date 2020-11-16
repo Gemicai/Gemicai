@@ -19,8 +19,8 @@ class Gemicai(ABC):
 # The ZGT implementation of a Gemicai
 class GemicaiZGT(Gemicai):
     def __init__(self, classifiers_path):
-        self.relevant_modalities = ['CT', 'DX', 'MG', 'MR', 'PT', 'US']
-        # self.relevant_modalities = ['DX', 'MG']
+        # self.relevant_modalities = ['CT', 'DX', 'MG', 'MR', 'PT', 'US']
+        self.relevant_modalities = ['DX', 'MG']
         self.classifiers_path = classifiers_path
         self.trees = {
             'DX': gem.ClassifierTree.from_dir(os.path.join(self.classifiers_path, 'dx_tree'))
@@ -30,7 +30,8 @@ class GemicaiZGT(Gemicai):
         assert isinstance(dcm, pydicom.Dataset), 'classify parameter should be of type pydicom.Dataset'
         modality = getattr(dcm, 'Modality')
         if modality not in self.relevant_modalities:
-            raise Exception('Modality "{}" is not supported.'.format(modality))
+            raise Exception('Modality "{}" is not supported. Supported modalities: {}'
+                            .format(modality, self.relevant_modalities))
         tensor = gem.extract_tensor(dcm)
 
         # All modalities just classify with DX tree for now, as im still training the trees. This way Kevin can use the
@@ -49,7 +50,7 @@ class GemicaiZGT(Gemicai):
             return self._classify_us(tensor)
 
     def _classify_ct(self, tensor):
-        return self.trees['DX'].classify(tensor)
+        raise not NotImplementedError
 
     def _classify_mg(self, tensor):
         net = gem.Classifier.from_file(os.path.join(self.classifiers_path, 'mg', 'resnext.gemclas'))
@@ -61,10 +62,10 @@ class GemicaiZGT(Gemicai):
         return self.trees['DX'].classify(tensor)
 
     def _classify_mr(self, tensor):
-        return self.trees['DX'].classify(tensor)
+        raise not NotImplementedError
 
     def _classify_pt(self, tensor):
-        return self.trees['DX'].classify(tensor)
+        raise not NotImplementedError
 
     def _classify_us(self, tensor):
-        return self.trees['DX'].classify(tensor)
+        raise not NotImplementedError

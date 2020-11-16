@@ -7,7 +7,6 @@ import gemicai.data_iterators as iterators
 import gemicai.output_policies as policy
 from datetime import datetime
 import torch.nn as nn
-import pickle
 import torch
 from gemicai.utils import strfdelta
 from operator import itemgetter
@@ -244,7 +243,10 @@ class Classifier:
             if verbosity >= 2:
                 output_policy.accuracy_summary_extended(self.classes, class_total, class_correct)
             if plot_cm:
-                cm = confusion_matrix(true_labels, pred_labels)
+                true_labels = [self.classes[i] for i in true_labels]
+                pred_labels = [self.classes[i] for i in pred_labels]
+                cm = confusion_matrix(true_labels, pred_labels, labels=self.classes)
+                # classes = [self.classes[label] for label in list(set(true_labels))]
                 gem.utils.plot_confusion_matrix(cm, classes=self.classes, title='Confusion Matrix')
             return acc, total, correct
 
